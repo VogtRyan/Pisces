@@ -1,0 +1,220 @@
+.\" Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+.\"
+.\" Permission to use, copy, modify, and/or distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd July 26, 2023
+.Dt PISCES 1
+.Os
+.Sh NAME
+.Nm pisces
+.Nd encrypt and decrypt files based on the AES standard
+.Sh SYNOPSIS
+.Nm pisces
+.Op Fl de
+.Op Fl p Ar password
+.Ar input_file
+.Ar output_file
+.Nm pisces
+.Op Fl de
+.Op Fl p Ar password
+.Fl i
+.Ar output_file
+.Nm pisces
+.Op Fl de
+.Op Fl p Ar password
+.Fl o
+.Ar input_file
+.Nm pisces
+.Op Fl de
+.Op Fl p Ar password
+.Fl i
+.Fl o
+.Sh DESCRIPTION
+The
+.Nm
+utility will encrypt or decrypt either the contents of a named
+.Ar input_file
+or data from standard input. The
+.Nm
+utility will then write the result of that operation either to a named
+.Ar output_file
+or to standard output. By default,
+.Nm
+encrypts the given input source.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl d
+Decrypt
+.Ar input_file .
+.It Fl e
+Encrypt
+.Ar input_file .
+This option is the default behaviour of
+.Nm .
+.It Fl i
+Use standard input as the input source instead of a file.
+.It Fl o
+Output to standard output instead of an output file.
+.It Fl p Ar password
+Use the password provided on the command line, instead of prompting for one. It
+may be useful to enclose the password in single quotes, to prevent the shell
+from attempting to parse it. Note that this option may compromise the security
+of the password, e.g., if an adversary is running
+.Xr ps 1
+or has access to your shell history.
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+To encrypt the contents of an input file, foo.txt, to an output file, foo.enc:
+.Pp
+.Dl $ pisces foo.txt foo.enc
+.Pp
+To decrypt the contents of the file foo.enc, with a command-line argument as
+the password, and store the original unencrypted data in a new file, foo.orig:
+.Pp
+.Dl $ pisces -d -p 'secret' foo.enc foo.orig
+.Pp
+To decrypt a file to standard output and filter the contents using
+.Xr grep 1 :
+.Pp
+.Dl $ pisces -d -o foo.enc | grep bar
+.Pp
+To encrypt a file from standard input, piped from
+.Xr cat 1 :
+.Pp
+.Dl $ cat foo.txt | pisces -i foo.enc
+.Pp
+To archive and encrypt a directory, foodir/, with the GNU version of
+.Xr tar 1
+(installed as
+.Ql gtar
+in the example) performing the archiving operation:
+.Pp
+.Bd -literal -offset indent 
+$ gtar czf - foodir/ --format=posix | \\
+    pisces -i foodir.enc
+.Ed
+.Pp
+To restore an archived, encrypted directory to a new directory, newfoo/:
+.Pp
+.Bd -literal -offset indent 
+$ mkdir newfoo/
+$ pisces -d -o foodir.enc | \\
+    gtar xzf - --strip-components=1 -C newfoo/ 
+.Ed
+.Sh ENCRYPTION ALGORITHM
+When
+.Nm
+is used to encrypt a file, the user enters a one-line password (or passphrase)
+that will later be used to decrypt the file. That password is transformed into
+an encryption key, K, using a key derivation function, KDF. KDF will salt the
+password using a randomly generated salt, S, with length equal to the length of the key K.
+.Pp
+The first element placed into
+.Ar output_file
+is a header. The header begins with the six characters PISCES, followed by a
+one-byte encoding of the file format version. The current version of the
+.Nm
+utility uses the Pisces version 5 specifications, so the single byte 0x05 will
+be output. The next component in the header is the salt, S. That will be
+followed by two randomly generated initialization vectors, denoted I and J.
+.Pp
+Following the header, an imprint is placed into
+.Ar output_file .
+When
+.Nm
+is used to decrypt the file, and a user enters password P' which gets
+transformed using the stored salt S into a key K', the imprint makes it
+possible to check quickly whether K' was the key used to encrypt that file.
+However, given the imprint, it is not feasible to compute the key K that was
+used in the original encryption. Specifically, some random data R is generated.
+Then, a cryptographic hash of R is computed, H(R), and these data are concatenated:
+R\ ||\ H(R).
+The imprint is an encrypted version of this concatenation using the key K and
+the initialization vector I:
+E[K,\ I](R\ ||\ H(R)).
+.Pp
+For the imprint, the size of R is chosen such that it is at least as large as
+the output of H, and at least as large as both the block size and key size of
+E. Furthermore, the size of R is chosen such that the length of R plus the
+length of the output of H is a multiple of the block size of E.  Because of
+this size choice, no padding is used during the encryption operation for the
+imprint.
+.Pp
+Next, the key K and the second initialization vector, J, are used as
+parameters to the encryption algorithm E to encrypt the contents of
+.Ar input_file .
+If C represents the contents of
+.Ar input_file ,
+then
+E[K,\ J](C\ ||\ H(C))
+is output to
+.Ar output_file .
+Because the length of C is indeterminate, PKCS #7 padding is used this time
+in E.
+.Sh VERSION 5 SPECIFICATIONS
+.Bl -tag -width Ds
+.It E
+256-bit AES in CBC mode
+.Tp
+.It H
+SHA3-512
+.It KDF
+PBKDF2, using HMAC-SHA3-512 as the generator, with 16384 iterations
+.El
+.Pp
+As such, I and J are 128 bits each, K is 256 bits, R is 512 bits, and S is 256
+bits.
+.Sh VERSION 4 SPECIFICATIONS
+.Bl -tag -width Ds
+.It E
+256-bit AES in CBC mode
+.It H
+SHA1
+.It KDF
+PBKDF2, using HMAC-SHA1 as the generator, with 4096 iterations
+.El
+.Pp
+As such, I and J were 128 bits each, K was 256 bits, R was 352 bits, and S was
+256 bits.
+.Sh VERSION 3 SPECIFICATIONS
+.Bl -tag -width Ds
+.It E
+128-bit AES in CBC mode
+.It H
+SHA1
+.It KDF
+PBKDF2, using HMAC-SHA1 as the generator, with 1024 iterations
+.El
+.Pp
+As such, I and J were 128 bits each, K was 128 bits, R was 224 bits, and S was
+128 bits.
+.Sh HISTORY
+Versions 1 and 2 of
+.Nm
+were internal development versions, and files encrypted in either of those
+formats simply do not exist anymore. Version 1 used the Twofish block cipher,
+giving the
+.Nm
+project its name. The name stuck, even though the underlying block cipher
+changed.
+.Pp
+While the current
+.Nm
+utility will only produce version 5 encrypted files, it is still able to
+decrypt files produced by every version of
+.Nm
+that has been publicly released, specifically versions 3, 4, and 5.
+.Sh AUTHOR
+.An Ryan Vogt Aq Mt rvogt.ca@gmail.com
