@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2023 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -795,12 +795,10 @@ void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
     size_t i;
 
     /* AddRoundKey() before any rounds begin */
-    /* clang-format off */
     col0 = get_big_end_32(block     ) ^ *(rk++);
     col1 = get_big_end_32(block +  4) ^ *(rk++);
     col2 = get_big_end_32(block +  8) ^ *(rk++);
     col3 = get_big_end_32(block + 12) ^ *(rk++);
-    /* clang-format on */
 
     /* All but the last round perform all four operations */
     for (i = 0; i < ctx->nr - 1; i++) {
@@ -814,7 +812,6 @@ void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
     }
 
     /* Last round only performs ShiftRows(), SubBytes(), and AddRoundKey() */
-    /* clang-format off */
     put_big_end_32(output     ,
                    column_enc_no_mix(col0, col1, col2, col3, *(rk++)));
     put_big_end_32(output +  4,
@@ -823,7 +820,6 @@ void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
                    column_enc_no_mix(col2, col3, col0, col1, *(rk++)));
     put_big_end_32(output + 12,
                    column_enc_no_mix(col3, col0, col1, col2, *(rk  )));
-    /* clang-format on */
 }
 
 void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
@@ -835,12 +831,10 @@ void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
     size_t i;
 
     /* AddRoundKey() before any rounds begin */
-    /* clang-format off */
     col0 = get_big_end_32(block     ) ^ *(rk++);
     col1 = get_big_end_32(block +  4) ^ *(rk++);
     col2 = get_big_end_32(block +  8) ^ *(rk++);
     col3 = get_big_end_32(block + 12) ^ *(rk++);
-    /* clang-format on */
 
     /* All but the last round perform all four operations */
     for (i = 0; i < ctx->nr - 1; i++) {
@@ -857,7 +851,6 @@ void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
      * Last round only performs InvShiftRows(), InvSubBytes(), and
      * AddRoundKey()
      */
-    /* clang-format off */
     put_big_end_32(output     ,
                    column_dec_no_mix(col0, col3, col2, col1, *(rk++)));
     put_big_end_32(output +  4,
@@ -866,7 +859,6 @@ void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
                    column_dec_no_mix(col2, col1, col0, col3, *(rk++)));
     put_big_end_32(output + 12,
                    column_dec_no_mix(col3, col2, col1, col0, *(rk  )));
-    /* clang-format on */
 }
 
 void aes_ecb_free_scrub(struct aes_ecb_ctx *ctx)
@@ -880,69 +872,57 @@ void aes_ecb_free_scrub(struct aes_ecb_ctx *ctx)
 static inline uint32_t column_enc(uint32_t top, uint32_t second,
                                   uint32_t third, uint32_t fourth, uint32_t rk)
 {
-    /* clang-format off */
     return rk ^
            SUB_MIX_ENC_POS0[(top    >> 24) & 0xFF] ^
            SUB_MIX_ENC_POS1[(second >> 16) & 0xFF] ^
            SUB_MIX_ENC_POS2[(third  >>  8) & 0xFF] ^
            SUB_MIX_ENC_POS3[(fourth      ) & 0xFF];
-    /* clang-format on */
 }
 
 static inline uint32_t column_enc_no_mix(uint32_t top, uint32_t second,
                                          uint32_t third, uint32_t fourth,
                                          uint32_t rk)
 {
-    /* clang-format off */
     return rk ^
            (((uint32_t)(S_BOX_ENC[(top    >> 24) & 0xFF])) << 24) ^
            (((uint32_t)(S_BOX_ENC[(second >> 16) & 0xFF])) << 16) ^
            (((uint32_t)(S_BOX_ENC[(third  >>  8) & 0xFF])) <<  8) ^
            (((uint32_t)(S_BOX_ENC[(fourth      ) & 0xFF]))      );
-    /* clang-format on */
 }
 
 static inline uint32_t sbox_enc_word(uint32_t orig)
 {
-    /* clang-format off */
     return (((uint32_t)(S_BOX_ENC[(orig      ) & 0xFF]))      ) |
            (((uint32_t)(S_BOX_ENC[(orig >>  8) & 0xFF])) <<  8) |
            (((uint32_t)(S_BOX_ENC[(orig >> 16) & 0xFF])) << 16) |
            (((uint32_t)(S_BOX_ENC[(orig >> 24) & 0xFF])) << 24);
-    /* clang-format on */
 }
 
 static inline uint32_t column_dec(uint32_t top, uint32_t second,
                                   uint32_t third, uint32_t fourth, uint32_t rk)
 {
-    /* clang-format off */
     return rk ^
            SUB_MIX_DEC_POS0[(top    >> 24) & 0xFF] ^
            SUB_MIX_DEC_POS1[(second >> 16) & 0xFF] ^
            SUB_MIX_DEC_POS2[(third  >>  8) & 0xFF] ^
            SUB_MIX_DEC_POS3[(fourth      ) & 0xFF];
-    /* clang-format on */
 }
 
 static inline uint32_t column_dec_no_mix(uint32_t top, uint32_t second,
                                          uint32_t third, uint32_t fourth,
                                          uint32_t rk)
 {
-    /* clang-format off */
     return rk ^
            (((uint32_t)(S_BOX_DEC[(top    >> 24) & 0xFF])) << 24) ^
            (((uint32_t)(S_BOX_DEC[(second >> 16) & 0xFF])) << 16) ^
            (((uint32_t)(S_BOX_DEC[(third  >>  8) & 0xFF])) <<  8) ^
            (((uint32_t)(S_BOX_DEC[(fourth      ) & 0xFF]))      );
-    /* clang-format on */
 }
 
 static inline uint32_t inv_mix_column(uint32_t col)
 {
-    /* clang-format off */
     return MIX_DEC_POS0[(col >> 24) & 0xFF] ^
            MIX_DEC_POS1[(col >> 16) & 0xFF] ^
            MIX_DEC_POS2[(col >>  8) & 0xFF] ^
            MIX_DEC_POS3[(col      ) & 0xFF];
-    /* clang-format on */
 }
