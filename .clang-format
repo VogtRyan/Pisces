@@ -1,0 +1,12 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+DerivePointerAlignment: false
+PointerAlignment: Right
+SpaceBeforeParens: ControlStatements
+SpacesBeforeTrailingComments: 1
+UseTab: Never
+AllowShortFunctionsOnASingleLine: false
+BreakBeforeBraces: Stroustrup
+ColumnLimit: 79
+BinPackParameters: true
