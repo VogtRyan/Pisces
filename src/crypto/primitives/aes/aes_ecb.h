@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,6 +27,7 @@
 #define AES_ECB_KEY_SIZE_128 (16)
 #define AES_ECB_KEY_SIZE_192 (24)
 #define AES_ECB_KEY_SIZE_256 (32)
+#define AES_ECB_KEY_SIZE_MAX (AES_ECB_KEY_SIZE_256)
 
 /*
  * The fixed block size used by AES in bytes.
