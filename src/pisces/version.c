@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -98,5 +98,5 @@ struct kdf *pisces_kdf_alloc()
         return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA3_512_16384);
     default:
         FATAL_ERROR("Illegal Pisces version");
-    }
+     }
 }

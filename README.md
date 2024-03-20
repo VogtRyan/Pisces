@@ -13,7 +13,7 @@ Straightforward password-based file encryption on the UNIX command line
 
 ## Copyright and License
 
-Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
 
 This software is released under the ISC license. See the `LICENSE` file for
 more details.
