@@ -44,8 +44,8 @@
     do {                                                                      \
         TEST_ASSERTIONS_TOTAL++;                                              \
         if (!(condition)) {                                                   \
-            fprintf(TEST_FAILED_OUTPUT, "Assertion failed [%s:%d]\n",         \
-                    __FILE__, __LINE__);                                      \
+            fprintf(TEST_FAILED_OUTPUT, "%s assertion %d failed\n",           \
+                    TEST_NAME, TEST_ASSERTIONS_TOTAL);                        \
             fflush(TEST_FAILED_OUTPUT);                                       \
             TEST_ASSERTIONS_FAILED++;                                         \
         }                                                                     \
