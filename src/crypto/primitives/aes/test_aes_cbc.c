@@ -18,6 +18,7 @@
 #include "crypto/primitives/aes/aes_cbc.h"
 #include "crypto/test/framework.h"
 
+#include <stddef.h>
 #include <string.h>
 
 TEST_PREAMBLE("AES-CBC");
@@ -37,7 +38,7 @@ struct aes_cbc_ctx *ctx;
 #define TEST_NUM_BLOCKS_MAX (4)
 struct aes_cbc_plain_test {
     const int keySize;
-    const int numBlocks;
+    const size_t numBlocks;
     const byte_t key[AES_CBC_KEY_SIZE_MAX];
     const byte_t iv[AES_CBC_IV_SIZE];
     const byte_t plaintext[AES_CBC_BLOCK_SIZE * TEST_NUM_BLOCKS_MAX];
@@ -51,7 +52,7 @@ struct aes_cbc_plain_test {
  */
 struct aes_cbc_monte_test {
     const int direction;
-    const int keySize;
+    const size_t keySize;
     const byte_t key[AES_CBC_KEY_SIZE_MAX];
     const byte_t iv[AES_CBC_IV_SIZE];
     const byte_t plaintext[AES_CBC_BLOCK_SIZE];
@@ -376,7 +377,7 @@ static const struct aes_cbc_monte_test monteTests[] = {
  */
 int main()
 {
-    int onTest;
+    size_t onTest;
     ctx = aes_cbc_alloc();
 
     for (onTest = 0;
@@ -399,7 +400,7 @@ int main()
 static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test,
                                    int direction)
 {
-    int onBlock;
+    size_t onBlock;
     byte_t actual[AES_CBC_BLOCK_SIZE * TEST_NUM_BLOCKS_MAX];
     memset(actual, 0, AES_CBC_BLOCK_SIZE * TEST_NUM_BLOCKS_MAX);
 

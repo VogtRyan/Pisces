@@ -18,6 +18,7 @@
 #include "crypto/primitives/aes/aes_ecb.h"
 #include "crypto/test/framework.h"
 
+#include <stddef.h>
 #include <string.h>
 
 TEST_PREAMBLE("AES-ECB");
@@ -30,7 +31,7 @@ struct aes_ecb_ctx *ctx;
 #define TEST_TYPE_NIST_MONTE_LOOP (1)
 struct aes_ecb_test {
     const int type;
-    const int keySize;
+    const size_t keySize;
     const byte_t key[AES_ECB_KEY_SIZE_MAX];
     const byte_t plaintext[AES_ECB_BLOCK_SIZE];
     const byte_t ciphertext[AES_ECB_BLOCK_SIZE];
@@ -355,7 +356,7 @@ static const struct aes_ecb_test allTests[] = {
  */
 int main()
 {
-    int onTest;
+    size_t onTest;
     ctx = aes_ecb_alloc();
 
     for (onTest = 0; onTest < sizeof(allTests) / sizeof(struct aes_ecb_test);
