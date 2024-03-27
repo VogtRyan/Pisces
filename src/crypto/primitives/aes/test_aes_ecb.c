@@ -25,12 +25,18 @@ TEST_PREAMBLE("AES-ECB");
 struct aes_ecb_ctx *ctx;
 
 /*
- * Parameters for an encrypt-and-decrypt AES ECB test.
+ * Directions in which to run an AES-ECB test, and a function pointer to either
+ * the AES-ECB encryption or decryption operation.
  */
-#define TEST_TYPE_PLAIN (0)
-#define TEST_TYPE_NIST_MONTE_LOOP (1)
-struct aes_ecb_test {
-    const int type;
+#define TEST_DIRECTION_ENCRYPT (0)
+#define TEST_DIRECTION_DECRYPT (1)
+typedef void (*aes_ecb_fptr)(struct aes_ecb_ctx *, const byte_t *, byte_t *);
+
+/*
+ * Parameters for a single-block AES-ECB test, including plaintext and
+ * ciphertext to test for both correct encryption and correct decryption.
+ */
+struct aes_ecb_plain_test {
     const size_t keySize;
     const byte_t key[AES_ECB_KEY_SIZE_MAX];
     const byte_t plaintext[AES_ECB_BLOCK_SIZE];
@@ -38,30 +44,57 @@ struct aes_ecb_test {
 };
 
 /*
- * Run a single AES ECB test case, which includes two assertions: both
- * encryption of the plaintext and decryption of the ciphertext.
+ * Parameters for an AES-ECB test using the NIST Algorithm Validation Suite
+ * (AESAVS) Monte Carlo Test (MCT) algorithm. Because the MCT algorithm isn't
+ * symmetric, only one of encryption or decryption is tested.
  */
-static void run_aes_ecb_test(const struct aes_ecb_test *test);
+struct aes_ecb_monte_test {
+    const size_t keySize;
+    const int direction;
+    const byte_t key[AES_ECB_KEY_SIZE_MAX];
+    const byte_t plaintext[AES_ECB_BLOCK_SIZE];
+    const byte_t ciphertext[AES_ECB_BLOCK_SIZE];
+};
 
 /*
- * Runs a loop, per the NIST Advanced Encryption Standard Algorithm Validation
- * Suite (AESAVS) Monte Carlo Test (MCT) specification, encrypting or
- * decrypting block sequentially 1000 times then storing the result in output.
+ * Runs an AES-ECB regular single-block test, in both of the directions that it
+ * can be run, and assert that both outputs are correct.
  */
-#define NIST_MONTE_LOOP_ENCRYPT (0)
-#define NIST_MONTE_LOOP_DECRYPT (1)
-static void nist_monte_ecb_loop(struct aes_ecb_ctx *ctx, const byte_t *block,
-                                byte_t *output, int direction);
+static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test);
 
 /*
- * All of the AES ECB tests to run. The tests are symmetric, so each set of
- * plaintext and ciphertext will be tested for both correct encryption and
- * correct decryption.
+ * Runs a single AES-ECB NIST AESAVS MCT test case, which includes a single
+ * assertion: that the outcome of either the loop of encryptions or the loop of
+ * decryptions is correct.
  */
-static const struct aes_ecb_test allTests[] = {
+static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test);
+
+/*
+ * Runs the inner loop of the NIST AESAVS MCT test, encrypting or decrypting
+ * blocks sequentially 1000 times. The outputs array must be (2 *
+ * AES_ECB_BLOCK_SIZE) bytes in length. The penultimate result of the
+ * computation is stored in outputs[0...], and the final result of the
+ * computation is stored in outputs[AES_ECB_BLOCK_SIZE...].
+ */
+static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
+                                      const byte_t *block, byte_t *outputs,
+                                      aes_ecb_fptr operation);
+
+/*
+ * Modifies the contents of the key array, per the NIST AESAVS MCT algorithm,
+ * baesd on the penultimate and ultimate computational results of the inner
+ * loop. Those two results are provided as innerLoopOutputs[0...], and
+ * innerLoopOutputs[AES_ECB_BLOCK_SIZE...].
+ */
+static void nist_monte_ecb_compute_new_key(byte_t *key, size_t keySize,
+                                           const byte_t *innerLoopOutputs);
+
+/*
+ * All of the single-block encryption and decryption AES-ECB tests to run.
+ */
+static const struct aes_ecb_plain_test plainTests[] = {
     /* FIPS-197, Appendix C.1, AES-128 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_128,
         .key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
                 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
@@ -73,7 +106,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* FIPS-197, Appendix C.2, AES-192 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_192,
         .key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
                 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
@@ -86,7 +118,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* FIPS-197, Appendix C.3, AES-256 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_256,
         .key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
                 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
@@ -100,7 +131,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.1, ECB-AES128.Encrypt, Block #1 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_128,
         .key = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7,
                 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C},
@@ -112,7 +142,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.1, ECB-AES128.Encrypt, Block #2 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_128,
         .key = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7,
                 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C},
@@ -124,7 +153,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.1, ECB-AES128.Encrypt, Block #3 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_128,
         .key = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7,
                 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C},
@@ -136,7 +164,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.1, ECB-AES128.Encrypt, Block #4 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_128,
         .key = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7,
                 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C},
@@ -148,7 +175,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.3, ECB-AES192.Encrypt, Block #1 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_192,
         .key = {0x8E, 0x73, 0xB0, 0xF7, 0xDA, 0x0E, 0x64, 0x52,
                 0xC8, 0x10, 0xF3, 0x2B, 0x80, 0x90, 0x79, 0xE5,
@@ -161,7 +187,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.3, ECB-AES192.Encrypt, Block #2 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_192,
         .key = {0x8E, 0x73, 0xB0, 0xF7, 0xDA, 0x0E, 0x64, 0x52,
                 0xC8, 0x10, 0xF3, 0x2B, 0x80, 0x90, 0x79, 0xE5,
@@ -174,7 +199,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.3, ECB-AES192.Encrypt, Block #3 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_192,
         .key = {0x8E, 0x73, 0xB0, 0xF7, 0xDA, 0x0E, 0x64, 0x52,
                 0xC8, 0x10, 0xF3, 0x2B, 0x80, 0x90, 0x79, 0xE5,
@@ -187,7 +211,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.3, ECB-AES192.Encrypt, Block #4 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_192,
         .key = {0x8E, 0x73, 0xB0, 0xF7, 0xDA, 0x0E, 0x64, 0x52,
                 0xC8, 0x10, 0xF3, 0x2B, 0x80, 0x90, 0x79, 0xE5,
@@ -200,7 +223,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.5, ECB-AES256.Encrypt, Block #1 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_256,
         .key = {0x60, 0x3D, 0xEB, 0x10, 0x15, 0xCA, 0x71, 0xBE,
                 0x2B, 0x73, 0xAE, 0xF0, 0x85, 0x7D, 0x77, 0x81,
@@ -214,7 +236,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.5, ECB-AES256.Encrypt, Block #2 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_256,
         .key = {0x60, 0x3D, 0xEB, 0x10, 0x15, 0xCA, 0x71, 0xBE,
                 0x2B, 0x73, 0xAE, 0xF0, 0x85, 0x7D, 0x77, 0x81,
@@ -228,7 +249,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.5, ECB-AES256.Encrypt, Block #3 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_256,
         .key = {0x60, 0x3D, 0xEB, 0x10, 0x15, 0xCA, 0x71, 0xBE,
                 0x2B, 0x73, 0xAE, 0xF0, 0x85, 0x7D, 0x77, 0x81,
@@ -242,7 +262,6 @@ static const struct aes_ecb_test allTests[] = {
 
     /* NIST SP 800-38A, Appendix F.1.5, ECB-AES256.Encrypt, Block #4 */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_256,
         .key = {0x60, 0x3D, 0xEB, 0x10, 0x15, 0xCA, 0x71, 0xBE,
                 0x2B, 0x73, 0xAE, 0xF0, 0x85, 0x7D, 0x77, 0x81,
@@ -255,11 +274,10 @@ static const struct aes_ecb_test allTests[] = {
     },
 
     /*
-     * NIST CAVP Known Answer Test (KAT) Vectors for AES, labelled
-     * ECBVarTxt128, [ENCRYPT], COUNT=127.
+     * NIST CAVP Known Answer Test (KAT) Vectors for AES, example vector
+     * labelled ECBVarTxt128, [ENCRYPT], COUNT=127.
      */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_128,
         .key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -270,11 +288,10 @@ static const struct aes_ecb_test allTests[] = {
     },
 
     /*
-     * NIST CAVP Known Answer Test (KAT) Vectors for AES, labelled
-     * ECBVarTxt192, [ENCRYPT], COUNT=127.
+     * NIST CAVP Known Answer Test (KAT) Vectors for AES, example vector
+     * labelled ECBVarTxt192, [ENCRYPT], COUNT=127.
      */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_192,
         .key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -286,11 +303,10 @@ static const struct aes_ecb_test allTests[] = {
     },
 
     /*
-     * NIST CAVP Known Answer Test (KAT) Vectors for AES, labelled
-     * ECBVarTxt256, [ENCRYPT], COUNT=127.
+     * NIST CAVP Known Answer Test (KAT) Vectors for AES, example vector
+     * labelled ECBVarTxt256, [ENCRYPT], COUNT=127.
      */
     {
-        .type = TEST_TYPE_PLAIN,
         .keySize = AES_ECB_KEY_SIZE_256,
         .key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -301,99 +317,188 @@ static const struct aes_ecb_test allTests[] = {
         .ciphertext = {0xAC, 0xDA, 0xCE, 0x80, 0x78, 0xA3, 0x2B, 0x1A, 0x18,
                        0x2B, 0xFA, 0x49, 0x87, 0xCA, 0x13, 0x47},
     },
+};
 
+/*
+ * All of the NIST AESAVS MCT tests to run.
+ */
+static const struct aes_ecb_monte_test monteTests[] = {
     /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled ECBMCT128, [ENCRYPT], COUNT=0.
+     * NIST CAVP MCT Vectors for AES, example vector labelled ECBMCT128,
+     * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .type = TEST_TYPE_NIST_MONTE_LOOP,
         .keySize = AES_ECB_KEY_SIZE_128,
+        .direction = TEST_DIRECTION_ENCRYPT,
         .key = {0x13, 0x9A, 0x35, 0x42, 0x2F, 0x1D, 0x61, 0xDE, 0x3C, 0x91,
                 0x78, 0x7F, 0xE0, 0x50, 0x7A, 0xFD},
         .plaintext = {0xB9, 0x14, 0x5A, 0x76, 0x8B, 0x7D, 0xC4, 0x89, 0xA0,
                       0x96, 0xB5, 0x46, 0xF4, 0x3B, 0x23, 0x1F},
-        .ciphertext = {0xD7, 0xC3, 0xFF, 0xAC, 0x90, 0x31, 0x23, 0x86, 0x50,
-                       0x90, 0x1E, 0x15, 0x73, 0x64, 0xC3, 0x86},
+        .ciphertext = {0xFB, 0x26, 0x49, 0x69, 0x47, 0x83, 0xB5, 0x51, 0xEA,
+                       0xCD, 0x9D, 0x5D, 0xB6, 0x12, 0x6D, 0x47},
     },
 
     /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled ECBMCT192, [ENCRYPT], COUNT=0.
+     * NIST CAVP MCT Vectors for AES, example vector labelled ECBMCT128,
+     * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .type = TEST_TYPE_NIST_MONTE_LOOP,
+        .keySize = AES_ECB_KEY_SIZE_128,
+        .direction = TEST_DIRECTION_DECRYPT,
+        .key = {0x0C, 0x60, 0xE7, 0xBF, 0x20, 0xAD, 0xA9, 0xBA, 0xA9, 0xE1,
+                0xDD, 0xF0, 0xD1, 0x54, 0x07, 0x26},
+        .ciphertext = {0xB0, 0x8A, 0x29, 0xB1, 0x1A, 0x50, 0x0E, 0xA3, 0xAC,
+                       0xA4, 0x2C, 0x36, 0x67, 0x5B, 0x97, 0x85},
+        .plaintext = {0xD1, 0xD2, 0xBF, 0xDC, 0x58, 0xFF, 0xCA, 0xD2, 0x34,
+                      0x1B, 0x09, 0x5B, 0xCE, 0x55, 0x22, 0x1E},
+    },
+
+    /*
+     * NIST CAVP MCT Vectors for AES, example vector labelled ECBMCT192,
+     * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
+     */
+    {
         .keySize = AES_ECB_KEY_SIZE_192,
+        .direction = TEST_DIRECTION_ENCRYPT,
         .key = {0xB9, 0xA6, 0x3E, 0x09, 0xE1, 0xDF, 0xC4, 0x2E,
                 0x93, 0xA9, 0x0D, 0x9B, 0xAD, 0x73, 0x9E, 0x59,
                 0x67, 0xAE, 0xF6, 0x72, 0xEE, 0xDD, 0x5D, 0xA9},
         .plaintext = {0x85, 0xA1, 0xF7, 0xA5, 0x81, 0x67, 0xB3, 0x89, 0xCD,
                       0xDC, 0x8A, 0x9F, 0xF1, 0x75, 0xEE, 0x26},
-        .ciphertext = {0xEE, 0x83, 0xD8, 0x52, 0x79, 0xE0, 0x22, 0xD2, 0x04,
-                       0x80, 0x31, 0xAB, 0xEE, 0xFB, 0xC4, 0xA4},
+        .ciphertext = {0x5D, 0x11, 0x96, 0xDA, 0x8F, 0x18, 0x49, 0x75, 0xE2,
+                       0x40, 0x94, 0x9A, 0x25, 0x10, 0x45, 0x54},
     },
 
     /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled ECBMCT256, [ENCRYPT], COUNT=0.
+     * NIST CAVP MCT Vectors for AES, example vector labelled ECBMCT192,
+     * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .type = TEST_TYPE_NIST_MONTE_LOOP,
+        .keySize = AES_ECB_KEY_SIZE_192,
+        .direction = TEST_DIRECTION_DECRYPT,
+        .key = {0x4B, 0x97, 0x58, 0x57, 0x01, 0xC0, 0x3F, 0xBE,
+                0xBD, 0xFA, 0x85, 0x55, 0x02, 0x4F, 0x58, 0x9F,
+                0x14, 0x82, 0xC5, 0x8A, 0x00, 0xFD, 0xD9, 0xFD},
+        .ciphertext = {0xD0, 0xBD, 0x0E, 0x02, 0xDE, 0xD1, 0x55, 0xE4, 0x51,
+                       0x6B, 0xE8, 0x3F, 0x42, 0xD3, 0x47, 0xA4},
+        .plaintext = {0xB6, 0x3E, 0xF1, 0xB7, 0x95, 0x07, 0xA6, 0x2E, 0xBA,
+                      0x3D, 0xAF, 0xCE, 0xC5, 0x4A, 0x63, 0x28},
+    },
+
+    /*
+     * NIST CAVP MCT Vectors for AES, example vector labelled ECBMCT256,
+     * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
+     */
+    {
         .keySize = AES_ECB_KEY_SIZE_256,
+        .direction = TEST_DIRECTION_ENCRYPT,
         .key = {0xF9, 0xE8, 0x38, 0x9F, 0x5B, 0x80, 0x71, 0x2E,
                 0x38, 0x86, 0xCC, 0x1F, 0xA2, 0xD2, 0x8A, 0x3B,
                 0x8C, 0x9C, 0xD8, 0x8A, 0x2D, 0x4A, 0x54, 0xC6,
                 0xAA, 0x86, 0xCE, 0x0F, 0xEF, 0x94, 0x4B, 0xE0},
         .plaintext = {0xB3, 0x79, 0x77, 0x7F, 0x90, 0x50, 0xE2, 0xA8, 0x18,
                       0xF2, 0x94, 0x0C, 0xBB, 0xD9, 0xAB, 0xA4},
-        .ciphertext = {0x68, 0x93, 0xEB, 0xAF, 0x0A, 0x1F, 0xCC, 0xC7, 0x04,
-                       0x32, 0x65, 0x29, 0xFD, 0xFB, 0x60, 0xDB},
+        .ciphertext = {0xC5, 0xD2, 0xCB, 0x3D, 0x5B, 0x7F, 0xF0, 0xE2, 0x3E,
+                       0x30, 0x89, 0x67, 0xEE, 0x07, 0x48, 0x25},
+    },
+
+    /*
+     * NIST CAVP MCT Vectors for AES, example vector labelled ECBMCT256,
+     * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
+     */
+    {
+        .keySize = AES_ECB_KEY_SIZE_256,
+        .direction = TEST_DIRECTION_DECRYPT,
+        .key = {0x2B, 0x09, 0xBA, 0x39, 0xB8, 0x34, 0x06, 0x2B,
+                0x9E, 0x93, 0xF4, 0x83, 0x73, 0xB8, 0xDD, 0x01,
+                0x8D, 0xED, 0xF1, 0xE5, 0xBA, 0x1B, 0x8A, 0xF8,
+                0x31, 0xEB, 0xBA, 0xCB, 0xC9, 0x2A, 0x26, 0x43},
+        .ciphertext = {0x89, 0x64, 0x9B, 0xD0, 0x11, 0x5F, 0x30, 0xBD, 0x87,
+                       0x85, 0x67, 0x61, 0x02, 0x23, 0xA5, 0x9D},
+        .plaintext = {0xE3, 0xD3, 0x86, 0x8F, 0x57, 0x8C, 0xAF, 0x34, 0xE3,
+                      0x64, 0x45, 0xBF, 0x14, 0xCE, 0xFC, 0x68},
     },
 };
 
 /*
- * Run the AES ECB tests and report the success rate.
+ * Run the AES-ECB tests and report the success rate.
  */
 int main()
 {
     size_t onTest;
     ctx = aes_ecb_alloc();
 
-    for (onTest = 0; onTest < sizeof(allTests) / sizeof(struct aes_ecb_test);
+    for (onTest = 0;
+         onTest < sizeof(plainTests) / sizeof(struct aes_ecb_plain_test);
          onTest++) {
-        run_aes_ecb_test(&allTests[onTest]);
+        run_aes_ecb_plain_test(&plainTests[onTest]);
+    }
+
+    for (onTest = 0;
+         onTest < sizeof(monteTests) / sizeof(struct aes_ecb_monte_test);
+         onTest++) {
+        run_aes_ecb_monte_test(&monteTests[onTest]);
     }
 
     aes_ecb_free_scrub(ctx);
     TEST_CONCLUDE();
 }
 
-static void run_aes_ecb_test(const struct aes_ecb_test *test)
+static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test)
 {
     byte_t actual[AES_ECB_BLOCK_SIZE];
-    memset(actual, 0, AES_ECB_BLOCK_SIZE);
     aes_ecb_set_key(ctx, test->key, test->keySize);
 
-    if (test->type == TEST_TYPE_PLAIN) {
-        aes_ecb_encrypt(ctx, test->plaintext, actual);
-    }
-    else {
-        nist_monte_ecb_loop(ctx, test->plaintext, actual,
-                            NIST_MONTE_LOOP_ENCRYPT);
-    }
+    memset(actual, 0, AES_ECB_BLOCK_SIZE);
+    aes_ecb_encrypt(ctx, test->plaintext, actual);
     TEST_ASSERT(memcmp(actual, test->ciphertext, AES_ECB_BLOCK_SIZE) == 0);
-    if (test->type == TEST_TYPE_PLAIN) {
-        aes_ecb_decrypt(ctx, test->ciphertext, actual);
-    }
-    else {
-        nist_monte_ecb_loop(ctx, test->ciphertext, actual,
-                            NIST_MONTE_LOOP_DECRYPT);
-    }
+
+    memset(actual, 0, AES_ECB_BLOCK_SIZE);
+    aes_ecb_decrypt(ctx, test->ciphertext, actual);
     TEST_ASSERT(memcmp(actual, test->plaintext, AES_ECB_BLOCK_SIZE) == 0);
 }
 
-static void nist_monte_ecb_loop(struct aes_ecb_ctx *ctx, const byte_t *block,
-                                byte_t *output, int direction)
+static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
+{
+    const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
+    byte_t key[AES_ECB_KEY_SIZE_MAX];
+    byte_t innerLoopInput[AES_ECB_BLOCK_SIZE];
+    byte_t innerLoopOutputs[2 * AES_ECB_BLOCK_SIZE];
+    const byte_t *expected;
+    aes_ecb_fptr operation;
+    int i;
+
+    memcpy(key, test->key, test->keySize);
+    if (test->direction == TEST_DIRECTION_ENCRYPT) {
+        memcpy(innerLoopInput, test->plaintext, AES_ECB_BLOCK_SIZE);
+        operation = &aes_ecb_encrypt;
+        expected = test->ciphertext;
+    }
+    else {
+        memcpy(innerLoopInput, test->ciphertext, AES_ECB_BLOCK_SIZE);
+        operation = &aes_ecb_decrypt;
+        expected = test->plaintext;
+    }
+
+    for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
+        aes_ecb_set_key(ctx, key, test->keySize);
+        nist_monte_ecb_inner_loop(ctx, innerLoopInput, innerLoopOutputs,
+                                  operation);
+        if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
+            nist_monte_ecb_compute_new_key(key, test->keySize,
+                                           innerLoopOutputs);
+            memcpy(innerLoopInput, innerLoopOutputs + AES_ECB_BLOCK_SIZE,
+                   AES_ECB_BLOCK_SIZE);
+        }
+    }
+
+    TEST_ASSERT(memcmp(innerLoopOutputs + AES_ECB_BLOCK_SIZE, expected,
+                       AES_ECB_BLOCK_SIZE) == 0);
+}
+
+static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
+                                      const byte_t *block, byte_t *outputs,
+                                      aes_ecb_fptr operation)
 {
     /*
      * Based on the NIST AESAVS specification, p.7:
@@ -404,23 +509,41 @@ static void nist_monte_ecb_loop(struct aes_ecb_ctx *ctx, const byte_t *block,
      *     output[j] = AES(key, input[j])
      *     input[j+1] = output[j]
      *
-     * Output output[999]
-     *
-     * Note the operation is symmetric, so both encryption and decryption can
-     * be tested with the same plaintext/ciphertext pair.
+     * Save output[998]  <-- placed in outputs[0 to blockSize-1]
+     * Save output[999]  <-- placed in outputs[blockSize to 2*blockSize-1]
      */
-    byte_t intermediate[AES_ECB_BLOCK_SIZE];
-    const int NIST_MONTE_LOOP_SIZE = 1000;
+    const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
     int i;
 
-    memcpy(intermediate, block, AES_ECB_BLOCK_SIZE);
-    for (i = 0; i < NIST_MONTE_LOOP_SIZE; i++) {
-        if (direction == NIST_MONTE_LOOP_ENCRYPT) {
-            aes_ecb_encrypt(ctx, intermediate, intermediate);
-        }
-        else {
-            aes_ecb_decrypt(ctx, intermediate, intermediate);
-        }
+    memset(outputs, 0, 2 * AES_ECB_BLOCK_SIZE);
+    operation(ctx, block, outputs);
+    for (i = 0; i < NIST_MONTE_INNER_LOOP_SIZE - 2; i++) {
+        operation(ctx, outputs, outputs);
     }
-    memcpy(output, intermediate, AES_ECB_BLOCK_SIZE);
+    operation(ctx, outputs, outputs + AES_ECB_BLOCK_SIZE);
+}
+
+static void nist_monte_ecb_compute_new_key(byte_t *key, size_t keySize,
+                                           const byte_t *innerLoopOutputs)
+{
+    /*
+     * Based on the NIST AESAVS specification, p.7:
+     *
+     * if keySize == 128
+     *     nextKey = previousKey xor inner loop's last output
+     * if keySize == 192
+     *     nextKey = previousKey xor
+     *               (last 64 bits of inner loop's penultimate output ||
+     *                inner loop's last output)
+     * if keySize == 256
+     *     nextKey = previousKey xor
+     *               (inner loop's penultimate output ||
+     *                inner loop's last output)
+     */
+    size_t onByte;
+
+    innerLoopOutputs += 2 * AES_ECB_BLOCK_SIZE - keySize;
+    for (onByte = 0; onByte < keySize; onByte++) {
+        key[onByte] ^= innerLoopOutputs[onByte];
+    }
 }
