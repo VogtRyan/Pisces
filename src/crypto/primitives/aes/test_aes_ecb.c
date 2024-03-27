@@ -85,8 +85,7 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test);
  * computation is stored in outputs[0...], and the final result of the
  * computation is stored in outputs[AES_ECB_BLOCK_SIZE...].
  */
-static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
-                                      const byte_t *block, byte_t *outputs,
+static void nist_monte_ecb_inner_loop(const byte_t *block, byte_t *outputs,
                                       aes_ecb_fptr operation);
 
 /*
@@ -454,8 +453,7 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
 
     for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
         aes_ecb_set_key(ctx, key, test->keySize);
-        nist_monte_ecb_inner_loop(ctx, innerLoopInput, innerLoopOutputs,
-                                  operation);
+        nist_monte_ecb_inner_loop(innerLoopInput, innerLoopOutputs, operation);
         if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
             nist_monte_ecb_compute_new_key(key, test->keySize,
                                            innerLoopOutputs);
@@ -468,8 +466,7 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
                        AES_ECB_BLOCK_SIZE) == 0);
 }
 
-static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
-                                      const byte_t *block, byte_t *outputs,
+static void nist_monte_ecb_inner_loop(const byte_t *block, byte_t *outputs,
                                       aes_ecb_fptr operation)
 {
     /*
