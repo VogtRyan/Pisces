@@ -25,34 +25,35 @@ TEST_PREAMBLE("AES-CBC");
 struct aes_cbc_ctx *ctx;
 
 /*
- * Directions in which to run an AES CBC test.
+ * Directions in which to run an AES-CBC test, and a function pointer to either
+ * the encryption or decryption operation.
  */
 #define TEST_DIRECTION_ENCRYPT (0)
 #define TEST_DIRECTION_DECRYPT (1)
+typedef void (*aes_cbc_fptr)(struct aes_cbc_ctx *, const byte_t *, byte_t *);
 
 /*
- * Parameters for a regular AES CBC test, including plaintext and
- * ciphertext (from 1 block to TEST_NUM_BLOCKS_MAX blocks in length), which
- * gets tested for both correct encryption and correct decryption.
+ * Parameters for a single- or multi-block AES-CBC test, including plaintext
+ * and ciphertext to test for both correct encryption and correct decryption.
  */
-#define TEST_NUM_BLOCKS_MAX (4)
+#define PLAIN_TEST_NUM_BLOCKS_MAX (4)
 struct aes_cbc_plain_test {
-    const int keySize;
+    const size_t keySize;
     const size_t numBlocks;
     const byte_t key[AES_CBC_KEY_SIZE_MAX];
     const byte_t iv[AES_CBC_IV_SIZE];
-    const byte_t plaintext[AES_CBC_BLOCK_SIZE * TEST_NUM_BLOCKS_MAX];
-    const byte_t ciphertext[AES_CBC_BLOCK_SIZE * TEST_NUM_BLOCKS_MAX];
+    const byte_t plaintext[AES_CBC_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
+    const byte_t ciphertext[AES_CBC_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
 };
 
 /*
- * Parameters for an AES CBC test using the NIST Algorithm Validation Suite
+ * Parameters for an AES-CBC test using the NIST Algorithm Validation Suite
  * (AESAVS) Monte Carlo Test (MCT) algorithm. Because the MCT algorithm isn't
- * symmetric for AES CBC, only one of encryption or decryption is tested.
+ * symmetric, only one of encryption or decryption is tested.
  */
 struct aes_cbc_monte_test {
-    const int direction;
     const size_t keySize;
+    const int direction;
     const byte_t key[AES_CBC_KEY_SIZE_MAX];
     const byte_t iv[AES_CBC_IV_SIZE];
     const byte_t plaintext[AES_CBC_BLOCK_SIZE];
@@ -60,33 +61,50 @@ struct aes_cbc_monte_test {
 };
 
 /*
- * Runs an AES CBC regular multi-block test, in one of the two directions that
- * it can be run, and asserts that the output is correct.
+ * Runs an AES-CBC regular single- or multi-block test, in both of the
+ * directions that it can be run, and assert that both outputs are correct.
  */
-static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test,
-                                   int direction);
+static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test);
 
 /*
- * Runs a single AES CBC NIST AESAVS MCT test case, which includes a single
- * assertion: that the outcome of either the encryption or the decryption, as
- * specified in the unidirectional test, is correct.
+ * Runs an AES-CBC encryption or decryption operation over one or more blocks
+ * of input.
+ */
+static void aes_cbc_multi_block(const byte_t *input, const byte_t *iv,
+                                byte_t *output, size_t numBlocks,
+                                int direction);
+
+/*
+ * Runs a single AES-CBC NIST AESAVS MCT test case, which includes a single
+ * assertion: that the outcome of either the loop of encryptions or the loop of
+ * decryptions is correct.
  */
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test);
 
 /*
- * Runs a loop, per the NIST Advanced Encryption Standard Algorithm Validation
- * Suite (AESAVS) Monte Carlo Test (MCT) specification, encrypting or
- * decrypting starting with the given block and IV.
+ * Runs the inner loop of the NIST AESAVS MCT test, encrypting or decrypting
+ * blocks sequentially 1000 times. The outputs array must be (2 *
+ * AES_CBC_BLOCK_SIZE) bytes in length. The penultimate result of the
+ * computation is stored in outputs[0...], and the final result of the
+ * computation is stored in outputs[AES_CBC_BLOCK_SIZE...].
  */
-static void nist_cbc_monte_loop(struct aes_cbc_ctx *ctx, const byte_t *input,
-                                const byte_t *iv, byte_t *output,
-                                int direction);
+static void nist_monte_cbc_inner_loop(const byte_t *block, const byte_t *iv,
+                                      byte_t *outputs, aes_cbc_fptr operation);
 
 /*
- * The AES CBC tests to run with a plaintext/ciphertext pair, which is between
- * 1 and TEST_NUM_BLOCKS_MAX blocks in length. Because the operation of this
- * test is symmetric, both encryption and decryption can be tested with one
- * test specification.
+ * Modifies the contents of the key array, per the NIST AESAVS MCT algorithm,
+ * baesd on the penultimate and ultimate computational results of the inner
+ * loop. Those two results are provided as innerLoopOutputs[0...], and
+ * innerLoopOutputs[AES_CBC_BLOCK_SIZE...].
+ */
+static void nist_monte_cbc_compute_new_key(byte_t *key, size_t keySize,
+                                           const byte_t *innerLoopOutputs);
+
+/*
+ * All of the plain single- or multi-block encryption and decryption AES-CBC
+ * tests to run. Note that each test is run in both directions, so only the
+ * "encryption" version of a test from the standards needs to be provided
+ * below.
  */
 static const struct aes_cbc_plain_test plainTests[] = {
     /* NIST SP 800-38A, Appendix F.2.1, CBC-AES128.Encrypt */
@@ -258,35 +276,50 @@ static const struct aes_cbc_plain_test plainTests[] = {
 };
 
 /*
- * The AES CBC tests to run that use the NIST Advanced Encryption Standard
- * Algorithm Validation Suite (AESAVS) Monte Carlo Test (MCT) specification.
- * The AESAVS MCTs are not symmetric, so only a single direction is tested.
+ * All of the NIST AESAVS MCT tests to run.
  */
 static const struct aes_cbc_monte_test monteTests[] = {
     /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled CBCMCT128, [ENCRYPT], COUNT=0.
+     * NIST CAVP MCT Vectors for AES, example vector labelled CBCMCT128,
+     * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .direction = TEST_DIRECTION_ENCRYPT,
         .keySize = AES_CBC_KEY_SIZE_128,
+        .direction = TEST_DIRECTION_ENCRYPT,
         .key = {0x88, 0x09, 0xE7, 0xDD, 0x3A, 0x95, 0x9E, 0xE5, 0xD8, 0xDB,
                 0xB1, 0x3F, 0x50, 0x1F, 0x22, 0x74},
         .iv = {0xE5, 0xC0, 0xBB, 0x53, 0x5D, 0x7D, 0x54, 0x57, 0x2A, 0xD0,
                0x6D, 0x17, 0x0A, 0x0E, 0x58, 0xAE},
         .plaintext = {0x1F, 0xD4, 0xEE, 0x65, 0x60, 0x3E, 0x61, 0x30, 0xCF,
                       0xC2, 0xA8, 0x2A, 0xB3, 0xD5, 0x6C, 0x24},
-        .ciphertext = {0xB1, 0x27, 0xA5, 0xB4, 0xC4, 0x69, 0x2D, 0x87, 0x48,
-                       0x3D, 0xB0, 0xC3, 0xB0, 0xD1, 0x1E, 0x64},
+        .ciphertext = {0x7B, 0xED, 0x76, 0x71, 0xC8, 0x91, 0x3A, 0xA1, 0x33,
+                       0x0F, 0x19, 0x37, 0x61, 0x52, 0x3E, 0x67},
     },
 
     /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled CBCMCT192, [ENCRYPT], COUNT=0.
+     * NIST CAVP MCT Vectors for AES, example vector labelled CBCMCT128,
+     * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .direction = TEST_DIRECTION_ENCRYPT,
+        .keySize = AES_CBC_KEY_SIZE_128,
+        .direction = TEST_DIRECTION_DECRYPT,
+        .key = {0x28, 0x7B, 0x07, 0xC7, 0x8F, 0x8E, 0x3E, 0x1B, 0xE7, 0xC4,
+                0x1B, 0x3D, 0x96, 0xC0, 0x4E, 0x6E},
+        .iv = {0x41, 0xB4, 0x61, 0xF9, 0x46, 0x4F, 0xD5, 0x15, 0xD2, 0x54,
+               0x13, 0xB4, 0x24, 0x10, 0x02, 0xB8},
+        .ciphertext = {0x7C, 0x54, 0x92, 0x3B, 0x04, 0x90, 0xA9, 0xD4, 0xDE,
+                       0x4E, 0xC1, 0xCE, 0x67, 0x90, 0xAA, 0x4D},
+        .plaintext = {0x47, 0x69, 0x31, 0x7B, 0x05, 0x62, 0xC4, 0x59, 0x49,
+                      0xC1, 0x8B, 0x38, 0x55, 0xF8, 0xBF, 0x4A},
+    },
+
+    /*
+     * NIST CAVP MCT Vectors for AES, example vector labelled CBCMCT192,
+     * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
+     */
+    {
         .keySize = AES_CBC_KEY_SIZE_192,
+        .direction = TEST_DIRECTION_ENCRYPT,
         .key = {0xDE, 0xA6, 0x4F, 0x83, 0xCF, 0xE6, 0xA0, 0xA1,
                 0x83, 0xDD, 0xBE, 0x86, 0x5C, 0xFC, 0xA0, 0x59,
                 0xB3, 0xC6, 0x15, 0xC1, 0x62, 0x3D, 0x63, 0xFC},
@@ -294,17 +327,35 @@ static const struct aes_cbc_monte_test monteTests[] = {
                0x81, 0xEF, 0x9F, 0xD6, 0xD1, 0xAA},
         .plaintext = {0xCD, 0x0B, 0x8C, 0x8A, 0x81, 0x79, 0xEC, 0xB1, 0x71,
                       0xB6, 0x4C, 0x89, 0x4A, 0x4D, 0x60, 0xFD},
-        .ciphertext = {0xAE, 0x63, 0x02, 0xD2, 0x2D, 0xA9, 0x45, 0x81, 0x17,
-                       0xF5, 0x68, 0x14, 0x31, 0xFC, 0x80, 0xDF},
+        .ciphertext = {0xE6, 0x45, 0x7B, 0xFC, 0x34, 0x33, 0xE8, 0x02, 0x99,
+                       0xC5, 0x2B, 0x2B, 0xE4, 0x18, 0xF5, 0x82},
     },
 
     /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled CBCMCT256, [ENCRYPT], COUNT=0.
+     * NIST CAVP MCT Vectors for AES, example vector labelled CBCMCT192,
+     * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .direction = TEST_DIRECTION_ENCRYPT,
+        .keySize = AES_CBC_KEY_SIZE_192,
+        .direction = TEST_DIRECTION_DECRYPT,
+        .key = {0xA2, 0x4E, 0xBD, 0x4D, 0x7A, 0x08, 0x0C, 0x28,
+                0xCA, 0xAE, 0x98, 0x4B, 0x50, 0x98, 0xA9, 0xEA,
+                0x38, 0xCF, 0x72, 0x80, 0xE2, 0xC5, 0xF1, 0x22},
+        .iv = {0xC5, 0xAE, 0xB9, 0xB5, 0x1A, 0xD5, 0x10, 0x83, 0x71, 0xC5,
+               0x9D, 0x0B, 0x90, 0x81, 0x63, 0x10},
+        .ciphertext = {0xEB, 0x2C, 0x4E, 0x27, 0x12, 0x59, 0x1F, 0xF1, 0x3B,
+                       0x8A, 0xC7, 0x87, 0x0C, 0x9C, 0x40, 0x4C},
+        .plaintext = {0x83, 0x64, 0x24, 0xEA, 0xDF, 0x81, 0x55, 0xAA, 0xF9,
+                      0xA9, 0xA5, 0x13, 0x91, 0xA1, 0xCF, 0x7E},
+    },
+
+    /*
+     * NIST CAVP MCT Vectors for AES, example vector labelled CBCMCT256,
+     * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
+     */
+    {
         .keySize = AES_CBC_KEY_SIZE_256,
+        .direction = TEST_DIRECTION_ENCRYPT,
         .key = {0x63, 0x2B, 0xAC, 0x4F, 0xE4, 0xDB, 0x44, 0xCF,
                 0xCF, 0x18, 0xCF, 0xA9, 0x0B, 0x43, 0xF8, 0x6F,
                 0x37, 0x86, 0x11, 0xB8, 0xD9, 0x68, 0x59, 0x5E,
@@ -313,67 +364,32 @@ static const struct aes_cbc_monte_test monteTests[] = {
                0x00, 0x23, 0x77, 0x73, 0x01, 0x85},
         .plaintext = {0x90, 0xED, 0x17, 0x47, 0x5F, 0x0A, 0x62, 0xBC, 0x38,
                       0x1B, 0xA1, 0xF3, 0xFF, 0xBF, 0xFF, 0x33},
-        .ciphertext = {0x44, 0x94, 0x03, 0x0B, 0x1E, 0x82, 0x8F, 0x57, 0xE3,
-                       0x49, 0xCB, 0xDE, 0x64, 0x99, 0xAB, 0xF3},
+        .ciphertext = {0xBA, 0xDE, 0x16, 0x67, 0xB4, 0x2F, 0x53, 0x7F, 0x0C,
+                       0xB3, 0xF5, 0x57, 0x3A, 0x94, 0x9A, 0xAA},
     },
 
     /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled CBCMCT128, [DECRYPT], COUNT=0.
+     * NIST CAVP MCT Vectors for AES, example vector labelled CBCMCT256,
+     * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .direction = TEST_DIRECTION_DECRYPT,
-        .keySize = AES_CBC_KEY_SIZE_128,
-        .key = {0x28, 0x7B, 0x07, 0xC7, 0x8F, 0x8E, 0x3E, 0x1B, 0xE7, 0xC4,
-                0x1B, 0x3D, 0x96, 0xC0, 0x4E, 0x6E},
-        .iv = {0x41, 0xB4, 0x61, 0xF9, 0x46, 0x4F, 0xD5, 0x15, 0xD2, 0x54,
-               0x13, 0xB4, 0x24, 0x10, 0x02, 0xB8},
-        .plaintext = {0x28, 0x05, 0xD1, 0x0B, 0x12, 0x7F, 0xCD, 0x1D, 0xA5,
-                      0x28, 0xFA, 0xAD, 0x4E, 0xB2, 0xE1, 0x0B},
-        .ciphertext = {0x7C, 0x54, 0x92, 0x3B, 0x04, 0x90, 0xA9, 0xD4, 0xDE,
-                       0x4E, 0xC1, 0xCE, 0x67, 0x90, 0xAA, 0x4D},
-    },
-
-    /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled CBCMCT192, [DECRYPT], COUNT=0.
-     */
-    {
-        .direction = TEST_DIRECTION_DECRYPT,
-        .keySize = AES_CBC_KEY_SIZE_192,
-        .key = {0xA2, 0x4E, 0xBD, 0x4D, 0x7A, 0x08, 0x0C, 0x28,
-                0xCA, 0xAE, 0x98, 0x4B, 0x50, 0x98, 0xA9, 0xEA,
-                0x38, 0xCF, 0x72, 0x80, 0xE2, 0xC5, 0xF1, 0x22},
-        .iv = {0xC5, 0xAE, 0xB9, 0xB5, 0x1A, 0xD5, 0x10, 0x83, 0x71, 0xC5,
-               0x9D, 0x0B, 0x90, 0x81, 0x63, 0x10},
-        .plaintext = {0x88, 0x6D, 0xC6, 0xEE, 0x87, 0x74, 0xE7, 0xA5, 0xB3,
-                      0x78, 0xAC, 0x8A, 0x2B, 0x63, 0x7E, 0x50},
-        .ciphertext = {0xEB, 0x2C, 0x4E, 0x27, 0x12, 0x59, 0x1F, 0xF1, 0x3B,
-                       0x8A, 0xC7, 0x87, 0x0C, 0x9C, 0x40, 0x4C},
-    },
-
-    /*
-     * NIST CAVP Monte Carlo Test (MCT) Vectors for AES, example vector
-     * labelled CBCMCT256, [DECRYPT], COUNT=0.
-     */
-    {
-        .direction = TEST_DIRECTION_DECRYPT,
         .keySize = AES_CBC_KEY_SIZE_256,
+        .direction = TEST_DIRECTION_DECRYPT,
         .key = {0x31, 0x39, 0x7A, 0xD8, 0xCC, 0x79, 0xC5, 0x19,
                 0xE0, 0xF4, 0x6E, 0x0F, 0x70, 0x30, 0x35, 0x87,
                 0xE3, 0x89, 0x58, 0xD7, 0x07, 0x23, 0xB7, 0x71,
                 0x55, 0x23, 0x36, 0xB7, 0x77, 0x1F, 0x63, 0x11},
         .iv = {0x41, 0x39, 0xCB, 0x54, 0xEE, 0xAC, 0x3F, 0xCF, 0x36, 0xED,
                0x72, 0x94, 0x11, 0x22, 0xC4, 0x0F},
-        .plaintext = {0xF0, 0xE5, 0x0E, 0x03, 0x6B, 0xAF, 0x80, 0xCE, 0xF5,
-                      0x66, 0xD3, 0xF9, 0xEA, 0xA2, 0xA9, 0xA7},
         .ciphertext = {0x27, 0xA1, 0xD5, 0xC1, 0x0F, 0xE4, 0x5B, 0x80, 0x1D,
                        0x15, 0xF5, 0x6E, 0x65, 0x4A, 0x70, 0xF0},
+        .plaintext = {0x9B, 0xE8, 0x31, 0x79, 0x9A, 0x79, 0xB0, 0x95, 0x52,
+                      0x41, 0xF3, 0x08, 0xF0, 0xD5, 0xB2, 0xE1},
     },
 };
 
 /*
- * Run the AES CBC tests and report the success rate.
+ * Run the AES-CBC tests and report the success rate.
  */
 int main()
 {
@@ -383,8 +399,7 @@ int main()
     for (onTest = 0;
          onTest < sizeof(plainTests) / sizeof(struct aes_cbc_plain_test);
          onTest++) {
-        run_aes_cbc_plain_test(&plainTests[onTest], TEST_DIRECTION_ENCRYPT);
-        run_aes_cbc_plain_test(&plainTests[onTest], TEST_DIRECTION_DECRYPT);
+        run_aes_cbc_plain_test(&plainTests[onTest]);
     }
 
     for (onTest = 0;
@@ -397,60 +412,88 @@ int main()
     TEST_CONCLUDE();
 }
 
-static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test,
-                                   int direction)
+static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test)
+{
+    byte_t actual[AES_CBC_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
+    aes_cbc_set_key(ctx, test->key, test->keySize);
+
+    memset(actual, 0, test->numBlocks * AES_CBC_BLOCK_SIZE);
+    aes_cbc_multi_block(test->plaintext, test->iv, actual, test->numBlocks,
+                        TEST_DIRECTION_ENCRYPT);
+    TEST_ASSERT(memcmp(actual, test->ciphertext,
+                       test->numBlocks * AES_CBC_BLOCK_SIZE) == 0);
+
+    memset(actual, 0, test->numBlocks * AES_CBC_BLOCK_SIZE);
+    aes_cbc_multi_block(test->ciphertext, test->iv, actual, test->numBlocks,
+                        TEST_DIRECTION_DECRYPT);
+    TEST_ASSERT(memcmp(actual, test->plaintext,
+                       test->numBlocks * AES_CBC_BLOCK_SIZE) == 0);
+}
+
+static void aes_cbc_multi_block(const byte_t *input, const byte_t *iv,
+                                byte_t *output, size_t numBlocks,
+                                int direction)
 {
     size_t onBlock;
-    byte_t actual[AES_CBC_BLOCK_SIZE * TEST_NUM_BLOCKS_MAX];
-    memset(actual, 0, AES_CBC_BLOCK_SIZE * TEST_NUM_BLOCKS_MAX);
-
-    aes_cbc_set_key(ctx, test->key, test->keySize);
-    aes_cbc_set_iv(ctx, test->iv);
-
-    for (onBlock = 0; onBlock < test->numBlocks; onBlock++) {
-        if (direction == TEST_DIRECTION_ENCRYPT) {
-            aes_cbc_encrypt(ctx,
-                            &test->plaintext[AES_CBC_BLOCK_SIZE * onBlock],
-                            &actual[AES_CBC_BLOCK_SIZE * onBlock]);
-        }
-        else {
-            aes_cbc_decrypt(ctx,
-                            &test->ciphertext[AES_CBC_BLOCK_SIZE * onBlock],
-                            &actual[AES_CBC_BLOCK_SIZE * onBlock]);
-        }
-    }
+    aes_cbc_fptr operation;
 
     if (direction == TEST_DIRECTION_ENCRYPT) {
-        TEST_ASSERT(memcmp(actual, test->ciphertext,
-                           AES_CBC_BLOCK_SIZE * test->numBlocks) == 0);
+        operation = &aes_cbc_encrypt;
     }
     else {
-        TEST_ASSERT(memcmp(actual, test->plaintext,
-                           AES_CBC_BLOCK_SIZE * test->numBlocks) == 0);
+        operation = &aes_cbc_decrypt;
+    }
+
+    aes_cbc_set_iv(ctx, iv);
+    for (onBlock = 0; onBlock < numBlocks; onBlock++) {
+        operation(ctx, input + onBlock * AES_CBC_BLOCK_SIZE,
+                  output + onBlock * AES_CBC_BLOCK_SIZE);
     }
 }
 
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
 {
-    byte_t actual[AES_CBC_BLOCK_SIZE];
-    memset(actual, 0, AES_CBC_BLOCK_SIZE);
-    aes_cbc_set_key(ctx, test->key, test->keySize);
+    const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
+    byte_t key[AES_CBC_KEY_SIZE_MAX];
+    byte_t innerLoopInput[AES_CBC_BLOCK_SIZE];
+    byte_t innerLoopIV[AES_CBC_IV_SIZE];
+    byte_t innerLoopOutputs[2 * AES_CBC_BLOCK_SIZE];
+    const byte_t *expected;
+    aes_cbc_fptr operation;
+    int i;
 
+    memcpy(key, test->key, test->keySize);
+    memcpy(innerLoopIV, test->iv, AES_CBC_IV_SIZE);
     if (test->direction == TEST_DIRECTION_ENCRYPT) {
-        nist_cbc_monte_loop(ctx, test->plaintext, test->iv, actual,
-                            TEST_DIRECTION_ENCRYPT);
-        TEST_ASSERT(memcmp(actual, test->ciphertext, AES_CBC_BLOCK_SIZE) == 0);
+        memcpy(innerLoopInput, test->plaintext, AES_CBC_BLOCK_SIZE);
+        operation = &aes_cbc_encrypt;
+        expected = test->ciphertext;
     }
     else {
-        nist_cbc_monte_loop(ctx, test->ciphertext, test->iv, actual,
-                            TEST_DIRECTION_DECRYPT);
-        TEST_ASSERT(memcmp(actual, test->plaintext, AES_CBC_BLOCK_SIZE) == 0);
+        memcpy(innerLoopInput, test->ciphertext, AES_CBC_BLOCK_SIZE);
+        operation = &aes_cbc_decrypt;
+        expected = test->plaintext;
     }
+
+    for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
+        aes_cbc_set_key(ctx, key, test->keySize);
+        nist_monte_cbc_inner_loop(innerLoopInput, innerLoopIV,
+                                  innerLoopOutputs, operation);
+        if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
+            nist_monte_cbc_compute_new_key(key, test->keySize,
+                                           innerLoopOutputs);
+            memcpy(innerLoopInput, innerLoopOutputs, AES_CBC_IV_SIZE);
+            memcpy(innerLoopIV, innerLoopOutputs + AES_CBC_BLOCK_SIZE,
+                   AES_CBC_BLOCK_SIZE);
+        }
+    }
+
+    TEST_ASSERT(memcmp(innerLoopOutputs + AES_CBC_BLOCK_SIZE, expected,
+                       AES_CBC_BLOCK_SIZE) == 0);
 }
 
-static void nist_cbc_monte_loop(struct aes_cbc_ctx *ctx, const byte_t *input,
-                                const byte_t *iv, byte_t *output,
-                                int direction)
+static void nist_monte_cbc_inner_loop(const byte_t *block, const byte_t *iv,
+                                      byte_t *outputs, aes_cbc_fptr operation)
 {
     /*
      * Based on the NIST AESAVS specification, p.8:
@@ -465,34 +508,45 @@ static void nist_cbc_monte_loop(struct aes_cbc_ctx *ctx, const byte_t *input,
      *         output[j] = AES(key, input[j])
      *         input[j+1] = output[j-1]
      *
-     * Output output[999]
-     *
-     * Note the operation is not symmetric, so only encryption or decryption
-     * can be tested with a given (plaintext, ciphertext, IV) tuple.
+     * Save output[998]  <-- placed in outputs[0 to blockSize-1]
+     * Save output[999]  <-- placed in outputs[blockSize to 2*blockSize-1]
      */
-    byte_t intermediate[2][AES_CBC_BLOCK_SIZE];
-    const int NIST_MONTE_LOOP_SIZE = 1000;
+    const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
+    byte_t intermediate[AES_CBC_BLOCK_SIZE];
     int i;
 
-    memset(output, 0, AES_CBC_BLOCK_SIZE);
+    memset(outputs, 0, 2 * AES_CBC_BLOCK_SIZE);
     aes_cbc_set_iv(ctx, iv);
-    if (direction == TEST_DIRECTION_ENCRYPT) {
-        aes_cbc_encrypt(ctx, input, intermediate[0]);
-        aes_cbc_encrypt(ctx, iv, intermediate[1]);
+    operation(ctx, block, outputs);
+    operation(ctx, iv, outputs + AES_CBC_BLOCK_SIZE);
+    for (i = 0; i < NIST_MONTE_INNER_LOOP_SIZE - 2; i++) {
+        operation(ctx, outputs, intermediate);
+        memcpy(outputs, outputs + AES_CBC_BLOCK_SIZE, AES_CBC_BLOCK_SIZE);
+        memcpy(outputs + AES_CBC_BLOCK_SIZE, intermediate, AES_CBC_BLOCK_SIZE);
     }
-    else {
-        aes_cbc_decrypt(ctx, input, intermediate[0]);
-        aes_cbc_decrypt(ctx, iv, intermediate[1]);
-    }
+}
 
-    for (i = 2; i < NIST_MONTE_LOOP_SIZE; i++) {
-        if (direction == TEST_DIRECTION_ENCRYPT) {
-            aes_cbc_encrypt(ctx, intermediate[0], output);
-        }
-        else {
-            aes_cbc_decrypt(ctx, intermediate[0], output);
-        }
-        memcpy(intermediate[0], intermediate[1], AES_CBC_BLOCK_SIZE);
-        memcpy(intermediate[1], output, AES_CBC_BLOCK_SIZE);
+static void nist_monte_cbc_compute_new_key(byte_t *key, size_t keySize,
+                                           const byte_t *innerLoopOutputs)
+{
+    /*
+     * Based on the NIST AESAVS specification, p.8:
+     *
+     * if keySize == 128
+     *     nextKey = previousKey xor inner loop's last output
+     * if keySize == 192
+     *     nextKey = previousKey xor
+     *               (last 64 bits of inner loop's penultimate output ||
+     *                inner loop's last output)
+     * if keySize == 256
+     *     nextKey = previousKey xor
+     *               (inner loop's penultimate output ||
+     *                inner loop's last output)
+     */
+    size_t onByte;
+
+    innerLoopOutputs += 2 * AES_CBC_BLOCK_SIZE - keySize;
+    for (onByte = 0; onByte < keySize; onByte++) {
+        key[onByte] ^= innerLoopOutputs[onByte];
     }
 }
