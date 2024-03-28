@@ -75,30 +75,28 @@ static void aes_cbc_multi_block(const byte_t *input, const byte_t *iv,
                                 int direction);
 
 /*
- * Runs a single AES-CBC NIST AESAVS MCT test case, which includes a single
+ * Runs a single AES-CBC NIST AESAVS MCT case, which includes a single
  * assertion: that the outcome of either the loop of encryptions or the loop of
  * decryptions is correct.
  */
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test);
 
 /*
- * Runs the inner loop of the NIST AESAVS MCT test, encrypting or decrypting
- * blocks sequentially 1000 times. The outputs array must be (2 *
- * AES_CBC_BLOCK_SIZE) bytes in length. The penultimate result of the
- * computation is stored in outputs[0...], and the final result of the
- * computation is stored in outputs[AES_CBC_BLOCK_SIZE...].
+ * Runs the inner loop of the NIST AESAVS MCT algorithm, encrypting or
+ * decrypting blocks sequentially. The lastTwoOutBlocksI array must be at least
+ * (2 * AES_CBC_BLOCK_SIZE) bytes in length.
  */
-static void nist_monte_cbc_inner_loop(const byte_t *block, const byte_t *iv,
-                                      byte_t *outputs, aes_cbc_fptr operation);
+static void nist_monte_cbc_inner_loop(const byte_t *inBlockIZero,
+                                      const byte_t *ivI,
+                                      byte_t *lastTwoOutBlocksI,
+                                      aes_cbc_fptr operation);
 
 /*
- * Modifies the contents of the key array, per the NIST AESAVS MCT algorithm,
- * baesd on the penultimate and ultimate computational results of the inner
- * loop. Those two results are provided as innerLoopOutputs[0...], and
- * innerLoopOutputs[AES_CBC_BLOCK_SIZE...].
+ * Modifies the contents of the keyI array, per the NIST AESAVS MCT algorithm,
+ * baesd on the last two output blocks of the inner loop.
  */
-static void nist_monte_cbc_compute_new_key(byte_t *key, size_t keySize,
-                                           const byte_t *innerLoopOutputs);
+static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
+                                           const byte_t *lastTwoOutBlocksI);
 
 /*
  * All of the plain single- or multi-block encryption and decryption AES-CBC
@@ -454,99 +452,133 @@ static void aes_cbc_multi_block(const byte_t *input, const byte_t *iv,
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
 {
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
-    byte_t key[AES_CBC_KEY_SIZE_MAX];
-    byte_t innerLoopInput[AES_CBC_BLOCK_SIZE];
-    byte_t innerLoopIV[AES_CBC_IV_SIZE];
-    byte_t innerLoopOutputs[2 * AES_CBC_BLOCK_SIZE];
+    byte_t keyI[AES_CBC_KEY_SIZE_MAX];
+    byte_t inBlockIZero[AES_CBC_BLOCK_SIZE];
+    byte_t ivI[AES_CBC_IV_SIZE];
+    byte_t lastTwoOutBlocksI[2 * AES_CBC_BLOCK_SIZE];
     const byte_t *expected;
     aes_cbc_fptr operation;
     int i;
 
-    memcpy(key, test->key, test->keySize);
-    memcpy(innerLoopIV, test->iv, AES_CBC_IV_SIZE);
+    memset(lastTwoOutBlocksI, 0, 2 * AES_CBC_BLOCK_SIZE);
+
+    /*
+     * The NIST AESAVS Monte Carlo Test - CBC algorithm is described on pages
+     * 8-9 of the AESAVS document. The algorithm, rephrased for greater
+     * clarity, uses these variables:
+     *
+     * key[i]          where 0 <= i < 100
+     * iv[i]           where 0 <= i < 100
+     * inBlock[i][j]   where 0 <= i < 100, 0 <= j < 1000
+     * outBlock[i][j]  where 0 <= i < 100, 0 <= j < 1000
+     *
+     * inBlock represents the plaintexts and outBlock the ciphertext results
+     * when the operation is encryption, and vice versa when the operation is
+     * decryption.
+     *
+     * To begin:
+     *
+     * key[0] = seed key
+     * iv[0] = seed IV
+     * inBlock[0][0] = seed input block
+     */
+    memcpy(keyI, test->key, test->keySize);
+    memcpy(ivI, test->iv, AES_CBC_IV_SIZE);
     if (test->direction == TEST_DIRECTION_ENCRYPT) {
-        memcpy(innerLoopInput, test->plaintext, AES_CBC_BLOCK_SIZE);
+        memcpy(inBlockIZero, test->plaintext, AES_CBC_BLOCK_SIZE);
         operation = &aes_cbc_encrypt;
         expected = test->ciphertext;
     }
     else {
-        memcpy(innerLoopInput, test->ciphertext, AES_CBC_BLOCK_SIZE);
+        memcpy(inBlockIZero, test->ciphertext, AES_CBC_BLOCK_SIZE);
         operation = &aes_cbc_decrypt;
         expected = test->plaintext;
     }
 
+    /*
+     * for ( i = 0 to 99 ):
+     *     inner loop computes outBlock[i][998] and outBlock[i][999] using
+     *       inBlock[i][0], iv[i], and key[i]
+     *     compute key[i+1] using key[i], outBlock[i][998], and
+     *       outBlock[i][999]
+     *     iv[i+1] = outBlock[i][999]
+     *     inBlock[i+1][0] = outBlock[i][998]
+     */
     for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
-        aes_cbc_set_key(ctx, key, test->keySize);
-        nist_monte_cbc_inner_loop(innerLoopInput, innerLoopIV,
-                                  innerLoopOutputs, operation);
+        aes_cbc_set_key(ctx, keyI, test->keySize);
+        nist_monte_cbc_inner_loop(inBlockIZero, ivI, lastTwoOutBlocksI,
+                                  operation);
         if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
-            nist_monte_cbc_compute_new_key(key, test->keySize,
-                                           innerLoopOutputs);
-            memcpy(innerLoopInput, innerLoopOutputs, AES_CBC_IV_SIZE);
-            memcpy(innerLoopIV, innerLoopOutputs + AES_CBC_BLOCK_SIZE,
-                   AES_CBC_BLOCK_SIZE);
+            nist_monte_cbc_compute_new_key(keyI, test->keySize,
+                                           lastTwoOutBlocksI);
+            memcpy(ivI, lastTwoOutBlocksI + AES_CBC_BLOCK_SIZE,
+                   AES_CBC_IV_SIZE);
+            memcpy(inBlockIZero, lastTwoOutBlocksI, AES_CBC_BLOCK_SIZE);
         }
     }
 
-    TEST_ASSERT(memcmp(innerLoopOutputs + AES_CBC_BLOCK_SIZE, expected,
+    /*
+     * outBlock[99][999] is the expected result of the AES-CBC MCT.
+     *
+     * Note: in the AESAVS CAVP, each output[i][999] is output as an
+     * intermediate computation. Here, we check only the final result.
+     */
+    TEST_ASSERT(memcmp(lastTwoOutBlocksI + AES_CBC_BLOCK_SIZE, expected,
                        AES_CBC_BLOCK_SIZE) == 0);
 }
 
-static void nist_monte_cbc_inner_loop(const byte_t *block, const byte_t *iv,
-                                      byte_t *outputs, aes_cbc_fptr operation)
+static void nist_monte_cbc_inner_loop(const byte_t *inBlockIZero,
+                                      const byte_t *ivI,
+                                      byte_t *lastTwoOutBlocksI,
+                                      aes_cbc_fptr operation)
 {
-    /*
-     * Based on the NIST AESAVS specification, p.8:
-     *
-     * input[0] = input block
-     *
-     * for j = 0 to 999
-     *     if ( j = 0 )
-     *         output[j] = AES(key, iv, input[j])
-     *         input[j+1] = iv
-     *     else
-     *         output[j] = AES(key, input[j])
-     *         input[j+1] = output[j-1]
-     *
-     * Save output[998]  <-- placed in outputs[0 to blockSize-1]
-     * Save output[999]  <-- placed in outputs[blockSize to 2*blockSize-1]
-     */
     const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
     byte_t intermediate[AES_CBC_BLOCK_SIZE];
-    int i;
+    int j;
 
-    memset(outputs, 0, 2 * AES_CBC_BLOCK_SIZE);
-    aes_cbc_set_iv(ctx, iv);
-    operation(ctx, block, outputs);
-    operation(ctx, iv, outputs + AES_CBC_BLOCK_SIZE);
-    for (i = 0; i < NIST_MONTE_INNER_LOOP_SIZE - 2; i++) {
-        operation(ctx, outputs, intermediate);
-        memcpy(outputs, outputs + AES_CBC_BLOCK_SIZE, AES_CBC_BLOCK_SIZE);
-        memcpy(outputs + AES_CBC_BLOCK_SIZE, intermediate, AES_CBC_BLOCK_SIZE);
+    /*
+     * outBlock[i][0] = AES(key[i], iv[i], inBlock[i][0])
+     * inBlock[i][1] = iv[i]
+     *
+     * That is, the IV is set in the AES context for the first encryption (or
+     * decryption) of this inner loop. Then, the IV itself becomes an input
+     * block for the second encryption (or decryption). See just above the
+     * "for" loop, below.
+     */
+    aes_cbc_set_iv(ctx, ivI);
+    operation(ctx, inBlockIZero, lastTwoOutBlocksI);
+
+    /*
+     * for ( j = 1 to 999 ):
+     *     outBlock[i][j] = AES(key, inBlock[i][j])
+     *     inBlock[i][j+1] = outBlock[i][j-1]
+     */
+    operation(ctx, ivI, lastTwoOutBlocksI + AES_CBC_BLOCK_SIZE);
+    for (j = 2; j < NIST_MONTE_INNER_LOOP_SIZE; j++) {
+        operation(ctx, lastTwoOutBlocksI, intermediate);
+        memcpy(lastTwoOutBlocksI, lastTwoOutBlocksI + AES_CBC_BLOCK_SIZE,
+               AES_CBC_BLOCK_SIZE);
+        memcpy(lastTwoOutBlocksI + AES_CBC_BLOCK_SIZE, intermediate,
+               AES_CBC_BLOCK_SIZE);
     }
 }
 
-static void nist_monte_cbc_compute_new_key(byte_t *key, size_t keySize,
-                                           const byte_t *innerLoopOutputs)
+static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
+                                           const byte_t *lastTwoOutBlocksI)
 {
     /*
-     * Based on the NIST AESAVS specification, p.8:
-     *
-     * if keySize == 128
-     *     nextKey = previousKey xor inner loop's last output
-     * if keySize == 192
-     *     nextKey = previousKey xor
-     *               (last 64 bits of inner loop's penultimate output ||
-     *                inner loop's last output)
-     * if keySize == 256
-     *     nextKey = previousKey xor
-     *               (inner loop's penultimate output ||
-     *                inner loop's last output)
+     * if ( keySize = 128 ):
+     *     key[i+1] = key[i] XOR outBlock[i][999]
+     * if ( keySize = 192 ):
+     *     key[i+1] = key[i] XOR
+     *                ( last 64 bits of outBlock[i][998] + outBlock[i][999] )
+     * if ( keySize = 256 ):
+     *     key[i+1] = key[i] XOR ( outBlock[i][998] + outBlock[i][999] )
      */
     size_t onByte;
 
-    innerLoopOutputs += 2 * AES_CBC_BLOCK_SIZE - keySize;
+    lastTwoOutBlocksI += 2 * AES_CBC_BLOCK_SIZE - keySize;
     for (onByte = 0; onByte < keySize; onByte++) {
-        key[onByte] ^= innerLoopOutputs[onByte];
+        keyI[onByte] ^= lastTwoOutBlocksI[onByte];
     }
 }
