@@ -72,30 +72,27 @@ static void aes_ecb_multi_block(const byte_t *input, byte_t *output,
                                 size_t numBlocks, int direction);
 
 /*
- * Runs a single AES-ECB NIST AESAVS MCT test case, which includes a single
- * assertion: that the outcome of either the loop of encryptions or the loop of
- * decryptions is correct.
+ * Runs a single AES-ECB NIST AESAVS MCT - ECB case, which includes a single
+ * assertion: that the outcome of either the loop of encryptions or the loop
+ * of decryptions is correct.
  */
 static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test);
 
 /*
- * Runs the inner loop of the NIST AESAVS MCT test, encrypting or decrypting
- * blocks sequentially 1000 times. The outputs array must be (2 *
- * AES_ECB_BLOCK_SIZE) bytes in length. The penultimate result of the
- * computation is stored in outputs[0...], and the final result of the
- * computation is stored in outputs[AES_ECB_BLOCK_SIZE...].
+ * Runs the inner loop of the NIST AESAVS MCT - ECB algorithm, encrypting or
+ * decrypting blocks sequentially. The lastTwoOutBlocksI array must be at least
+ * (2 * AES_ECB_BLOCK_SIZE) bytes in length.
  */
-static void nist_monte_ecb_inner_loop(const byte_t *block, byte_t *outputs,
+static void nist_monte_ecb_inner_loop(const byte_t *inBlockIZero,
+                                      byte_t *lastTwoOutBlocksI,
                                       aes_ecb_fptr operation);
 
 /*
- * Modifies the contents of the key array, per the NIST AESAVS MCT algorithm,
- * baesd on the penultimate and ultimate computational results of the inner
- * loop. Those two results are provided as innerLoopOutputs[0...], and
- * innerLoopOutputs[AES_ECB_BLOCK_SIZE...].
+ * Modifies the contents of the keyI array, per the NIST AESAVS MCT algorithm,
+ * baesd on the last two output blocks of the inner loop.
  */
-static void nist_monte_ecb_compute_new_key(byte_t *key, size_t keySize,
-                                           const byte_t *innerLoopOutputs);
+static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
+                                           const byte_t *lastTwoOutBlocksI);
 
 /*
  * All of the plain single- or multi-block encryption and decryption AES-ECB
@@ -432,87 +429,109 @@ static void aes_ecb_multi_block(const byte_t *input, byte_t *output,
 static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
 {
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
-    byte_t key[AES_ECB_KEY_SIZE_MAX];
-    byte_t innerLoopInput[AES_ECB_BLOCK_SIZE];
-    byte_t innerLoopOutputs[2 * AES_ECB_BLOCK_SIZE];
+    byte_t keyI[AES_ECB_KEY_SIZE_MAX];
+    byte_t inBlockIZero[AES_ECB_BLOCK_SIZE];
+    byte_t lastTwoOutBlocksI[2 * AES_ECB_BLOCK_SIZE];
     const byte_t *expected;
     aes_ecb_fptr operation;
     int i;
 
-    memcpy(key, test->key, test->keySize);
+    memset(lastTwoOutBlocksI, 0, 2 * AES_ECB_BLOCK_SIZE);
+
+    /*
+     * The NIST AESAVS Monte Carlo Test - ECB algorithm is described on pages
+     * 7-8 of the AESAVS document. The algorithm, rephrased for greater
+     * clarity, uses these variables:
+     *
+     * key[i]          where 0 <= i < 100
+     * inBlock[i][j]   where 0 <= i < 100, 0 <= j < 1000
+     * outBlock[i][j]  where 0 <= i < 100, 0 <= j < 1000
+     *
+     * inBlock represents the plaintexts and outBlock the ciphertext results
+     * when the operation is encryption, and vice versa when the operation is
+     * decryption.
+     *
+     * To begin:
+     *
+     * key[0] = seed key
+     * inBlock[0][0] = seed input block
+     */
+    memcpy(keyI, test->key, test->keySize);
     if (test->direction == TEST_DIRECTION_ENCRYPT) {
-        memcpy(innerLoopInput, test->plaintext, AES_ECB_BLOCK_SIZE);
+        memcpy(inBlockIZero, test->plaintext, AES_ECB_BLOCK_SIZE);
         operation = &aes_ecb_encrypt;
         expected = test->ciphertext;
     }
     else {
-        memcpy(innerLoopInput, test->ciphertext, AES_ECB_BLOCK_SIZE);
+        memcpy(inBlockIZero, test->ciphertext, AES_ECB_BLOCK_SIZE);
         operation = &aes_ecb_decrypt;
         expected = test->plaintext;
     }
 
+    /*
+     * for ( i = 0 to 99 ):
+     *     inner loop computes outBlock[i][998] and outBlock[i][999] using
+     *       inBlock[i][0] and key[i]
+     *     compute key[i+1] using key[i], outBlock[i][998], and
+     *       outBlock[i][999]
+     *     inBlock[i+1][0] = outBlock[i][999]
+     */
     for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
-        aes_ecb_set_key(ctx, key, test->keySize);
-        nist_monte_ecb_inner_loop(innerLoopInput, innerLoopOutputs, operation);
+        aes_ecb_set_key(ctx, keyI, test->keySize);
+        nist_monte_ecb_inner_loop(inBlockIZero, lastTwoOutBlocksI, operation);
         if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
-            nist_monte_ecb_compute_new_key(key, test->keySize,
-                                           innerLoopOutputs);
-            memcpy(innerLoopInput, innerLoopOutputs + AES_ECB_BLOCK_SIZE,
+            nist_monte_ecb_compute_new_key(keyI, test->keySize,
+                                           lastTwoOutBlocksI);
+            memcpy(inBlockIZero, lastTwoOutBlocksI + AES_ECB_BLOCK_SIZE,
                    AES_ECB_BLOCK_SIZE);
         }
     }
 
-    TEST_ASSERT(memcmp(innerLoopOutputs + AES_ECB_BLOCK_SIZE, expected,
+    /*
+     * outBlock[99][999] is the expected result of the AES-ECB MCT.
+     *
+     * Note: in the AESAVS CAVP, each output[i][999] is output as an
+     * intermediate computation. Here, we check only the final result.
+     */
+    TEST_ASSERT(memcmp(lastTwoOutBlocksI + AES_ECB_BLOCK_SIZE, expected,
                        AES_ECB_BLOCK_SIZE) == 0);
 }
 
-static void nist_monte_ecb_inner_loop(const byte_t *block, byte_t *outputs,
+static void nist_monte_ecb_inner_loop(const byte_t *inBlockIZero,
+                                      byte_t *lastTwoOutBlocksI,
                                       aes_ecb_fptr operation)
 {
-    /*
-     * Based on the NIST AESAVS specification, p.7:
-     *
-     * input[0] = input block
-     *
-     * for j = 0 to 999
-     *     output[j] = AES(key, input[j])
-     *     input[j+1] = output[j]
-     *
-     * Save output[998]  <-- placed in outputs[0 to blockSize-1]
-     * Save output[999]  <-- placed in outputs[blockSize to 2*blockSize-1]
-     */
     const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
-    int i;
+    int j;
 
-    memset(outputs, 0, 2 * AES_ECB_BLOCK_SIZE);
-    operation(ctx, block, outputs);
-    for (i = 0; i < NIST_MONTE_INNER_LOOP_SIZE - 2; i++) {
-        operation(ctx, outputs, outputs);
+    /*
+     * for ( j = 0 to 999 ):
+     *     outBlock[i][j] = AES(key, inBlock[i][j])
+     *     inBlock[j+1] = outBlock[j]
+     */
+    operation(ctx, inBlockIZero, lastTwoOutBlocksI);
+    for (j = 0; j < NIST_MONTE_INNER_LOOP_SIZE - 2; j++) {
+        operation(ctx, lastTwoOutBlocksI, lastTwoOutBlocksI);
     }
-    operation(ctx, outputs, outputs + AES_ECB_BLOCK_SIZE);
+    operation(ctx, lastTwoOutBlocksI, lastTwoOutBlocksI + AES_ECB_BLOCK_SIZE);
 }
 
-static void nist_monte_ecb_compute_new_key(byte_t *key, size_t keySize,
-                                           const byte_t *innerLoopOutputs)
+static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
+                                           const byte_t *lastTwoOutBlocksI)
 {
     /*
-     * Based on the NIST AESAVS specification, p.7:
-     *
-     * if keySize == 128
-     *     nextKey = previousKey xor inner loop's last output
-     * if keySize == 192
-     *     nextKey = previousKey xor
-     *               (last 64 bits of inner loop's penultimate output ||
-     *                inner loop's last output)
-     * if keySize == 256
-     *     nextKey = previousKey xor
-     *               (inner loop's penultimate output ||
-     *                inner loop's last output)
+     * if ( keySize = 128 ):
+     *     key[i+1] = key[i] XOR outBlock[i][999]
+     * if ( keySize = 192 ):
+     *     key[i+1] = key[i] XOR
+     *                ( last 64 bits of outBlock[i][998] + outBlock[i][999] )
+     * if ( keySize = 256 ):
+     *     key[i+1] = key[i] XOR ( outBlock[i][998] + outBlock[i][999] )
      */
     size_t onByte;
 
-    innerLoopOutputs += 2 * AES_ECB_BLOCK_SIZE - keySize;
+    lastTwoOutBlocksI += 2 * AES_ECB_BLOCK_SIZE - keySize;
     for (onByte = 0; onByte < keySize; onByte++) {
-        key[onByte] ^= innerLoopOutputs[onByte];
+        keyI[onByte] ^= lastTwoOutBlocksI[onByte];
     }
 }
