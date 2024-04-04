@@ -1,4 +1,4 @@
-# Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+# Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,7 @@ BINDIR = ./bin
 MANDIR = ./man
 
 .PHONY:
-.PHONY: all debug userprogs install man generate test clean deps
+.PHONY: default all debug userprogs install man generate test clean deps
 .SUFFIXES:
 .SUFFIXES: .c .o
 
@@ -32,25 +32,22 @@ MANDIR = ./man
 	${CC} ${CFLAGS} -Isrc/ -c -o $@ $<
 
 ##
-# By default, build just pisces and pwgen
-##
-
-userprogs: ${BINDIR}/pisces ${BINDIR}/pwgen
-
-##
 # Full-project build options
 ##
+
+default: test userprogs
+all: generate test userprogs
 
 debug: CFLAGS := -Wall -DDEBUGGING -g
 debug: all
 
-all: generate test userprogs
+userprogs: ${BINDIR}/pisces ${BINDIR}/pwgen
 
 ##
 # Installation
 ##
 
-install: userprogs
+install: default
 	@if [ ! -d ${INSTALL_BIN}/ ] ; then \
 	  echo Missing installation directory ${INSTALL_BIN}/ ; \
 	  false ; fi
@@ -100,12 +97,6 @@ ${BINDIR}/generate_sha3: ${GENERATE_SHA3_OBJS}
 
 test: ${BINDIR}/test_aes_ecb ${BINDIR}/test_aes_cbc ${BINDIR}/test_sha1 \
   ${BINDIR}/test_sha3 ${BINDIR}/test_hmac ${BINDIR}/test_pbkdf2
-	@${BINDIR}/test_aes_ecb
-	@${BINDIR}/test_aes_cbc
-	@${BINDIR}/test_sha1
-	@${BINDIR}/test_sha3
-	@${BINDIR}/test_hmac
-	@${BINDIR}/test_pbkdf2
 
 ##
 # crypto/primitives/aes/test_aes_ecb
@@ -116,6 +107,7 @@ TEST_AES_ECB_OBJS = src/crypto/primitives/aes/test_aes_ecb.o \
 
 ${BINDIR}/test_aes_ecb: ${TEST_AES_ECB_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_AES_ECB_OBJS}
+	@${BINDIR}/test_aes_ecb
 
 ##
 # crypto/primitives/aes/test_aes_cbc
@@ -126,6 +118,7 @@ TEST_AES_CBC_OBJS = src/crypto/primitives/aes/test_aes_cbc.o \
 
 ${BINDIR}/test_aes_cbc: ${TEST_AES_CBC_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_AES_CBC_OBJS}
+	@${BINDIR}/test_aes_cbc
 
 ##
 # crypto/primitives/sha1/test_sha1
@@ -136,6 +129,7 @@ TEST_SHA1_OBJS = src/crypto/primitives/sha1/test_sha1.o \
 
 ${BINDIR}/test_sha1: ${TEST_SHA1_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_SHA1_OBJS}
+	@${BINDIR}/test_sha1
 
 ##
 # crypto/primitives/sha3/test_sha3
@@ -146,6 +140,7 @@ TEST_SHA3_OBJS = src/crypto/primitives/sha3/test_sha3.o \
 
 ${BINDIR}/test_sha3: ${TEST_SHA3_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_SHA3_OBJS}
+	@${BINDIR}/test_sha3
 
 ##
 # crypto/algorithms/hmac/test_hmac
@@ -157,6 +152,7 @@ TEST_HMAC_OBJS = src/crypto/algorithms/hmac/test_hmac.o \
 
 ${BINDIR}/test_hmac: ${TEST_HMAC_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_HMAC_OBJS}
+	@${BINDIR}/test_hmac
 
 ##
 # crypto/algorithms/pbkdf2/test_pbkdf2
@@ -169,6 +165,7 @@ TEST_PBKDF2_OBJS = src/crypto/algorithms/pbkdf2/test_pbkdf2.o \
 
 ${BINDIR}/test_pbkdf2: ${TEST_PBKDF2_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_PBKDF2_OBJS}
+	@${BINDIR}/test_pbkdf2
 
 ##
 # pisces/
