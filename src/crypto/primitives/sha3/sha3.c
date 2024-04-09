@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2013-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,7 +28,7 @@
 
 struct sha3_ctx {
     uint64_t state[25];
-    byte_t leftover[SHA3_224_BLOCK_BYTES];
+    byte_t leftover[SHA3_BLOCK_BYTES_MAX];
     size_t amntLeftover;
     size_t rate;
     size_t outputSize;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2013-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,7 @@
 #define SHA3_256_DIGEST_BYTES (32)
 #define SHA3_384_DIGEST_BYTES (48)
 #define SHA3_512_DIGEST_BYTES (64)
+#define SHA3_DIGEST_BYTES_MAX (SHA3_512_DIGEST_BYTES)
 
 /*
  * The number of bytes processed at once by the SHA-3 variants.
@@ -36,6 +37,7 @@
 #define SHA3_256_BLOCK_BYTES (136)
 #define SHA3_384_BLOCK_BYTES (104)
 #define SHA3_512_BLOCK_BYTES (72)
+#define SHA3_BLOCK_BYTES_MAX (SHA3_224_BLOCK_BYTES)
 
 /*
  * Opaque SHA-3 context. Note that there are undefined behaviours, described

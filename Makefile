@@ -254,7 +254,8 @@ src/crypto/primitives/sha3/generate_sha3.o: \
   src/crypto/primitives/sha3/generate_sha3.c
 src/crypto/primitives/sha3/test_sha3.o: \
   src/crypto/primitives/sha3/test_sha3.c src/common/bytetype.h \
-  src/crypto/primitives/sha3/sha3.h src/crypto/test/framework.h
+  src/common/errorflow.h src/crypto/primitives/sha3/sha3.h \
+  src/crypto/test/framework.h
 src/crypto/primitives/sha3/sha3.o: src/crypto/primitives/sha3/sha3.c \
   src/crypto/primitives/sha3/sha3.h src/common/bytetype.h \
   src/common/errorflow.h src/common/scrub.h src/crypto/machine/endian.h
