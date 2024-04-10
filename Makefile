@@ -235,7 +235,7 @@ src/crypto/algorithms/hmac/hmac.o: src/crypto/algorithms/hmac/hmac.c \
   src/crypto/abstract/chf.h src/common/errorflow.h src/common/scrub.h
 src/crypto/algorithms/hmac/test_hmac.o: \
   src/crypto/algorithms/hmac/test_hmac.c src/common/bytetype.h \
-  src/crypto/algorithms/hmac/hmac.h src/crypto/abstract/chf.h \
+  src/crypto/abstract/chf.h src/crypto/algorithms/hmac/hmac.h \
   src/crypto/test/framework.h
 src/crypto/algorithms/pbkdf2/test_pbkdf2.o: \
   src/crypto/algorithms/pbkdf2/test_pbkdf2.c src/common/bytetype.h \
