@@ -15,14 +15,16 @@
  */
 
 #include "common/bytetype.h"
+#include "common/errorflow.h"
 #include "crypto/primitives/aes/aes_ecb.h"
 #include "crypto/test/framework.h"
+#include "crypto/test/hex.h"
 
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 TEST_PREAMBLE("AES-ECB");
-struct aes_ecb_ctx *ctx;
 
 /*
  * Directions in which to run an AES-ECB test, and a function pointer to either
@@ -36,13 +38,10 @@ typedef void (*aes_ecb_fptr)(struct aes_ecb_ctx *, const byte_t *, byte_t *);
  * Parameters for a single- or multi-block AES-ECB test, including plaintext
  * and ciphertext to test for both correct encryption and correct decryption.
  */
-#define PLAIN_TEST_NUM_BLOCKS_MAX (4)
 struct aes_ecb_plain_test {
-    const size_t keySize;
-    const size_t numBlocks;
-    const byte_t key[AES_ECB_KEY_SIZE_MAX];
-    const byte_t plaintext[AES_ECB_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
-    const byte_t ciphertext[AES_ECB_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
+    const char *key;
+    const char *plaintext;
+    const char *ciphertext;
 };
 
 /*
@@ -51,11 +50,10 @@ struct aes_ecb_plain_test {
  * symmetric, only one of encryption or decryption is tested.
  */
 struct aes_ecb_monte_test {
-    const size_t keySize;
     const int direction;
-    const byte_t key[AES_ECB_KEY_SIZE_MAX];
-    const byte_t plaintext[AES_ECB_BLOCK_SIZE];
-    const byte_t ciphertext[AES_ECB_BLOCK_SIZE];
+    const char *key;
+    const char *plaintext;
+    const char *ciphertext;
 };
 
 /*
@@ -65,11 +63,22 @@ struct aes_ecb_monte_test {
 static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test);
 
 /*
+ * Runs an AES-ECB regular single- or multi-block test that has been parsed
+ * from its hexadecimal string format. The key length must be a valid AES key
+ * length.
+ */
+static void run_parsed_aes_ecb_plain_test(const byte_t *key, size_t keySize,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          size_t numBlocks);
+
+/*
  * Runs an AES-ECB encryption or decryption operation over one or more blocks
  * of input.
  */
-static void aes_ecb_multi_block(const byte_t *input, byte_t *output,
-                                size_t numBlocks, int direction);
+static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte_t *input,
+                                byte_t *output, size_t numBlocks,
+                                int direction);
 
 /*
  * Runs a single AES-ECB NIST AESAVS MCT - ECB case, which includes a single
@@ -79,20 +88,43 @@ static void aes_ecb_multi_block(const byte_t *input, byte_t *output,
 static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test);
 
 /*
+ * Runs a single AES-ECB NIST AESAVS MCT - ECB test case that has been parsed
+ * from its hexadecimal string format. The key length must be a valid AES key
+ * length.
+ */
+static void run_parsed_aes_ecb_monte_test(const byte_t *key, size_t keySize,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          int direction);
+
+/*
  * Runs the inner loop of the NIST AESAVS MCT - ECB algorithm, encrypting or
  * decrypting blocks sequentially. The lastTwoOutBlocksI array must be at least
  * (2 * AES_ECB_BLOCK_SIZE) bytes in length.
  */
-static void nist_monte_ecb_inner_loop(const byte_t *inBlockIZero,
+static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
+                                      const byte_t *inBlockIZero,
                                       byte_t *lastTwoOutBlocksI,
                                       aes_ecb_fptr operation);
 
 /*
  * Modifies the contents of the keyI array, per the NIST AESAVS MCT algorithm,
- * baesd on the last two output blocks of the inner loop.
+ * based on the last two output blocks of the inner loop.
  */
 static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
                                            const byte_t *lastTwoOutBlocksI);
+
+/*
+ * Converts strings of hexadecimal characters to arrays of bytes, and ensures
+ * that the number of key bytes converted is a valid AES key size. The caller
+ * is responsible for freeing the allocated byte arrays.
+ */
+static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+                               size_t *keySize, const char *plaintextHex,
+                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               const char *ciphertextHex,
+                               byte_t **ciphertextBytes,
+                               size_t *ciphertextLen);
 
 /*
  * All of the plain single- or multi-block encryption and decryption AES-ECB
@@ -103,116 +135,58 @@ static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
 static const struct aes_ecb_plain_test plainTests[] = {
     /* FIPS-197, Appendix C.1, AES-128 */
     {
-        .keySize = AES_ECB_KEY_SIZE_128,
-        .numBlocks = 1,
-        .key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-                0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
-        .plaintext = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
-                      0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
-        .ciphertext = {0x69, 0xC4, 0xE0, 0xD8, 0x6A, 0x7B, 0x04, 0x30, 0xD8,
-                       0xCD, 0xB7, 0x80, 0x70, 0xB4, 0xC5, 0x5A},
+        .key = "000102030405060708090A0B0C0D0E0F",
+        .plaintext = "00112233445566778899AABBCCDDEEFF",
+        .ciphertext = "69C4E0D86A7B0430D8CDB78070B4C55A",
     },
 
     /* FIPS-197, Appendix C.2, AES-192 */
     {
-        .keySize = AES_ECB_KEY_SIZE_192,
-        .numBlocks = 1,
-        .key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-                0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17},
-        .plaintext = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
-                      0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
-        .ciphertext = {0xDD, 0xA9, 0x7C, 0xA4, 0x86, 0x4C, 0xDF, 0xE0, 0x6E,
-                       0xAF, 0x70, 0xA0, 0xEC, 0x0D, 0x71, 0x91},
+        .key = "000102030405060708090A0B0C0D0E0F1011121314151617",
+        .plaintext = "00112233445566778899AABBCCDDEEFF",
+        .ciphertext = "DDA97CA4864CDFE06EAF70A0EC0D7191",
     },
 
     /* FIPS-197, Appendix C.3, AES-256 */
     {
-        .keySize = AES_ECB_KEY_SIZE_256,
-        .numBlocks = 1,
-        .key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-                0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-                0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F},
-        .plaintext = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
-                      0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
-        .ciphertext = {0x8E, 0xA2, 0xB7, 0xCA, 0x51, 0x67, 0x45, 0xBF, 0xEA,
-                       0xFC, 0x49, 0x90, 0x4B, 0x49, 0x60, 0x89},
+        .key =
+            "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F",
+        .plaintext = "00112233445566778899AABBCCDDEEFF",
+        .ciphertext = "8EA2B7CA516745BFEAFC49904B496089",
     },
 
     /* NIST SP 800-38A, Appendix F.1.1, ECB-AES128.Encrypt */
     {
-        .keySize = AES_ECB_KEY_SIZE_128,
-        .numBlocks = 4,
-        .key = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7,
-                0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C},
-        .plaintext = {0x6B, 0xC1, 0xBE, 0xE2, 0x2E, 0x40, 0x9F, 0x96,
-                      0xE9, 0x3D, 0x7E, 0x11, 0x73, 0x93, 0x17, 0x2A,
-                      0xAE, 0x2D, 0x8A, 0x57, 0x1E, 0x03, 0xAC, 0x9C,
-                      0x9E, 0xB7, 0x6F, 0xAC, 0x45, 0xAF, 0x8E, 0x51,
-                      0x30, 0xC8, 0x1C, 0x46, 0xA3, 0x5C, 0xE4, 0x11,
-                      0xE5, 0xFB, 0xC1, 0x19, 0x1A, 0x0A, 0x52, 0xEF,
-                      0xF6, 0x9F, 0x24, 0x45, 0xDF, 0x4F, 0x9B, 0x17,
-                      0xAD, 0x2B, 0x41, 0x7B, 0xE6, 0x6C, 0x37, 0x10},
-        .ciphertext = {0x3A, 0xD7, 0x7B, 0xB4, 0x0D, 0x7A, 0x36, 0x60,
-                       0xA8, 0x9E, 0xCA, 0xF3, 0x24, 0x66, 0xEF, 0x97,
-                       0xF5, 0xD3, 0xD5, 0x85, 0x03, 0xB9, 0x69, 0x9D,
-                       0xE7, 0x85, 0x89, 0x5A, 0x96, 0xFD, 0xBA, 0xAF,
-                       0x43, 0xB1, 0xCD, 0x7F, 0x59, 0x8E, 0xCE, 0x23,
-                       0x88, 0x1B, 0x00, 0xE3, 0xED, 0x03, 0x06, 0x88,
-                       0x7B, 0x0C, 0x78, 0x5E, 0x27, 0xE8, 0xAD, 0x3F,
-                       0x82, 0x23, 0x20, 0x71, 0x04, 0x72, 0x5D, 0xD4},
+        .key = "2B7E151628AED2A6ABF7158809CF4F3C",
+        .plaintext =
+            "6BC1BEE22E409F96E93D7E117393172AAE2D8A571E03AC9C9EB76FAC45AF8E513"
+            "0C81C46A35CE411E5FBC1191A0A52EFF69F2445DF4F9B17AD2B417BE66C3710",
+        .ciphertext =
+            "3AD77BB40D7A3660A89ECAF32466EF97F5D3D58503B9699DE785895A96FDBAAF4"
+            "3B1CD7F598ECE23881B00E3ED0306887B0C785E27E8AD3F8223207104725DD4",
     },
 
     /* NIST SP 800-38A, Appendix F.1.3, ECB-AES192.Encrypt */
     {
-        .keySize = AES_ECB_KEY_SIZE_192,
-        .numBlocks = 4,
-        .key = {0x8E, 0x73, 0xB0, 0xF7, 0xDA, 0x0E, 0x64, 0x52,
-                0xC8, 0x10, 0xF3, 0x2B, 0x80, 0x90, 0x79, 0xE5,
-                0x62, 0xF8, 0xEA, 0xD2, 0x52, 0x2C, 0x6B, 0x7B},
-        .plaintext = {0x6B, 0xC1, 0xBE, 0xE2, 0x2E, 0x40, 0x9F, 0x96,
-                      0xE9, 0x3D, 0x7E, 0x11, 0x73, 0x93, 0x17, 0x2A,
-                      0xAE, 0x2D, 0x8A, 0x57, 0x1E, 0x03, 0xAC, 0x9C,
-                      0x9E, 0xB7, 0x6F, 0xAC, 0x45, 0xAF, 0x8E, 0x51,
-                      0x30, 0xC8, 0x1C, 0x46, 0xA3, 0x5C, 0xE4, 0x11,
-                      0xE5, 0xFB, 0xC1, 0x19, 0x1A, 0x0A, 0x52, 0xEF,
-                      0xF6, 0x9F, 0x24, 0x45, 0xDF, 0x4F, 0x9B, 0x17,
-                      0xAD, 0x2B, 0x41, 0x7B, 0xE6, 0x6C, 0x37, 0x10},
-        .ciphertext = {0xBD, 0x33, 0x4F, 0x1D, 0x6E, 0x45, 0xF2, 0x5F,
-                       0xF7, 0x12, 0xA2, 0x14, 0x57, 0x1F, 0xA5, 0xCC,
-                       0x97, 0x41, 0x04, 0x84, 0x6D, 0x0A, 0xD3, 0xAD,
-                       0x77, 0x34, 0xEC, 0xB3, 0xEC, 0xEE, 0x4E, 0xEF,
-                       0xEF, 0x7A, 0xFD, 0x22, 0x70, 0xE2, 0xE6, 0x0A,
-                       0xDC, 0xE0, 0xBA, 0x2F, 0xAC, 0xE6, 0x44, 0x4E,
-                       0x9A, 0x4B, 0x41, 0xBA, 0x73, 0x8D, 0x6C, 0x72,
-                       0xFB, 0x16, 0x69, 0x16, 0x03, 0xC1, 0x8E, 0x0E},
+        .key = "8E73B0F7DA0E6452C810F32B809079E562F8EAD2522C6B7B",
+        .plaintext =
+            "6BC1BEE22E409F96E93D7E117393172AAE2D8A571E03AC9C9EB76FAC45AF8E513"
+            "0C81C46A35CE411E5FBC1191A0A52EFF69F2445DF4F9B17AD2B417BE66C3710",
+        .ciphertext =
+            "BD334F1D6E45F25FF712A214571FA5CC974104846D0AD3AD7734ECB3ECEE4EEFE"
+            "F7AFD2270E2E60ADCE0BA2FACE6444E9A4B41BA738D6C72FB16691603C18E0E",
     },
 
     /* NIST SP 800-38A, Appendix F.1.5, ECB-AES256.Encrypt */
     {
-        .keySize = AES_ECB_KEY_SIZE_256,
-        .numBlocks = 4,
-        .key = {0x60, 0x3D, 0xEB, 0x10, 0x15, 0xCA, 0x71, 0xBE,
-                0x2B, 0x73, 0xAE, 0xF0, 0x85, 0x7D, 0x77, 0x81,
-                0x1F, 0x35, 0x2C, 0x07, 0x3B, 0x61, 0x08, 0xD7,
-                0x2D, 0x98, 0x10, 0xA3, 0x09, 0x14, 0xDF, 0xF4},
-        .plaintext = {0x6B, 0xC1, 0xBE, 0xE2, 0x2E, 0x40, 0x9F, 0x96,
-                      0xE9, 0x3D, 0x7E, 0x11, 0x73, 0x93, 0x17, 0x2A,
-                      0xAE, 0x2D, 0x8A, 0x57, 0x1E, 0x03, 0xAC, 0x9C,
-                      0x9E, 0xB7, 0x6F, 0xAC, 0x45, 0xAF, 0x8E, 0x51,
-                      0x30, 0xC8, 0x1C, 0x46, 0xA3, 0x5C, 0xE4, 0x11,
-                      0xE5, 0xFB, 0xC1, 0x19, 0x1A, 0x0A, 0x52, 0xEF,
-                      0xF6, 0x9F, 0x24, 0x45, 0xDF, 0x4F, 0x9B, 0x17,
-                      0xAD, 0x2B, 0x41, 0x7B, 0xE6, 0x6C, 0x37, 0x10},
-        .ciphertext = {0xF3, 0xEE, 0xD1, 0xBD, 0xB5, 0xD2, 0xA0, 0x3C,
-                       0x06, 0x4B, 0x5A, 0x7E, 0x3D, 0xB1, 0x81, 0xF8,
-                       0x59, 0x1C, 0xCB, 0x10, 0xD4, 0x10, 0xED, 0x26,
-                       0xDC, 0x5B, 0xA7, 0x4A, 0x31, 0x36, 0x28, 0x70,
-                       0xB6, 0xED, 0x21, 0xB9, 0x9C, 0xA6, 0xF4, 0xF9,
-                       0xF1, 0x53, 0xE7, 0xB1, 0xBE, 0xAF, 0xED, 0x1D,
-                       0x23, 0x30, 0x4B, 0x7A, 0x39, 0xF9, 0xF3, 0xFF,
-                       0x06, 0x7D, 0x8D, 0x8F, 0x9E, 0x24, 0xEC, 0xC7},
+        .key =
+            "603DEB1015CA71BE2B73AEF0857D77811F352C073B6108D72D9810A30914DFF4",
+        .plaintext =
+            "6BC1BEE22E409F96E93D7E117393172AAE2D8A571E03AC9C9EB76FAC45AF8E513"
+            "0C81C46A35CE411E5FBC1191A0A52EFF69F2445DF4F9B17AD2B417BE66C3710",
+        .ciphertext =
+            "F3EED1BDB5D2A03C064B5A7E3DB181F8591CCB10D410ED26DC5BA74A31362870B"
+            "6ED21B99CA6F4F9F153E7B1BEAFED1D23304B7A39F9F3FF067D8D8F9E24ECC7",
     },
 
     /*
@@ -220,14 +194,9 @@ static const struct aes_ecb_plain_test plainTests[] = {
      * labelled ECBVarTxt128, [ENCRYPT], COUNT=127.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_128,
-        .numBlocks = 1,
-        .key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-        .plaintext = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-        .ciphertext = {0x3F, 0x5B, 0x8C, 0xC9, 0xEA, 0x85, 0x5A, 0x0A, 0xFA,
-                       0x73, 0x47, 0xD2, 0x3E, 0x8D, 0x66, 0x4E},
+        .key = "00000000000000000000000000000000",
+        .plaintext = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        .ciphertext = "3F5B8CC9EA855A0AFA7347D23E8D664E",
     },
 
     /*
@@ -235,15 +204,9 @@ static const struct aes_ecb_plain_test plainTests[] = {
      * labelled ECBVarTxt192, [ENCRYPT], COUNT=127.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_192,
-        .numBlocks = 1,
-        .key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-        .plaintext = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-        .ciphertext = {0xB1, 0x3D, 0xB4, 0xDA, 0x1F, 0x71, 0x8B, 0xC6, 0x90,
-                       0x47, 0x97, 0xC8, 0x2B, 0xCF, 0x2D, 0x32},
+        .key = "000000000000000000000000000000000000000000000000",
+        .plaintext = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        .ciphertext = "B13DB4DA1F718BC6904797C82BCF2D32",
     },
 
     /*
@@ -251,16 +214,10 @@ static const struct aes_ecb_plain_test plainTests[] = {
      * labelled ECBVarTxt256, [ENCRYPT], COUNT=127.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_256,
-        .numBlocks = 1,
-        .key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-        .plaintext = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-        .ciphertext = {0xAC, 0xDA, 0xCE, 0x80, 0x78, 0xA3, 0x2B, 0x1A, 0x18,
-                       0x2B, 0xFA, 0x49, 0x87, 0xCA, 0x13, 0x47},
+        .key =
+            "0000000000000000000000000000000000000000000000000000000000000000",
+        .plaintext = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        .ciphertext = "ACDACE8078A32B1A182BFA4987CA1347",
     },
 };
 
@@ -273,14 +230,10 @@ static const struct aes_ecb_monte_test monteTests[] = {
      * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_128,
         .direction = TEST_DIRECTION_ENCRYPT,
-        .key = {0x13, 0x9A, 0x35, 0x42, 0x2F, 0x1D, 0x61, 0xDE, 0x3C, 0x91,
-                0x78, 0x7F, 0xE0, 0x50, 0x7A, 0xFD},
-        .plaintext = {0xB9, 0x14, 0x5A, 0x76, 0x8B, 0x7D, 0xC4, 0x89, 0xA0,
-                      0x96, 0xB5, 0x46, 0xF4, 0x3B, 0x23, 0x1F},
-        .ciphertext = {0xFB, 0x26, 0x49, 0x69, 0x47, 0x83, 0xB5, 0x51, 0xEA,
-                       0xCD, 0x9D, 0x5D, 0xB6, 0x12, 0x6D, 0x47},
+        .key = "139A35422F1D61DE3C91787FE0507AFD",
+        .plaintext = "B9145A768B7DC489A096B546F43B231F",
+        .ciphertext = "FB2649694783B551EACD9D5DB6126D47",
     },
 
     /*
@@ -288,14 +241,10 @@ static const struct aes_ecb_monte_test monteTests[] = {
      * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_128,
         .direction = TEST_DIRECTION_DECRYPT,
-        .key = {0x0C, 0x60, 0xE7, 0xBF, 0x20, 0xAD, 0xA9, 0xBA, 0xA9, 0xE1,
-                0xDD, 0xF0, 0xD1, 0x54, 0x07, 0x26},
-        .ciphertext = {0xB0, 0x8A, 0x29, 0xB1, 0x1A, 0x50, 0x0E, 0xA3, 0xAC,
-                       0xA4, 0x2C, 0x36, 0x67, 0x5B, 0x97, 0x85},
-        .plaintext = {0xD1, 0xD2, 0xBF, 0xDC, 0x58, 0xFF, 0xCA, 0xD2, 0x34,
-                      0x1B, 0x09, 0x5B, 0xCE, 0x55, 0x22, 0x1E},
+        .key = "0C60E7BF20ADA9BAA9E1DDF0D1540726",
+        .ciphertext = "B08A29B11A500EA3ACA42C36675B9785",
+        .plaintext = "D1D2BFDC58FFCAD2341B095BCE55221E",
     },
 
     /*
@@ -303,15 +252,10 @@ static const struct aes_ecb_monte_test monteTests[] = {
      * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_192,
         .direction = TEST_DIRECTION_ENCRYPT,
-        .key = {0xB9, 0xA6, 0x3E, 0x09, 0xE1, 0xDF, 0xC4, 0x2E,
-                0x93, 0xA9, 0x0D, 0x9B, 0xAD, 0x73, 0x9E, 0x59,
-                0x67, 0xAE, 0xF6, 0x72, 0xEE, 0xDD, 0x5D, 0xA9},
-        .plaintext = {0x85, 0xA1, 0xF7, 0xA5, 0x81, 0x67, 0xB3, 0x89, 0xCD,
-                      0xDC, 0x8A, 0x9F, 0xF1, 0x75, 0xEE, 0x26},
-        .ciphertext = {0x5D, 0x11, 0x96, 0xDA, 0x8F, 0x18, 0x49, 0x75, 0xE2,
-                       0x40, 0x94, 0x9A, 0x25, 0x10, 0x45, 0x54},
+        .key = "B9A63E09E1DFC42E93A90D9BAD739E5967AEF672EEDD5DA9",
+        .plaintext = "85A1F7A58167B389CDDC8A9FF175EE26",
+        .ciphertext = "5D1196DA8F184975E240949A25104554",
     },
 
     /*
@@ -319,15 +263,10 @@ static const struct aes_ecb_monte_test monteTests[] = {
      * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_192,
         .direction = TEST_DIRECTION_DECRYPT,
-        .key = {0x4B, 0x97, 0x58, 0x57, 0x01, 0xC0, 0x3F, 0xBE,
-                0xBD, 0xFA, 0x85, 0x55, 0x02, 0x4F, 0x58, 0x9F,
-                0x14, 0x82, 0xC5, 0x8A, 0x00, 0xFD, 0xD9, 0xFD},
-        .ciphertext = {0xD0, 0xBD, 0x0E, 0x02, 0xDE, 0xD1, 0x55, 0xE4, 0x51,
-                       0x6B, 0xE8, 0x3F, 0x42, 0xD3, 0x47, 0xA4},
-        .plaintext = {0xB6, 0x3E, 0xF1, 0xB7, 0x95, 0x07, 0xA6, 0x2E, 0xBA,
-                      0x3D, 0xAF, 0xCE, 0xC5, 0x4A, 0x63, 0x28},
+        .key = "4B97585701C03FBEBDFA8555024F589F1482C58A00FDD9FD",
+        .ciphertext = "D0BD0E02DED155E4516BE83F42D347A4",
+        .plaintext = "B63EF1B79507A62EBA3DAFCEC54A6328",
     },
 
     /*
@@ -335,16 +274,11 @@ static const struct aes_ecb_monte_test monteTests[] = {
      * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_256,
         .direction = TEST_DIRECTION_ENCRYPT,
-        .key = {0xF9, 0xE8, 0x38, 0x9F, 0x5B, 0x80, 0x71, 0x2E,
-                0x38, 0x86, 0xCC, 0x1F, 0xA2, 0xD2, 0x8A, 0x3B,
-                0x8C, 0x9C, 0xD8, 0x8A, 0x2D, 0x4A, 0x54, 0xC6,
-                0xAA, 0x86, 0xCE, 0x0F, 0xEF, 0x94, 0x4B, 0xE0},
-        .plaintext = {0xB3, 0x79, 0x77, 0x7F, 0x90, 0x50, 0xE2, 0xA8, 0x18,
-                      0xF2, 0x94, 0x0C, 0xBB, 0xD9, 0xAB, 0xA4},
-        .ciphertext = {0xC5, 0xD2, 0xCB, 0x3D, 0x5B, 0x7F, 0xF0, 0xE2, 0x3E,
-                       0x30, 0x89, 0x67, 0xEE, 0x07, 0x48, 0x25},
+        .key =
+            "F9E8389F5B80712E3886CC1FA2D28A3B8C9CD88A2D4A54C6AA86CE0FEF944BE0",
+        .plaintext = "B379777F9050E2A818F2940CBBD9ABA4",
+        .ciphertext = "C5D2CB3D5B7FF0E23E308967EE074825",
     },
 
     /*
@@ -352,16 +286,11 @@ static const struct aes_ecb_monte_test monteTests[] = {
      * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .keySize = AES_ECB_KEY_SIZE_256,
         .direction = TEST_DIRECTION_DECRYPT,
-        .key = {0x2B, 0x09, 0xBA, 0x39, 0xB8, 0x34, 0x06, 0x2B,
-                0x9E, 0x93, 0xF4, 0x83, 0x73, 0xB8, 0xDD, 0x01,
-                0x8D, 0xED, 0xF1, 0xE5, 0xBA, 0x1B, 0x8A, 0xF8,
-                0x31, 0xEB, 0xBA, 0xCB, 0xC9, 0x2A, 0x26, 0x43},
-        .ciphertext = {0x89, 0x64, 0x9B, 0xD0, 0x11, 0x5F, 0x30, 0xBD, 0x87,
-                       0x85, 0x67, 0x61, 0x02, 0x23, 0xA5, 0x9D},
-        .plaintext = {0xE3, 0xD3, 0x86, 0x8F, 0x57, 0x8C, 0xAF, 0x34, 0xE3,
-                      0x64, 0x45, 0xBF, 0x14, 0xCE, 0xFC, 0x68},
+        .key =
+            "2B09BA39B834062B9E93F48373B8DD018DEDF1E5BA1B8AF831EBBACBC92A2643",
+        .ciphertext = "89649BD0115F30BD878567610223A59D",
+        .plaintext = "E3D3868F578CAF34E36445BF14CEFC68",
     },
 };
 
@@ -371,7 +300,6 @@ static const struct aes_ecb_monte_test monteTests[] = {
 int main()
 {
     size_t onTest;
-    ctx = aes_ecb_alloc();
 
     for (onTest = 0;
          onTest < sizeof(plainTests) / sizeof(struct aes_ecb_plain_test);
@@ -385,30 +313,61 @@ int main()
         run_aes_ecb_monte_test(&monteTests[onTest]);
     }
 
-    aes_ecb_free_scrub(ctx);
     TEST_CONCLUDE();
 }
 
 static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test)
 {
-    byte_t actual[AES_ECB_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
-    aes_ecb_set_key(ctx, test->key, test->keySize);
+    byte_t *key, *plaintext, *ciphertext;
+    size_t keySize, plaintextLen, ciphertextLen;
 
-    memset(actual, 0, test->numBlocks * AES_ECB_BLOCK_SIZE);
-    aes_ecb_multi_block(test->plaintext, actual, test->numBlocks,
-                        TEST_DIRECTION_ENCRYPT);
-    TEST_ASSERT(memcmp(actual, test->ciphertext,
-                       test->numBlocks * AES_ECB_BLOCK_SIZE) == 0);
+    parse_hex_to_bytes(test->key, &key, &keySize, test->plaintext, &plaintext,
+                       &plaintextLen, test->ciphertext, &ciphertext,
+                       &ciphertextLen);
+    ASSERT(plaintextLen == ciphertextLen,
+           "Plaintext and ciphertext sizes do not match");
+    ASSERT(plaintextLen % AES_ECB_BLOCK_SIZE == 0,
+           "Plaintext/ciphertext length not a block-size multiple");
 
-    memset(actual, 0, test->numBlocks * AES_ECB_BLOCK_SIZE);
-    aes_ecb_multi_block(test->ciphertext, actual, test->numBlocks,
-                        TEST_DIRECTION_DECRYPT);
-    TEST_ASSERT(memcmp(actual, test->plaintext,
-                       test->numBlocks * AES_ECB_BLOCK_SIZE) == 0);
+    run_parsed_aes_ecb_plain_test(key, keySize, plaintext, ciphertext,
+                                  plaintextLen / AES_ECB_BLOCK_SIZE);
+
+    free(key);
+    free(plaintext);
+    free(ciphertext);
 }
 
-static void aes_ecb_multi_block(const byte_t *input, byte_t *output,
-                                size_t numBlocks, int direction)
+static void run_parsed_aes_ecb_plain_test(const byte_t *key, size_t keySize,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          size_t numBlocks)
+{
+    struct aes_ecb_ctx *ctx;
+    byte_t *actual;
+    size_t textLen;
+
+    ctx = aes_ecb_alloc();
+    textLen = numBlocks * AES_ECB_BLOCK_SIZE;
+    actual = (byte_t *)calloc(textLen, 1);
+    ASSERT_ALLOC(actual);
+
+    aes_ecb_set_key(ctx, key, keySize);
+    aes_ecb_multi_block(ctx, plaintext, actual, numBlocks,
+                        TEST_DIRECTION_ENCRYPT);
+    TEST_ASSERT(memcmp(actual, ciphertext, textLen) == 0);
+
+    memset(actual, 0, textLen);
+    aes_ecb_multi_block(ctx, ciphertext, actual, numBlocks,
+                        TEST_DIRECTION_DECRYPT);
+    TEST_ASSERT(memcmp(actual, plaintext, textLen) == 0);
+
+    free(actual);
+    aes_ecb_free_scrub(ctx);
+}
+
+static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte_t *input,
+                                byte_t *output, size_t numBlocks,
+                                int direction)
 {
     size_t onBlock;
     aes_ecb_fptr operation;
@@ -428,7 +387,30 @@ static void aes_ecb_multi_block(const byte_t *input, byte_t *output,
 
 static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
 {
+    byte_t *key, *plaintext, *ciphertext;
+    size_t keySize, plaintextLen, ciphertextLen;
+
+    parse_hex_to_bytes(test->key, &key, &keySize, test->plaintext, &plaintext,
+                       &plaintextLen, test->ciphertext, &ciphertext,
+                       &ciphertextLen);
+    ASSERT(plaintextLen == AES_ECB_BLOCK_SIZE, "Invalid plaintext length");
+    ASSERT(ciphertextLen == AES_ECB_BLOCK_SIZE, "Inalid ciphertext length");
+
+    run_parsed_aes_ecb_monte_test(key, keySize, plaintext, ciphertext,
+                                  test->direction);
+
+    free(key);
+    free(plaintext);
+    free(ciphertext);
+}
+
+static void run_parsed_aes_ecb_monte_test(const byte_t *key, size_t keySize,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          int direction)
+{
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
+    struct aes_ecb_ctx *ctx;
     byte_t keyI[AES_ECB_KEY_SIZE_MAX];
     byte_t inBlockIZero[AES_ECB_BLOCK_SIZE];
     byte_t lastTwoOutBlocksI[2 * AES_ECB_BLOCK_SIZE];
@@ -436,6 +418,7 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
     aes_ecb_fptr operation;
     int i;
 
+    ctx = aes_ecb_alloc();
     memset(lastTwoOutBlocksI, 0, 2 * AES_ECB_BLOCK_SIZE);
 
     /*
@@ -456,16 +439,16 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
      * key[0] = seed key
      * inBlock[0][0] = seed input block
      */
-    memcpy(keyI, test->key, test->keySize);
-    if (test->direction == TEST_DIRECTION_ENCRYPT) {
-        memcpy(inBlockIZero, test->plaintext, AES_ECB_BLOCK_SIZE);
+    memcpy(keyI, key, keySize);
+    if (direction == TEST_DIRECTION_ENCRYPT) {
+        memcpy(inBlockIZero, plaintext, AES_ECB_BLOCK_SIZE);
         operation = &aes_ecb_encrypt;
-        expected = test->ciphertext;
+        expected = ciphertext;
     }
     else {
-        memcpy(inBlockIZero, test->ciphertext, AES_ECB_BLOCK_SIZE);
+        memcpy(inBlockIZero, ciphertext, AES_ECB_BLOCK_SIZE);
         operation = &aes_ecb_decrypt;
-        expected = test->plaintext;
+        expected = plaintext;
     }
 
     /*
@@ -477,11 +460,11 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
      *     inBlock[i+1][0] = outBlock[i][999]
      */
     for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
-        aes_ecb_set_key(ctx, keyI, test->keySize);
-        nist_monte_ecb_inner_loop(inBlockIZero, lastTwoOutBlocksI, operation);
+        aes_ecb_set_key(ctx, keyI, keySize);
+        nist_monte_ecb_inner_loop(ctx, inBlockIZero, lastTwoOutBlocksI,
+                                  operation);
         if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
-            nist_monte_ecb_compute_new_key(keyI, test->keySize,
-                                           lastTwoOutBlocksI);
+            nist_monte_ecb_compute_new_key(keyI, keySize, lastTwoOutBlocksI);
             memcpy(inBlockIZero, lastTwoOutBlocksI + AES_ECB_BLOCK_SIZE,
                    AES_ECB_BLOCK_SIZE);
         }
@@ -495,9 +478,11 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
      */
     TEST_ASSERT(memcmp(lastTwoOutBlocksI + AES_ECB_BLOCK_SIZE, expected,
                        AES_ECB_BLOCK_SIZE) == 0);
+    aes_ecb_free_scrub(ctx);
 }
 
-static void nist_monte_ecb_inner_loop(const byte_t *inBlockIZero,
+static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
+                                      const byte_t *inBlockIZero,
                                       byte_t *lastTwoOutBlocksI,
                                       aes_ecb_fptr operation)
 {
@@ -534,4 +519,20 @@ static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
     for (onByte = 0; onByte < keySize; onByte++) {
         keyI[onByte] ^= lastTwoOutBlocksI[onByte];
     }
+}
+
+static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+                               size_t *keySize, const char *plaintextHex,
+                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               const char *ciphertextHex,
+                               byte_t **ciphertextBytes, size_t *ciphertextLen)
+{
+    hex_to_bytes(keyHex, keyBytes, keySize);
+    hex_to_bytes(plaintextHex, plaintextBytes, plaintextLen);
+    hex_to_bytes(ciphertextHex, ciphertextBytes, ciphertextLen);
+
+    ASSERT(*keySize == AES_ECB_KEY_SIZE_128 ||
+               *keySize == AES_ECB_KEY_SIZE_192 ||
+               *keySize == AES_ECB_KEY_SIZE_256,
+           "Invalid AES-ECB key size");
 }
