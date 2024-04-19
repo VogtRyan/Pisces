@@ -103,7 +103,7 @@ test: ${BINDIR}/test_aes_ecb ${BINDIR}/test_aes_cbc ${BINDIR}/test_sha1 \
 ##
 
 TEST_AES_ECB_OBJS = src/crypto/primitives/aes/test_aes_ecb.o \
-  src/crypto/primitives/aes/aes_ecb.o
+  src/crypto/primitives/aes/aes_ecb.o src/crypto/test/hex.o
 
 ${BINDIR}/test_aes_ecb: ${TEST_AES_ECB_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_AES_ECB_OBJS}
@@ -230,6 +230,8 @@ src/crypto/abstract/cipher.o: src/crypto/abstract/cipher.c \
   src/common/errorflow.h src/common/scrub.h \
   src/crypto/algorithms/pkcs7/pkcs7_padding.h \
   src/crypto/primitives/aes/aes_cbc.h
+src/crypto/test/hex.o: src/crypto/test/hex.c src/crypto/test/hex.h \
+  src/common/bytetype.h src/common/errorflow.h
 src/crypto/algorithms/hmac/hmac.o: src/crypto/algorithms/hmac/hmac.c \
   src/crypto/algorithms/hmac/hmac.h src/common/bytetype.h \
   src/crypto/abstract/chf.h src/common/errorflow.h src/common/scrub.h
@@ -268,7 +270,8 @@ src/crypto/primitives/sha1/sha1.o: src/crypto/primitives/sha1/sha1.c \
   src/crypto/machine/endian.h
 src/crypto/primitives/aes/test_aes_ecb.o: \
   src/crypto/primitives/aes/test_aes_ecb.c src/common/bytetype.h \
-  src/crypto/primitives/aes/aes_ecb.h src/crypto/test/framework.h
+  src/common/errorflow.h src/crypto/primitives/aes/aes_ecb.h \
+  src/crypto/test/framework.h src/crypto/test/hex.h
 src/crypto/primitives/aes/aes_cbc.o: src/crypto/primitives/aes/aes_cbc.c \
   src/crypto/primitives/aes/aes_cbc.h src/common/bytetype.h \
   src/common/errorflow.h src/common/scrub.h \
