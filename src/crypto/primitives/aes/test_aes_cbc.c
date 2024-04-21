@@ -15,14 +15,15 @@
  */
 
 #include "common/bytetype.h"
+#include "common/errorflow.h"
 #include "crypto/primitives/aes/aes_cbc.h"
 #include "crypto/test/framework.h"
+#include "crypto/test/hex.h"
 
 #include <stddef.h>
 #include <string.h>
 
 TEST_PREAMBLE("AES-CBC");
-struct aes_cbc_ctx *ctx;
 
 /*
  * Directions in which to run an AES-CBC test, and a function pointer to either
@@ -36,14 +37,11 @@ typedef void (*aes_cbc_fptr)(struct aes_cbc_ctx *, const byte_t *, byte_t *);
  * Parameters for a single- or multi-block AES-CBC test, including plaintext
  * and ciphertext to test for both correct encryption and correct decryption.
  */
-#define PLAIN_TEST_NUM_BLOCKS_MAX (4)
 struct aes_cbc_plain_test {
-    const size_t keySize;
-    const size_t numBlocks;
-    const byte_t key[AES_CBC_KEY_SIZE_MAX];
-    const byte_t iv[AES_CBC_IV_SIZE];
-    const byte_t plaintext[AES_CBC_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
-    const byte_t ciphertext[AES_CBC_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
+    const char *key;
+    const char *iv;
+    const char *plaintext;
+    const char *ciphertext;
 };
 
 /*
@@ -52,12 +50,11 @@ struct aes_cbc_plain_test {
  * symmetric, only one of encryption or decryption is tested.
  */
 struct aes_cbc_monte_test {
-    const size_t keySize;
     const int direction;
-    const byte_t key[AES_CBC_KEY_SIZE_MAX];
-    const byte_t iv[AES_CBC_IV_SIZE];
-    const byte_t plaintext[AES_CBC_BLOCK_SIZE];
-    const byte_t ciphertext[AES_CBC_BLOCK_SIZE];
+    const char *key;
+    const char *iv;
+    const char *plaintext;
+    const char *ciphertext;
 };
 
 /*
@@ -67,36 +64,73 @@ struct aes_cbc_monte_test {
 static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test);
 
 /*
+ * Runs an AES-CBC regular single- or multi-block test that has been parsed
+ * from its hexadecimal string format. The key length must be a valid AES key
+ * length.
+ */
+static void run_parsed_aes_cbc_plain_test(const byte_t *key, size_t keySize,
+                                          const byte_t *iv,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          size_t numBlocks);
+
+/*
  * Runs an AES-CBC encryption or decryption operation over one or more blocks
  * of input.
  */
-static void aes_cbc_multi_block(const byte_t *input, const byte_t *iv,
-                                byte_t *output, size_t numBlocks,
-                                int direction);
+static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte_t *input,
+                                const byte_t *iv, byte_t *output,
+                                size_t numBlocks, int direction);
 
 /*
- * Runs a single AES-CBC NIST AESAVS MCT case, which includes a single
+ * Runs a single AES-CBC NIST AESAVS MCT - CBC case, which includes a single
  * assertion: that the outcome of either the loop of encryptions or the loop of
  * decryptions is correct.
  */
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test);
 
 /*
- * Runs the inner loop of the NIST AESAVS MCT algorithm, encrypting or
+ * Runs a single AES-CBC NIST AESAVS MCT - CBC test case that has been parsed
+ * from its hexadecimal string format. The key length must be a valid AES key
+ * length.
+ */
+static void run_parsed_aes_cbc_monte_test(const byte_t *key, size_t keySize,
+                                          const byte_t *iv,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          int direction);
+
+/*
+ * Runs the inner loop of the NIST AESAVS MCT - CBC algorithm, encrypting or
  * decrypting blocks sequentially. The lastTwoOutBlocksI array must be at least
  * (2 * AES_CBC_BLOCK_SIZE) bytes in length.
  */
-static void nist_monte_cbc_inner_loop(const byte_t *inBlockIZero,
+static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
+                                      const byte_t *inBlockIZero,
                                       const byte_t *ivI,
                                       byte_t *lastTwoOutBlocksI,
                                       aes_cbc_fptr operation);
 
 /*
  * Modifies the contents of the keyI array, per the NIST AESAVS MCT algorithm,
- * baesd on the last two output blocks of the inner loop.
+ * based on the last two output blocks of the inner loop.
  */
 static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
                                            const byte_t *lastTwoOutBlocksI);
+
+/*
+ * Converts strings of hexadecimal characters to arrays of bytes, and ensures
+ * that the number of key bytes converted is a valid AES key size and that the
+ * IV is the correct AES-CBC IV size. The caller is responsible for freeing the
+ * allocated byte arrays.
+ */
+static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+                               size_t *keySize, const char *ivHex,
+                               byte_t **ivBytes, const char *plaintextHex,
+                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               const char *ciphertextHex,
+                               byte_t **ciphertextBytes,
+                               size_t *ciphertextLen);
 
 /*
  * All of the plain single- or multi-block encryption and decryption AES-CBC
@@ -107,83 +141,39 @@ static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
 static const struct aes_cbc_plain_test plainTests[] = {
     /* NIST SP 800-38A, Appendix F.2.1, CBC-AES128.Encrypt */
     {
-        .keySize = AES_CBC_KEY_SIZE_128,
-        .numBlocks = 4,
-        .key = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7,
-                0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C},
-        .iv = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-               0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
-        .plaintext = {0x6B, 0xC1, 0xBE, 0xE2, 0x2E, 0x40, 0x9F, 0x96,
-                      0xE9, 0x3D, 0x7E, 0x11, 0x73, 0x93, 0x17, 0x2A,
-                      0xAE, 0x2D, 0x8A, 0x57, 0x1E, 0x03, 0xAC, 0x9C,
-                      0x9E, 0xB7, 0x6F, 0xAC, 0x45, 0xAF, 0x8E, 0x51,
-                      0x30, 0xC8, 0x1C, 0x46, 0xA3, 0x5C, 0xE4, 0x11,
-                      0xE5, 0xFB, 0xC1, 0x19, 0x1A, 0x0A, 0x52, 0xEF,
-                      0xF6, 0x9F, 0x24, 0x45, 0xDF, 0x4F, 0x9B, 0x17,
-                      0xAD, 0x2B, 0x41, 0x7B, 0xE6, 0x6C, 0x37, 0x10},
-        .ciphertext = {0x76, 0x49, 0xAB, 0xAC, 0x81, 0x19, 0xB2, 0x46,
-                       0xCE, 0xE9, 0x8E, 0x9B, 0x12, 0xE9, 0x19, 0x7D,
-                       0x50, 0x86, 0xCB, 0x9B, 0x50, 0x72, 0x19, 0xEE,
-                       0x95, 0xDB, 0x11, 0x3A, 0x91, 0x76, 0x78, 0xB2,
-                       0x73, 0xBE, 0xD6, 0xB8, 0xE3, 0xC1, 0x74, 0x3B,
-                       0x71, 0x16, 0xE6, 0x9E, 0x22, 0x22, 0x95, 0x16,
-                       0x3F, 0xF1, 0xCA, 0xA1, 0x68, 0x1F, 0xAC, 0x09,
-                       0x12, 0x0E, 0xCA, 0x30, 0x75, 0x86, 0xE1, 0xA7},
+        .key = "2B7E151628AED2A6ABF7158809CF4F3C",
+        .iv = "000102030405060708090A0B0C0D0E0F",
+        .plaintext =
+            "6BC1BEE22E409F96E93D7E117393172AAE2D8A571E03AC9C9EB76FAC45AF8E513"
+            "0C81C46A35CE411E5FBC1191A0A52EFF69F2445DF4F9B17AD2B417BE66C3710",
+        .ciphertext =
+            "7649ABAC8119B246CEE98E9B12E9197D5086CB9B507219EE95DB113A917678B27"
+            "3BED6B8E3C1743B7116E69E222295163FF1CAA1681FAC09120ECA307586E1A7",
     },
 
     /* NIST SP 800-38A, Appendix F.2.3, CBC-AES192.Encrypt */
     {
-        .keySize = AES_CBC_KEY_SIZE_192,
-        .numBlocks = 4,
-        .key = {0x8E, 0x73, 0xB0, 0xF7, 0xDA, 0x0E, 0x64, 0x52,
-                0xC8, 0x10, 0xF3, 0x2B, 0x80, 0x90, 0x79, 0xE5,
-                0x62, 0xF8, 0xEA, 0xD2, 0x52, 0x2C, 0x6B, 0x7B},
-        .iv = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-               0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
-        .plaintext = {0x6B, 0xC1, 0xBE, 0xE2, 0x2E, 0x40, 0x9F, 0x96,
-                      0xE9, 0x3D, 0x7E, 0x11, 0x73, 0x93, 0x17, 0x2A,
-                      0xAE, 0x2D, 0x8A, 0x57, 0x1E, 0x03, 0xAC, 0x9C,
-                      0x9E, 0xB7, 0x6F, 0xAC, 0x45, 0xAF, 0x8E, 0x51,
-                      0x30, 0xC8, 0x1C, 0x46, 0xA3, 0x5C, 0xE4, 0x11,
-                      0xE5, 0xFB, 0xC1, 0x19, 0x1A, 0x0A, 0x52, 0xEF,
-                      0xF6, 0x9F, 0x24, 0x45, 0xDF, 0x4F, 0x9B, 0x17,
-                      0xAD, 0x2B, 0x41, 0x7B, 0xE6, 0x6C, 0x37, 0x10},
-        .ciphertext = {0x4F, 0x02, 0x1D, 0xB2, 0x43, 0xBC, 0x63, 0x3D,
-                       0x71, 0x78, 0x18, 0x3A, 0x9F, 0xA0, 0x71, 0xE8,
-                       0xB4, 0xD9, 0xAD, 0xA9, 0xAD, 0x7D, 0xED, 0xF4,
-                       0xE5, 0xE7, 0x38, 0x76, 0x3F, 0x69, 0x14, 0x5A,
-                       0x57, 0x1B, 0x24, 0x20, 0x12, 0xFB, 0x7A, 0xE0,
-                       0x7F, 0xA9, 0xBA, 0xAC, 0x3D, 0xF1, 0x02, 0xE0,
-                       0x08, 0xB0, 0xE2, 0x79, 0x88, 0x59, 0x88, 0x81,
-                       0xD9, 0x20, 0xA9, 0xE6, 0x4F, 0x56, 0x15, 0xCD},
+        .key = "8E73B0F7DA0E6452C810F32B809079E562F8EAD2522C6B7B",
+        .iv = "000102030405060708090A0B0C0D0E0F",
+        .plaintext =
+            "6BC1BEE22E409F96E93D7E117393172AAE2D8A571E03AC9C9EB76FAC45AF8E513"
+            "0C81C46A35CE411E5FBC1191A0A52EFF69F2445DF4F9B17AD2B417BE66C3710",
+        .ciphertext =
+            "4F021DB243BC633D7178183A9FA071E8B4D9ADA9AD7DEDF4E5E738763F69145A5"
+            "71B242012FB7AE07FA9BAAC3DF102E008B0E27988598881D920A9E64F5615CD",
     },
 
     /* NIST SP 800-38A, Appendix F.2.5, CBC-AES256.Encrypt */
     {
-        .keySize = AES_CBC_KEY_SIZE_256,
-        .numBlocks = 4,
-        .key = {0x60, 0x3D, 0xEB, 0x10, 0x15, 0xCA, 0x71, 0xBE,
-                0x2B, 0x73, 0xAE, 0xF0, 0x85, 0x7D, 0x77, 0x81,
-                0x1F, 0x35, 0x2C, 0x07, 0x3B, 0x61, 0x08, 0xD7,
-                0x2D, 0x98, 0x10, 0xA3, 0x09, 0x14, 0xDF, 0xF4},
-        .iv = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-               0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
-        .plaintext = {0x6B, 0xC1, 0xBE, 0xE2, 0x2E, 0x40, 0x9F, 0x96,
-                      0xE9, 0x3D, 0x7E, 0x11, 0x73, 0x93, 0x17, 0x2A,
-                      0xAE, 0x2D, 0x8A, 0x57, 0x1E, 0x03, 0xAC, 0x9C,
-                      0x9E, 0xB7, 0x6F, 0xAC, 0x45, 0xAF, 0x8E, 0x51,
-                      0x30, 0xC8, 0x1C, 0x46, 0xA3, 0x5C, 0xE4, 0x11,
-                      0xE5, 0xFB, 0xC1, 0x19, 0x1A, 0x0A, 0x52, 0xEF,
-                      0xF6, 0x9F, 0x24, 0x45, 0xDF, 0x4F, 0x9B, 0x17,
-                      0xAD, 0x2B, 0x41, 0x7B, 0xE6, 0x6C, 0x37, 0x10},
-        .ciphertext = {0xF5, 0x8C, 0x4C, 0x04, 0xD6, 0xE5, 0xF1, 0xBA,
-                       0x77, 0x9E, 0xAB, 0xFB, 0x5F, 0x7B, 0xFB, 0xD6,
-                       0x9C, 0xFC, 0x4E, 0x96, 0x7E, 0xDB, 0x80, 0x8D,
-                       0x67, 0x9F, 0x77, 0x7B, 0xC6, 0x70, 0x2C, 0x7D,
-                       0x39, 0xF2, 0x33, 0x69, 0xA9, 0xD9, 0xBA, 0xCF,
-                       0xA5, 0x30, 0xE2, 0x63, 0x04, 0x23, 0x14, 0x61,
-                       0xB2, 0xEB, 0x05, 0xE2, 0xC3, 0x9B, 0xE9, 0xFC,
-                       0xDA, 0x6C, 0x19, 0x07, 0x8C, 0x6A, 0x9D, 0x1B},
+        .key =
+            "603DEB1015CA71BE2B73AEF0857D77811F352C073B6108D72D9810A30914DFF4",
+        .iv = "000102030405060708090A0B0C0D0E0F",
+        .plaintext =
+            "6BC1BEE22E409F96E93D7E117393172AAE2D8A571E03AC9C9EB76FAC45AF8E513"
+            "0C81C46A35CE411E5FBC1191A0A52EFF69F2445DF4F9B17AD2B417BE66C3710",
+        .ciphertext =
+            "F58C4C04D6E5F1BA779EABFB5F7BFBD69CFC4E967EDB808D679F777BC6702C7D3"
+            "9F23369A9D9BACFA530E26304231461B2EB05E2C39BE9FCDA6C19078C6A9D1B",
     },
 
     /*
@@ -191,34 +181,20 @@ static const struct aes_cbc_plain_test plainTests[] = {
      * "Single block msg".
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_128,
-        .numBlocks = 1,
-        .key = {0x06, 0xA9, 0x21, 0x40, 0x36, 0xB8, 0xA1, 0x5B, 0x51, 0x2E,
-                0x03, 0xD5, 0x34, 0x12, 0x00, 0x06},
-        .iv = {0x3D, 0xAF, 0xBA, 0x42, 0x9D, 0x9E, 0xB4, 0x30, 0xB4, 0x22,
-               0xDA, 0x80, 0x2C, 0x9F, 0xAC, 0x41},
-        .plaintext = {0x53, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20, 0x62, 0x6C,
-                      0x6F, 0x63, 0x6B, 0x20, 0x6D, 0x73, 0x67},
-        .ciphertext = {0xE3, 0x53, 0x77, 0x9C, 0x10, 0x79, 0xAE, 0xB8, 0x27,
-                       0x08, 0x94, 0x2D, 0xBE, 0x77, 0x18, 0x1A},
+        .key = "06A9214036B8A15B512E03D534120006",
+        .iv = "3DAFBA429D9EB430B422DA802C9FAC41",
+        .plaintext = "53696E676C6520626C6F636B206D7367",
+        .ciphertext = "E353779C1079AEB82708942DBE77181A",
     },
 
     /* RFC 3602, Section 4, Case #2, two-block AES-CBC 128 */
     {
-        .keySize = AES_CBC_KEY_SIZE_128,
-        .numBlocks = 2,
-        .key = {0xC2, 0x86, 0x69, 0x6D, 0x88, 0x7C, 0x9A, 0xA0, 0x61, 0x1B,
-                0xBB, 0x3E, 0x20, 0x25, 0xA4, 0x5A},
-        .iv = {0x56, 0x2E, 0x17, 0x99, 0x6D, 0x09, 0x3D, 0x28, 0xDD, 0xB3,
-               0xBA, 0x69, 0x5A, 0x2E, 0x6F, 0x58},
-        .plaintext = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                      0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-                      0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-                      0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F},
-        .ciphertext = {0xD2, 0x96, 0xCD, 0x94, 0xC2, 0xCC, 0xCF, 0x8A,
-                       0x3A, 0x86, 0x30, 0x28, 0xB5, 0xE1, 0xDC, 0x0A,
-                       0x75, 0x86, 0x60, 0x2D, 0x25, 0x3C, 0xFF, 0xF9,
-                       0x1B, 0x82, 0x66, 0xBE, 0xA6, 0xD6, 0x1A, 0xB1},
+        .key = "C286696D887C9AA0611BBB3E2025A45A",
+        .iv = "562E17996D093D28DDB3BA695A2E6F58",
+        .plaintext =
+            "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F",
+        .ciphertext =
+            "D296CD94C2CCCF8A3A863028B5E1DC0A7586602D253CFFF91B8266BEA6D61AB1",
     },
 
     /*
@@ -226,50 +202,24 @@ static const struct aes_cbc_plain_test plainTests[] = {
      * "This is a 48-byte message (exactly 3 AES blocks)".
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_128,
-        .numBlocks = 3,
-        .key = {0x6C, 0x3E, 0xA0, 0x47, 0x76, 0x30, 0xCE, 0x21, 0xA2, 0xCE,
-                0x33, 0x4A, 0xA7, 0x46, 0xC2, 0xCD},
-        .iv = {0xC7, 0x82, 0xDC, 0x4C, 0x09, 0x8C, 0x66, 0xCB, 0xD9, 0xCD,
-               0x27, 0xD8, 0x25, 0x68, 0x2C, 0x81},
-        .plaintext = {0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20,
-                      0x61, 0x20, 0x34, 0x38, 0x2D, 0x62, 0x79, 0x74,
-                      0x65, 0x20, 0x6D, 0x65, 0x73, 0x73, 0x61, 0x67,
-                      0x65, 0x20, 0x28, 0x65, 0x78, 0x61, 0x63, 0x74,
-                      0x6C, 0x79, 0x20, 0x33, 0x20, 0x41, 0x45, 0x53,
-                      0x20, 0x62, 0x6C, 0x6F, 0x63, 0x6B, 0x73, 0x29},
-        .ciphertext = {0xD0, 0xA0, 0x2B, 0x38, 0x36, 0x45, 0x17, 0x53,
-                       0xD4, 0x93, 0x66, 0x5D, 0x33, 0xF0, 0xE8, 0x86,
-                       0x2D, 0xEA, 0x54, 0xCD, 0xB2, 0x93, 0xAB, 0xC7,
-                       0x50, 0x69, 0x39, 0x27, 0x67, 0x72, 0xF8, 0xD5,
-                       0x02, 0x1C, 0x19, 0x21, 0x6B, 0xAD, 0x52, 0x5C,
-                       0x85, 0x79, 0x69, 0x5D, 0x83, 0xBA, 0x26, 0x84},
+        .key = "6C3EA0477630CE21A2CE334AA746C2CD",
+        .iv = "C782DC4C098C66CBD9CD27D825682C81",
+        .plaintext = "5468697320697320612034382D62797465206D657373616765202865"
+                     "786163746C7920332041455320626C6F636B7329",
+        .ciphertext = "D0A02B3836451753D493665D33F0E8862DEA54CDB293ABC75069392"
+                      "76772F8D5021C19216BAD525C8579695D83BA2684",
     },
 
     /* RFC 3602, Section 4, Case #4, four-block AES-CBC 128 */
     {
-        .keySize = AES_CBC_KEY_SIZE_128,
-        .numBlocks = 4,
-        .key = {0x56, 0xE4, 0x7A, 0x38, 0xC5, 0x59, 0x89, 0x74, 0xBC, 0x46,
-                0x90, 0x3D, 0xBA, 0x29, 0x03, 0x49},
-        .iv = {0x8C, 0xE8, 0x2E, 0xEF, 0xBE, 0xA0, 0xDA, 0x3C, 0x44, 0x69,
-               0x9E, 0xD7, 0xDB, 0x51, 0xB7, 0xD9},
-        .plaintext = {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
-                      0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-                      0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7,
-                      0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-                      0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7,
-                      0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-                      0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7,
-                      0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF},
-        .ciphertext = {0xC3, 0x0E, 0x32, 0xFF, 0xED, 0xC0, 0x77, 0x4E,
-                       0x6A, 0xFF, 0x6A, 0xF0, 0x86, 0x9F, 0x71, 0xAA,
-                       0x0F, 0x3A, 0xF0, 0x7A, 0x9A, 0x31, 0xA9, 0xC6,
-                       0x84, 0xDB, 0x20, 0x7E, 0xB0, 0xEF, 0x8E, 0x4E,
-                       0x35, 0x90, 0x7A, 0xA6, 0x32, 0xC3, 0xFF, 0xDF,
-                       0x86, 0x8B, 0xB7, 0xB2, 0x9D, 0x3D, 0x46, 0xAD,
-                       0x83, 0xCE, 0x9F, 0x9A, 0x10, 0x2E, 0xE9, 0x9D,
-                       0x49, 0xA5, 0x3E, 0x87, 0xF4, 0xC3, 0xDA, 0x55},
+        .key = "56E47A38C5598974BC46903DBA290349",
+        .iv = "8CE82EEFBEA0DA3C44699ED7DB51B7D9",
+        .plaintext =
+            "A0A1A2A3A4A5A6A7A8A9AAABACADAEAFB0B1B2B3B4B5B6B7B8B9BABBBCBDBEBFC"
+            "0C1C2C3C4C5C6C7C8C9CACBCCCDCECFD0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF",
+        .ciphertext =
+            "C30E32FFEDC0774E6AFF6AF0869F71AA0F3AF07A9A31A9C684DB207EB0EF8E4E3"
+            "5907AA632C3FFDF868BB7B29D3D46AD83CE9F9A102EE99D49A53E87F4C3DA55",
     },
 };
 
@@ -282,16 +232,11 @@ static const struct aes_cbc_monte_test monteTests[] = {
      * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_128,
         .direction = TEST_DIRECTION_ENCRYPT,
-        .key = {0x88, 0x09, 0xE7, 0xDD, 0x3A, 0x95, 0x9E, 0xE5, 0xD8, 0xDB,
-                0xB1, 0x3F, 0x50, 0x1F, 0x22, 0x74},
-        .iv = {0xE5, 0xC0, 0xBB, 0x53, 0x5D, 0x7D, 0x54, 0x57, 0x2A, 0xD0,
-               0x6D, 0x17, 0x0A, 0x0E, 0x58, 0xAE},
-        .plaintext = {0x1F, 0xD4, 0xEE, 0x65, 0x60, 0x3E, 0x61, 0x30, 0xCF,
-                      0xC2, 0xA8, 0x2A, 0xB3, 0xD5, 0x6C, 0x24},
-        .ciphertext = {0x7B, 0xED, 0x76, 0x71, 0xC8, 0x91, 0x3A, 0xA1, 0x33,
-                       0x0F, 0x19, 0x37, 0x61, 0x52, 0x3E, 0x67},
+        .key = "8809E7DD3A959EE5D8DBB13F501F2274",
+        .iv = "E5C0BB535D7D54572AD06D170A0E58AE",
+        .plaintext = "1FD4EE65603E6130CFC2A82AB3D56C24",
+        .ciphertext = "7BED7671C8913AA1330F193761523E67",
     },
 
     /*
@@ -299,16 +244,11 @@ static const struct aes_cbc_monte_test monteTests[] = {
      * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_128,
         .direction = TEST_DIRECTION_DECRYPT,
-        .key = {0x28, 0x7B, 0x07, 0xC7, 0x8F, 0x8E, 0x3E, 0x1B, 0xE7, 0xC4,
-                0x1B, 0x3D, 0x96, 0xC0, 0x4E, 0x6E},
-        .iv = {0x41, 0xB4, 0x61, 0xF9, 0x46, 0x4F, 0xD5, 0x15, 0xD2, 0x54,
-               0x13, 0xB4, 0x24, 0x10, 0x02, 0xB8},
-        .ciphertext = {0x7C, 0x54, 0x92, 0x3B, 0x04, 0x90, 0xA9, 0xD4, 0xDE,
-                       0x4E, 0xC1, 0xCE, 0x67, 0x90, 0xAA, 0x4D},
-        .plaintext = {0x47, 0x69, 0x31, 0x7B, 0x05, 0x62, 0xC4, 0x59, 0x49,
-                      0xC1, 0x8B, 0x38, 0x55, 0xF8, 0xBF, 0x4A},
+        .key = "287B07C78F8E3E1BE7C41B3D96C04E6E",
+        .iv = "41B461F9464FD515D25413B4241002B8",
+        .ciphertext = "7C54923B0490A9D4DE4EC1CE6790AA4D",
+        .plaintext = "4769317B0562C45949C18B3855F8BF4A",
     },
 
     /*
@@ -316,17 +256,11 @@ static const struct aes_cbc_monte_test monteTests[] = {
      * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_192,
         .direction = TEST_DIRECTION_ENCRYPT,
-        .key = {0xDE, 0xA6, 0x4F, 0x83, 0xCF, 0xE6, 0xA0, 0xA1,
-                0x83, 0xDD, 0xBE, 0x86, 0x5C, 0xFC, 0xA0, 0x59,
-                0xB3, 0xC6, 0x15, 0xC1, 0x62, 0x3D, 0x63, 0xFC},
-        .iv = {0x42, 0x6F, 0xBC, 0x08, 0x7B, 0x50, 0xB3, 0x95, 0xC0, 0xFC,
-               0x81, 0xEF, 0x9F, 0xD6, 0xD1, 0xAA},
-        .plaintext = {0xCD, 0x0B, 0x8C, 0x8A, 0x81, 0x79, 0xEC, 0xB1, 0x71,
-                      0xB6, 0x4C, 0x89, 0x4A, 0x4D, 0x60, 0xFD},
-        .ciphertext = {0xE6, 0x45, 0x7B, 0xFC, 0x34, 0x33, 0xE8, 0x02, 0x99,
-                       0xC5, 0x2B, 0x2B, 0xE4, 0x18, 0xF5, 0x82},
+        .key = "DEA64F83CFE6A0A183DDBE865CFCA059B3C615C1623D63FC",
+        .iv = "426FBC087B50B395C0FC81EF9FD6D1AA",
+        .plaintext = "CD0B8C8A8179ECB171B64C894A4D60FD",
+        .ciphertext = "E6457BFC3433E80299C52B2BE418F582",
     },
 
     /*
@@ -334,17 +268,11 @@ static const struct aes_cbc_monte_test monteTests[] = {
      * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_192,
         .direction = TEST_DIRECTION_DECRYPT,
-        .key = {0xA2, 0x4E, 0xBD, 0x4D, 0x7A, 0x08, 0x0C, 0x28,
-                0xCA, 0xAE, 0x98, 0x4B, 0x50, 0x98, 0xA9, 0xEA,
-                0x38, 0xCF, 0x72, 0x80, 0xE2, 0xC5, 0xF1, 0x22},
-        .iv = {0xC5, 0xAE, 0xB9, 0xB5, 0x1A, 0xD5, 0x10, 0x83, 0x71, 0xC5,
-               0x9D, 0x0B, 0x90, 0x81, 0x63, 0x10},
-        .ciphertext = {0xEB, 0x2C, 0x4E, 0x27, 0x12, 0x59, 0x1F, 0xF1, 0x3B,
-                       0x8A, 0xC7, 0x87, 0x0C, 0x9C, 0x40, 0x4C},
-        .plaintext = {0x83, 0x64, 0x24, 0xEA, 0xDF, 0x81, 0x55, 0xAA, 0xF9,
-                      0xA9, 0xA5, 0x13, 0x91, 0xA1, 0xCF, 0x7E},
+        .key = "A24EBD4D7A080C28CAAE984B5098A9EA38CF7280E2C5F122",
+        .iv = "C5AEB9B51AD5108371C59D0B90816310",
+        .ciphertext = "EB2C4E2712591FF13B8AC7870C9C404C",
+        .plaintext = "836424EADF8155AAF9A9A51391A1CF7E",
     },
 
     /*
@@ -352,18 +280,12 @@ static const struct aes_cbc_monte_test monteTests[] = {
      * [ENCRYPT], with COUNT=0 PLAINTEXT and COUNT=99 CIPHERTEXT.
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_256,
         .direction = TEST_DIRECTION_ENCRYPT,
-        .key = {0x63, 0x2B, 0xAC, 0x4F, 0xE4, 0xDB, 0x44, 0xCF,
-                0xCF, 0x18, 0xCF, 0xA9, 0x0B, 0x43, 0xF8, 0x6F,
-                0x37, 0x86, 0x11, 0xB8, 0xD9, 0x68, 0x59, 0x5E,
-                0xB8, 0x9E, 0x7A, 0xE9, 0x86, 0x24, 0x56, 0x4A},
-        .iv = {0xFF, 0x81, 0x27, 0x62, 0x1B, 0xE6, 0x16, 0x80, 0x3E, 0x3F,
-               0x00, 0x23, 0x77, 0x73, 0x01, 0x85},
-        .plaintext = {0x90, 0xED, 0x17, 0x47, 0x5F, 0x0A, 0x62, 0xBC, 0x38,
-                      0x1B, 0xA1, 0xF3, 0xFF, 0xBF, 0xFF, 0x33},
-        .ciphertext = {0xBA, 0xDE, 0x16, 0x67, 0xB4, 0x2F, 0x53, 0x7F, 0x0C,
-                       0xB3, 0xF5, 0x57, 0x3A, 0x94, 0x9A, 0xAA},
+        .key =
+            "632BAC4FE4DB44CFCF18CFA90B43F86F378611B8D968595EB89E7AE98624564A",
+        .iv = "FF8127621BE616803E3F002377730185",
+        .plaintext = "90ED17475F0A62BC381BA1F3FFBFFF33",
+        .ciphertext = "BADE1667B42F537F0CB3F5573A949AAA",
     },
 
     /*
@@ -371,18 +293,12 @@ static const struct aes_cbc_monte_test monteTests[] = {
      * [DECRYPT], with COUNT=0 CIPHERTEXT and COUNT=99 PLAINTEXT.
      */
     {
-        .keySize = AES_CBC_KEY_SIZE_256,
         .direction = TEST_DIRECTION_DECRYPT,
-        .key = {0x31, 0x39, 0x7A, 0xD8, 0xCC, 0x79, 0xC5, 0x19,
-                0xE0, 0xF4, 0x6E, 0x0F, 0x70, 0x30, 0x35, 0x87,
-                0xE3, 0x89, 0x58, 0xD7, 0x07, 0x23, 0xB7, 0x71,
-                0x55, 0x23, 0x36, 0xB7, 0x77, 0x1F, 0x63, 0x11},
-        .iv = {0x41, 0x39, 0xCB, 0x54, 0xEE, 0xAC, 0x3F, 0xCF, 0x36, 0xED,
-               0x72, 0x94, 0x11, 0x22, 0xC4, 0x0F},
-        .ciphertext = {0x27, 0xA1, 0xD5, 0xC1, 0x0F, 0xE4, 0x5B, 0x80, 0x1D,
-                       0x15, 0xF5, 0x6E, 0x65, 0x4A, 0x70, 0xF0},
-        .plaintext = {0x9B, 0xE8, 0x31, 0x79, 0x9A, 0x79, 0xB0, 0x95, 0x52,
-                      0x41, 0xF3, 0x08, 0xF0, 0xD5, 0xB2, 0xE1},
+        .key =
+            "31397AD8CC79C519E0F46E0F70303587E38958D70723B771552336B7771F6311",
+        .iv = "4139CB54EEAC3FCF36ED72941122C40F",
+        .ciphertext = "27A1D5C10FE45B801D15F56E654A70F0",
+        .plaintext = "9BE831799A79B0955241F308F0D5B2E1",
     },
 };
 
@@ -392,7 +308,6 @@ static const struct aes_cbc_monte_test monteTests[] = {
 int main()
 {
     size_t onTest;
-    ctx = aes_cbc_alloc();
 
     for (onTest = 0;
          onTest < sizeof(plainTests) / sizeof(struct aes_cbc_plain_test);
@@ -406,31 +321,63 @@ int main()
         run_aes_cbc_monte_test(&monteTests[onTest]);
     }
 
-    aes_cbc_free_scrub(ctx);
     TEST_CONCLUDE();
 }
 
 static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test)
 {
-    byte_t actual[AES_CBC_BLOCK_SIZE * PLAIN_TEST_NUM_BLOCKS_MAX];
-    aes_cbc_set_key(ctx, test->key, test->keySize);
+    byte_t *key, *iv, *plaintext, *ciphertext;
+    size_t keySize, plaintextLen, ciphertextLen;
 
-    memset(actual, 0, test->numBlocks * AES_CBC_BLOCK_SIZE);
-    aes_cbc_multi_block(test->plaintext, test->iv, actual, test->numBlocks,
-                        TEST_DIRECTION_ENCRYPT);
-    TEST_ASSERT(memcmp(actual, test->ciphertext,
-                       test->numBlocks * AES_CBC_BLOCK_SIZE) == 0);
+    parse_hex_to_bytes(test->key, &key, &keySize, test->iv, &iv,
+                       test->plaintext, &plaintext, &plaintextLen,
+                       test->ciphertext, &ciphertext, &ciphertextLen);
+    ASSERT(plaintextLen == ciphertextLen,
+           "Plaintext and ciphertext sizes do not match");
+    ASSERT(plaintextLen % AES_CBC_BLOCK_SIZE == 0,
+           "Plaintext/ciphertext length not a block-size multiple");
 
-    memset(actual, 0, test->numBlocks * AES_CBC_BLOCK_SIZE);
-    aes_cbc_multi_block(test->ciphertext, test->iv, actual, test->numBlocks,
-                        TEST_DIRECTION_DECRYPT);
-    TEST_ASSERT(memcmp(actual, test->plaintext,
-                       test->numBlocks * AES_CBC_BLOCK_SIZE) == 0);
+    run_parsed_aes_cbc_plain_test(key, keySize, iv, plaintext, ciphertext,
+                                  plaintextLen / AES_CBC_BLOCK_SIZE);
+
+    free(key);
+    free(iv);
+    free(plaintext);
+    free(ciphertext);
 }
 
-static void aes_cbc_multi_block(const byte_t *input, const byte_t *iv,
-                                byte_t *output, size_t numBlocks,
-                                int direction)
+static void run_parsed_aes_cbc_plain_test(const byte_t *key, size_t keySize,
+                                          const byte_t *iv,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          size_t numBlocks)
+{
+    struct aes_cbc_ctx *ctx;
+    byte_t *actual;
+    size_t textLen;
+
+    ctx = aes_cbc_alloc();
+    textLen = numBlocks * AES_CBC_BLOCK_SIZE;
+    actual = (byte_t *)calloc(textLen, 1);
+    ASSERT_ALLOC(actual);
+
+    aes_cbc_set_key(ctx, key, keySize);
+    aes_cbc_multi_block(ctx, plaintext, iv, actual, numBlocks,
+                        TEST_DIRECTION_ENCRYPT);
+    TEST_ASSERT(memcmp(actual, ciphertext, textLen) == 0);
+
+    memset(actual, 0, textLen);
+    aes_cbc_multi_block(ctx, ciphertext, iv, actual, numBlocks,
+                        TEST_DIRECTION_DECRYPT);
+    TEST_ASSERT(memcmp(actual, plaintext, textLen) == 0);
+
+    free(actual);
+    aes_cbc_free_scrub(ctx);
+}
+
+static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte_t *input,
+                                const byte_t *iv, byte_t *output,
+                                size_t numBlocks, int direction)
 {
     size_t onBlock;
     aes_cbc_fptr operation;
@@ -451,7 +398,32 @@ static void aes_cbc_multi_block(const byte_t *input, const byte_t *iv,
 
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
 {
+    byte_t *key, *iv, *plaintext, *ciphertext;
+    size_t keySize, plaintextLen, ciphertextLen;
+
+    parse_hex_to_bytes(test->key, &key, &keySize, test->iv, &iv,
+                       test->plaintext, &plaintext, &plaintextLen,
+                       test->ciphertext, &ciphertext, &ciphertextLen);
+    ASSERT(plaintextLen == AES_CBC_BLOCK_SIZE, "Invalid plaintext length");
+    ASSERT(ciphertextLen == AES_CBC_BLOCK_SIZE, "Inalid ciphertext length");
+
+    run_parsed_aes_cbc_monte_test(key, keySize, iv, plaintext, ciphertext,
+                                  test->direction);
+
+    free(key);
+    free(iv);
+    free(plaintext);
+    free(ciphertext);
+}
+
+static void run_parsed_aes_cbc_monte_test(const byte_t *key, size_t keySize,
+                                          const byte_t *iv,
+                                          const byte_t *plaintext,
+                                          const byte_t *ciphertext,
+                                          int direction)
+{
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
+    struct aes_cbc_ctx *ctx;
     byte_t keyI[AES_CBC_KEY_SIZE_MAX];
     byte_t inBlockIZero[AES_CBC_BLOCK_SIZE];
     byte_t ivI[AES_CBC_IV_SIZE];
@@ -460,6 +432,7 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
     aes_cbc_fptr operation;
     int i;
 
+    ctx = aes_cbc_alloc();
     memset(lastTwoOutBlocksI, 0, 2 * AES_CBC_BLOCK_SIZE);
 
     /*
@@ -482,17 +455,17 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
      * iv[0] = seed IV
      * inBlock[0][0] = seed input block
      */
-    memcpy(keyI, test->key, test->keySize);
-    memcpy(ivI, test->iv, AES_CBC_IV_SIZE);
-    if (test->direction == TEST_DIRECTION_ENCRYPT) {
-        memcpy(inBlockIZero, test->plaintext, AES_CBC_BLOCK_SIZE);
+    memcpy(keyI, key, keySize);
+    memcpy(ivI, iv, AES_CBC_IV_SIZE);
+    if (direction == TEST_DIRECTION_ENCRYPT) {
+        memcpy(inBlockIZero, plaintext, AES_CBC_BLOCK_SIZE);
         operation = &aes_cbc_encrypt;
-        expected = test->ciphertext;
+        expected = ciphertext;
     }
     else {
-        memcpy(inBlockIZero, test->ciphertext, AES_CBC_BLOCK_SIZE);
+        memcpy(inBlockIZero, ciphertext, AES_CBC_BLOCK_SIZE);
         operation = &aes_cbc_decrypt;
-        expected = test->plaintext;
+        expected = plaintext;
     }
 
     /*
@@ -505,12 +478,11 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
      *     inBlock[i+1][0] = outBlock[i][998]
      */
     for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
-        aes_cbc_set_key(ctx, keyI, test->keySize);
-        nist_monte_cbc_inner_loop(inBlockIZero, ivI, lastTwoOutBlocksI,
+        aes_cbc_set_key(ctx, keyI, keySize);
+        nist_monte_cbc_inner_loop(ctx, inBlockIZero, ivI, lastTwoOutBlocksI,
                                   operation);
         if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
-            nist_monte_cbc_compute_new_key(keyI, test->keySize,
-                                           lastTwoOutBlocksI);
+            nist_monte_cbc_compute_new_key(keyI, keySize, lastTwoOutBlocksI);
             memcpy(ivI, lastTwoOutBlocksI + AES_CBC_BLOCK_SIZE,
                    AES_CBC_IV_SIZE);
             memcpy(inBlockIZero, lastTwoOutBlocksI, AES_CBC_BLOCK_SIZE);
@@ -525,9 +497,11 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
      */
     TEST_ASSERT(memcmp(lastTwoOutBlocksI + AES_CBC_BLOCK_SIZE, expected,
                        AES_CBC_BLOCK_SIZE) == 0);
+    aes_cbc_free_scrub(ctx);
 }
 
-static void nist_monte_cbc_inner_loop(const byte_t *inBlockIZero,
+static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
+                                      const byte_t *inBlockIZero,
                                       const byte_t *ivI,
                                       byte_t *lastTwoOutBlocksI,
                                       aes_cbc_fptr operation)
@@ -581,4 +555,25 @@ static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
     for (onByte = 0; onByte < keySize; onByte++) {
         keyI[onByte] ^= lastTwoOutBlocksI[onByte];
     }
+}
+
+static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+                               size_t *keySize, const char *ivHex,
+                               byte_t **ivBytes, const char *plaintextHex,
+                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               const char *ciphertextHex,
+                               byte_t **ciphertextBytes, size_t *ciphertextLen)
+{
+    size_t ivSize;
+
+    hex_to_bytes(keyHex, keyBytes, keySize);
+    hex_to_bytes(ivHex, ivBytes, &ivSize);
+    hex_to_bytes(plaintextHex, plaintextBytes, plaintextLen);
+    hex_to_bytes(ciphertextHex, ciphertextBytes, ciphertextLen);
+
+    ASSERT(*keySize == AES_CBC_KEY_SIZE_128 ||
+               *keySize == AES_CBC_KEY_SIZE_192 ||
+               *keySize == AES_CBC_KEY_SIZE_256,
+           "Invalid AES-CBC key size");
+    ASSERT(ivSize == AES_CBC_IV_SIZE, "Invalid AES-CBC IV size");
 }

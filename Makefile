@@ -114,7 +114,8 @@ ${BINDIR}/test_aes_ecb: ${TEST_AES_ECB_OBJS}
 ##
 
 TEST_AES_CBC_OBJS = src/crypto/primitives/aes/test_aes_cbc.o \
-  src/crypto/primitives/aes/aes_cbc.o src/crypto/primitives/aes/aes_ecb.o
+  src/crypto/primitives/aes/aes_cbc.o src/crypto/primitives/aes/aes_ecb.o \
+  src/crypto/test/hex.o
 
 ${BINDIR}/test_aes_cbc: ${TEST_AES_CBC_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_AES_CBC_OBJS}
@@ -282,7 +283,8 @@ src/crypto/primitives/aes/aes_ecb.o: src/crypto/primitives/aes/aes_ecb.c \
   src/crypto/machine/endian.h
 src/crypto/primitives/aes/test_aes_cbc.o: \
   src/crypto/primitives/aes/test_aes_cbc.c src/common/bytetype.h \
-  src/crypto/primitives/aes/aes_cbc.h src/crypto/test/framework.h
+  src/common/errorflow.h src/crypto/primitives/aes/aes_cbc.h \
+  src/crypto/test/framework.h src/crypto/test/hex.h
 src/crypto/primitives/aes/generate_aes.o: \
   src/crypto/primitives/aes/generate_aes.c src/crypto/machine/endian.h \
   src/common/bytetype.h
