@@ -15,26 +15,25 @@
  */
 
 #include "common/bytetype.h"
+#include "common/errorflow.h"
 #include "crypto/primitives/sha1/sha1.h"
 #include "crypto/test/framework.h"
+#include "crypto/test/hex.h"
 
 #include <stddef.h>
 #include <string.h>
 
 TEST_PREAMBLE("SHA1");
-static struct sha1_ctx *ctx;
 
 /*
  * Parameters for testing the output of a single invocation of the SHA-1
  * algorithm, where the input is a single message (potentially repeated
  * multiple times).
  */
-#define PLAIN_TEST_MSG_LEN_MAX (163)
 struct sha1_plain_test {
-    size_t msgLen;
     size_t msgRepeats;
-    const byte_t msg[PLAIN_TEST_MSG_LEN_MAX];
-    const byte_t digest[SHA1_DIGEST_BYTES];
+    const char *msg;
+    const char *digest;
 };
 
 /*
@@ -42,8 +41,8 @@ struct sha1_plain_test {
  * System (SHAVS) Monte Carlo Test (MCT) algorithm.
  */
 struct sha1_monte_test {
-    const byte_t seed[SHA1_DIGEST_BYTES];
-    const byte_t output[SHA1_DIGEST_BYTES];
+    const char *seed;
+    const char *output;
 };
 
 /*
@@ -53,12 +52,21 @@ struct sha1_monte_test {
 static void run_sha1_plain_test(const struct sha1_plain_test *test);
 
 /*
+ * Runs a SHA-1 single-output test which has been parsed from its hexadecimal
+ * string format. The digest length must match the length of a SHA-1 digest.
+ */
+static void run_parsed_sha1_plain_test(const byte_t *msg, size_t msgLen,
+                                       size_t msgRepeats,
+                                       const byte_t *digest);
+
+/*
  * Adds the provided message to the currently running SHA-1 context. If the
  * message is larger than one block in size, it will be broken up and added in
  * three pieces (to test the functionality of adding partial blocks to the
  * context).
  */
-static void add_single_message(const byte_t *msg, size_t msgLen);
+static void add_single_message(struct sha1_ctx *ctx, const byte_t *msg,
+                               size_t msgLen);
 
 /*
  * Runs a single SHA-1 NIST SHAVS MCT case, which includes a single assertion:
@@ -67,10 +75,19 @@ static void add_single_message(const byte_t *msg, size_t msgLen);
 static void run_sha1_monte_test(const struct sha1_monte_test *test);
 
 /*
+ * Runs a single SHA-1 NIST SHAVS MCT case, which has been parsed from its
+ * hexadecimal string format. Both the seed and the output must match the
+ * length of a SHA-1 digest.
+ */
+static void run_parsed_sha1_monte_test(const byte_t *seed,
+                                       const byte_t *output);
+
+/*
  * Runs the inner loop of the SHA-1 NIST SHAVS MCT algorithm, hashing a single
  * input seed sequentially and storing the result in the output array.
  */
-static void nist_monte_sha1_inner_loop(const byte_t *seedJ,
+static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx,
+                                       const byte_t *seedJ,
                                        byte_t *lastDigestJ);
 
 /*
@@ -82,22 +99,18 @@ static const struct sha1_plain_test plainTests[] = {
      * vector labelled ShortMsg, Len=0 (0 bytes).
      */
     {
-        .msgLen = 0,
         .msgRepeats = 0,
-        .msg = {},
-        .digest = {0xDA, 0x39, 0xA3, 0xEE, 0x5E, 0x6B, 0x4B, 0x0D, 0x32, 0x55,
-                   0xBF, 0xEF, 0x95, 0x60, 0x18, 0x90, 0xAF, 0xD8, 0x07, 0x09},
+        .msg = "",
+        .digest = "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709",
     },
 
     /*
      * RFC 3174, Section 7.3, TEST1. Input text is "abc".
      */
     {
-        .msgLen = 3,
         .msgRepeats = 1,
-        .msg = {0x61, 0x62, 0x63},
-        .digest = {0xA9, 0x99, 0x3E, 0x36, 0x47, 0x06, 0x81, 0x6A, 0xBA, 0x3E,
-                   0x25, 0x71, 0x78, 0x50, 0xC2, 0x6C, 0x9C, 0xD0, 0xD8, 0x9D},
+        .msg = "616263",
+        .digest = "A9993E364706816ABA3E25717850C26C9CD0D89D",
     },
 
     /*
@@ -105,27 +118,20 @@ static const struct sha1_plain_test plainTests[] = {
      * "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq".
      */
     {
-        .msgLen = 56,
         .msgRepeats = 1,
-        .msg = {0x61, 0x62, 0x63, 0x64, 0x62, 0x63, 0x64, 0x65, 0x63, 0x64,
-                0x65, 0x66, 0x64, 0x65, 0x66, 0x67, 0x65, 0x66, 0x67, 0x68,
-                0x66, 0x67, 0x68, 0x69, 0x67, 0x68, 0x69, 0x6A, 0x68, 0x69,
-                0x6A, 0x6B, 0x69, 0x6A, 0x6B, 0x6C, 0x6A, 0x6B, 0x6C, 0x6D,
-                0x6B, 0x6C, 0x6D, 0x6E, 0x6C, 0x6D, 0x6E, 0x6F, 0x6D, 0x6E,
-                0x6F, 0x70, 0x6E, 0x6F, 0x70, 0x71},
-        .digest = {0x84, 0x98, 0x3E, 0x44, 0x1C, 0x3B, 0xD2, 0x6E, 0xBA, 0xAE,
-                   0x4A, 0xA1, 0xF9, 0x51, 0x29, 0xE5, 0xE5, 0x46, 0x70, 0xF1},
+        .msg = "6162636462636465636465666465666765666768666768696768696A68696A"
+               "6B696A6B6C6A6B6C6D6B6C6D6E6C6D6E6F6D6E6F706E6F7071",
+        .digest = "84983E441C3BD26EBAAE4AA1F95129E5E54670F1",
     },
 
     /*
-     * RFC 3174, Section 7.3, TEST3. Input text is "a", repeated 1000000 times.
+     * RFC 3174, Section 7.3, TEST3. Input text is "a", repeated 1000000
+     * times.
      */
     {
-        .msgLen = 1,
         .msgRepeats = 1000000,
-        .msg = {0x61},
-        .digest = {0x34, 0xAA, 0x97, 0x3C, 0xD4, 0xC4, 0xDA, 0xA4, 0xF6, 0x1E,
-                   0xEB, 0x2B, 0xDB, 0xAD, 0x27, 0x31, 0x65, 0x34, 0x01, 0x6F},
+        .msg = "61",
+        .digest = "34AA973CD4C4DAA4F61EEB2BDBAD27316534016F",
     },
 
     /*
@@ -134,75 +140,48 @@ static const struct sha1_plain_test plainTests[] = {
      * repeated 10 times.
      */
     {
-        .msgLen = 64,
         .msgRepeats = 10,
-        .msg = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x30, 0x31,
-                0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x30, 0x31, 0x32, 0x33,
-                0x34, 0x35, 0x36, 0x37, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
-                0x36, 0x37, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-                0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x30, 0x31,
-                0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x30, 0x31, 0x32, 0x33,
-                0x34, 0x35, 0x36, 0x37},
-        .digest = {0xDE, 0xA3, 0x56, 0xA2, 0xCD, 0xDD, 0x90, 0xC7, 0xA7, 0xEC,
-                   0xED, 0xC5, 0xEB, 0xB5, 0x63, 0x93, 0x4F, 0x46, 0x04, 0x52},
+        .msg = "3031323334353637303132333435363730313233343536373031323334"
+               "3536373031323334353637303132333435363730313233343536373031"
+               "323334353637",
+        .digest = "DEA356A2CDDD90C7A7ECEDC5EBB563934F460452",
     },
 
     /*
-     * NIST CAVP SHA Test Vectors for Hashing Byte-Oriented Messages, example
-     * vector labelled ShortMsg, Len=24 (3 bytes).
+     * NIST CAVP SHA Test Vectors for Hashing Byte-Oriented Messages,
+     * example vector labelled ShortMsg, Len=24 (3 bytes).
      */
     {
-        .msgLen = 3,
         .msgRepeats = 1,
-        .msg = {0xDF, 0x4B, 0xD2},
-        .digest = {0xBF, 0x36, 0xED, 0x5D, 0x74, 0x72, 0x7D, 0xFD, 0x5D, 0x78,
-                   0x54, 0xEC, 0x6B, 0x1D, 0x49, 0x46, 0x8D, 0x8E, 0xE8, 0xAA},
+        .msg = "DF4BD2",
+        .digest = "BF36ED5D74727DFD5D7854EC6B1D49468D8EE8AA",
     },
 
     /*
-     * NIST CAVP SHA Test Vectors for Hashing Byte-Oriented Messages, example
-     * vector labelled ShortMsg, Len=512 (64 bytes).
+     * NIST CAVP SHA Test Vectors for Hashing Byte-Oriented Messages,
+     * example vector labelled ShortMsg, Len=512 (64 bytes).
      */
     {
-        .msgLen = 64,
         .msgRepeats = 1,
-        .msg = {0x45, 0x92, 0x7E, 0x32, 0xDD, 0xF8, 0x01, 0xCA, 0xF3, 0x5E,
-                0x18, 0xE7, 0xB5, 0x07, 0x8B, 0x7F, 0x54, 0x35, 0x27, 0x82,
-                0x12, 0xEC, 0x6B, 0xB9, 0x9D, 0xF8, 0x84, 0xF4, 0x9B, 0x32,
-                0x7C, 0x64, 0x86, 0xFE, 0xAE, 0x46, 0xBA, 0x18, 0x7D, 0xC1,
-                0xCC, 0x91, 0x45, 0x12, 0x1E, 0x14, 0x92, 0xE6, 0xB0, 0x6E,
-                0x90, 0x07, 0x39, 0x4D, 0xC3, 0x3B, 0x77, 0x48, 0xF8, 0x6A,
-                0xC3, 0x20, 0x7C, 0xFE},
-        .digest = {0xA7, 0x0C, 0xFB, 0xFE, 0x75, 0x63, 0xDD, 0x0E, 0x66, 0x5C,
-                   0x7C, 0x67, 0x15, 0xA9, 0x6A, 0x8D, 0x75, 0x69, 0x50, 0xC0},
+        .msg = "45927E32DDF801CAF35E18E7B5078B7F5435278212EC6BB99DF884F49B"
+               "327C6486FEAE46BA187DC1CC9145121E1492E6B06E9007394DC33B7748"
+               "F86AC3207CFE",
+        .digest = "A70CFBFE7563DD0E665C7C6715A96A8D756950C0",
     },
 
     /*
-     * NIST CAVP SHA Test Vectors for Hashing Byte-Oriented Messages, example
-     * vector labelled LongMsg, Len=1304 (163 bytes).
+     * NIST CAVP SHA Test Vectors for Hashing Byte-Oriented Messages,
+     * example vector labelled LongMsg, Len=1304 (163 bytes).
      */
     {
-        .msgLen = 163,
         .msgRepeats = 1,
-        .msg = {0x7C, 0x9C, 0x67, 0x32, 0x3A, 0x1D, 0xF1, 0xAD, 0xBF, 0xE5,
-                0xCE, 0xB4, 0x15, 0xEA, 0xEF, 0x01, 0x55, 0xEC, 0xE2, 0x82,
-                0x0F, 0x4D, 0x50, 0xC1, 0xEC, 0x22, 0xCB, 0xA4, 0x92, 0x8A,
-                0xC6, 0x56, 0xC8, 0x3F, 0xE5, 0x85, 0xDB, 0x6A, 0x78, 0xCE,
-                0x40, 0xBC, 0x42, 0x75, 0x7A, 0xBA, 0x7E, 0x5A, 0x3F, 0x58,
-                0x24, 0x28, 0xD6, 0xCA, 0x68, 0xD0, 0xC3, 0x97, 0x83, 0x36,
-                0xA6, 0xEF, 0xB7, 0x29, 0x61, 0x3E, 0x8D, 0x99, 0x79, 0x01,
-                0x62, 0x04, 0xBF, 0xD9, 0x21, 0x32, 0x2F, 0xDD, 0x52, 0x22,
-                0x18, 0x35, 0x54, 0x44, 0x7D, 0xE5, 0xE6, 0xE9, 0xBB, 0xE6,
-                0xED, 0xF7, 0x6D, 0x7B, 0x71, 0xE1, 0x8D, 0xC2, 0xE8, 0xD6,
-                0xDC, 0x89, 0xB7, 0x39, 0x83, 0x64, 0xF6, 0x52, 0xFA, 0xFC,
-                0x73, 0x43, 0x29, 0xAA, 0xFA, 0x3D, 0xCD, 0x45, 0xD4, 0xF3,
-                0x1E, 0x38, 0x8E, 0x4F, 0xAF, 0xD7, 0xFC, 0x64, 0x95, 0xF3,
-                0x7C, 0xA5, 0xCB, 0xAB, 0x7F, 0x54, 0xD5, 0x86, 0x46, 0x3D,
-                0xA4, 0xBF, 0xEA, 0xA3, 0xBA, 0xE0, 0x9F, 0x7B, 0x8E, 0x92,
-                0x39, 0xD8, 0x32, 0xB4, 0xF0, 0xA7, 0x33, 0xAA, 0x60, 0x9C,
-                0xC1, 0xF8, 0xD4},
-        .digest = {0xD8, 0xFD, 0x6A, 0x91, 0xEF, 0x3B, 0x6C, 0xED, 0x05, 0xB9,
-                   0x83, 0x58, 0xA9, 0x91, 0x07, 0xC1, 0xFA, 0xC8, 0xC8, 0x07},
+        .msg = "7C9C67323A1DF1ADBFE5CEB415EAEF0155ECE2820F4D50C1EC22CBA492"
+               "8AC656C83FE585DB6A78CE40BC42757ABA7E5A3F582428D6CA68D0C397"
+               "8336A6EFB729613E8D9979016204BFD921322FDD5222183554447DE5E6"
+               "E9BBE6EDF76D7B71E18DC2E8D6DC89B7398364F652FAFC734329AAFA3D"
+               "CD45D4F31E388E4FAFD7FC6495F37CA5CBAB7F54D586463DA4BFEAA3BA"
+               "E09F7B8E9239D832B4F0A733AA609CC1F8D4",
+        .digest = "D8FD6A91EF3B6CED05B98358A99107C1FAC8C807",
     },
 };
 
@@ -215,10 +194,8 @@ static const struct sha1_monte_test monteTests[] = {
      * L=20, with the Seed as input and COUNT=99 as output.
      */
     {
-        .seed = {0xDD, 0x4D, 0xF6, 0x44, 0xEA, 0xF3, 0xD8, 0x5B, 0xAC, 0xE2,
-                 0xB2, 0x1A, 0xCC, 0xAA, 0x22, 0xB2, 0x88, 0x21, 0xF5, 0xCD},
-        .output = {0x01, 0xB7, 0xBE, 0x5B, 0x70, 0xEF, 0x64, 0x84, 0x3A, 0x03,
-                   0xFD, 0xBB, 0x3B, 0x24, 0x7A, 0x62, 0x78, 0xD2, 0xCB, 0xE1},
+        .seed = "DD4DF644EAF3D85BACE2B21ACCAA22B28821F5CD",
+        .output = "01B7BE5B70EF64843A03FDBB3B247A6278D2CBE1",
     },
 };
 
@@ -228,7 +205,6 @@ static const struct sha1_monte_test monteTests[] = {
 int main()
 {
     size_t onTest;
-    ctx = sha1_alloc();
 
     for (onTest = 0;
          onTest < sizeof(plainTests) / sizeof(struct sha1_plain_test);
@@ -242,27 +218,46 @@ int main()
         run_sha1_monte_test(&monteTests[onTest]);
     }
 
-    sha1_free_scrub(ctx);
     TEST_CONCLUDE();
 }
 
 static void run_sha1_plain_test(const struct sha1_plain_test *test)
 {
+    byte_t *msg, *digest;
+    size_t msgLen, digestLen;
+
+    hex_to_bytes(test->msg, &msg, &msgLen);
+    hex_to_bytes(test->digest, &digest, &digestLen);
+    ASSERT(digestLen == SHA1_DIGEST_BYTES, "Invalid digest size");
+
+    run_parsed_sha1_plain_test(msg, msgLen, test->msgRepeats, digest);
+
+    free(msg);
+    free(digest);
+}
+
+static void run_parsed_sha1_plain_test(const byte_t *msg, size_t msgLen,
+                                       size_t msgRepeats, const byte_t *digest)
+{
+    struct sha1_ctx *ctx;
     byte_t actual[SHA1_DIGEST_BYTES];
     size_t onRepeat;
 
+    ctx = sha1_alloc();
     memset(actual, 0, SHA1_DIGEST_BYTES);
 
     sha1_start(ctx);
-    for (onRepeat = 0; onRepeat < test->msgRepeats; onRepeat++) {
-        add_single_message(test->msg, test->msgLen);
+    for (onRepeat = 0; onRepeat < msgRepeats; onRepeat++) {
+        add_single_message(ctx, msg, msgLen);
     }
     sha1_end(ctx, actual);
 
-    TEST_ASSERT(memcmp(actual, test->digest, SHA1_DIGEST_BYTES) == 0);
+    TEST_ASSERT(memcmp(actual, digest, SHA1_DIGEST_BYTES) == 0);
+    sha1_free_scrub(ctx);
 }
 
-static void add_single_message(const byte_t *msg, size_t msgLen)
+static void add_single_message(struct sha1_ctx *ctx, const byte_t *msg,
+                               size_t msgLen)
 {
     const size_t QUARTER_BLOCK_SIZE = SHA1_BLOCK_BYTES / 4;
 
@@ -280,11 +275,30 @@ static void add_single_message(const byte_t *msg, size_t msgLen)
 
 static void run_sha1_monte_test(const struct sha1_monte_test *test)
 {
+    byte_t *seed, *output;
+    size_t seedLen, outputLen;
+
+    hex_to_bytes(test->seed, &seed, &seedLen);
+    hex_to_bytes(test->output, &output, &outputLen);
+    ASSERT(seedLen == SHA1_DIGEST_BYTES, "Invalid seed size");
+    ASSERT(outputLen == SHA1_DIGEST_BYTES, "Invalid output size");
+
+    run_parsed_sha1_monte_test(seed, output);
+
+    free(seed);
+    free(output);
+}
+
+static void run_parsed_sha1_monte_test(const byte_t *seed,
+                                       const byte_t *output)
+{
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
+    struct sha1_ctx *ctx;
     const byte_t *seedJ;
     byte_t lastDigestJ[SHA1_DIGEST_BYTES];
     int j;
 
+    ctx = sha1_alloc();
     memset(lastDigestJ, 0, SHA1_DIGEST_BYTES);
 
     /*
@@ -299,7 +313,7 @@ static void run_sha1_monte_test(const struct sha1_monte_test *test)
      *
      * seed[0] = the provided input seed
      */
-    seedJ = test->seed;
+    seedJ = seed;
 
     /*
      * for ( j = 0 to 99 ):
@@ -307,7 +321,7 @@ static void run_sha1_monte_test(const struct sha1_monte_test *test)
      *     seed[j+1] = md[j][1002]
      */
     for (j = 0; j < NIST_MONTE_OUTER_LOOP_SIZE; j++) {
-        nist_monte_sha1_inner_loop(seedJ, lastDigestJ);
+        nist_monte_sha1_inner_loop(ctx, seedJ, lastDigestJ);
         seedJ = lastDigestJ;
     }
 
@@ -317,10 +331,12 @@ static void run_sha1_monte_test(const struct sha1_monte_test *test)
      * Note: in the SHAVS CAVP, each md[j][1002] is output as an intermediate
      * computation. Here, we check only the final result.
      */
-    TEST_ASSERT(memcmp(lastDigestJ, test->output, SHA1_DIGEST_BYTES) == 0);
+    TEST_ASSERT(memcmp(lastDigestJ, output, SHA1_DIGEST_BYTES) == 0);
+    sha1_free_scrub(ctx);
 }
 
-static void nist_monte_sha1_inner_loop(const byte_t *seedJ,
+static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx,
+                                       const byte_t *seedJ,
                                        byte_t *lastDigestJ)
 {
     const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
