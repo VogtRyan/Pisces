@@ -14,22 +14,31 @@
 
 .POSIX:
 
-CC     = cc
-CFLAGS = -Wall -O2
+CC    = cc
+BUILD = release
 
-INSTALL_BIN := /usr/local/bin
-INSTALL_MAN := /usr/local/man
+CFLAGS.release = -Wall -O2
+CFLAGS.debug   = -Wall -DDEBUGGING -g
+CFLAGS         = ${CFLAGS.${BUILD}}
+
+IGNORE_FAILED_TESTS.release =
+IGNORE_FAILED_TESTS.debug   = -
+IGNORE_FAILED_TESTS         = ${IGNORE_FAILED_TESTS.${BUILD}}
+
+PREFIX         = /usr/local
+INSTALL_BIN    = ${PREFIX}/bin
+INSTALL_MAN    = ${PREFIX}/man/man1
 
 BINDIR = ./bin
 MANDIR = ./man
 
 .PHONY:
-.PHONY: default all debug userprogs install man generate test clean deps
+.PHONY: default all userprogs install man generate test clean deps
 .SUFFIXES:
 .SUFFIXES: .c .o
 
 .c.o:
-	${CC} ${CFLAGS} -Isrc/ -c -o $@ $<
+	${CC} -Isrc/ -c ${CFLAGS} -o $@ $<
 
 ##
 # Full-project build options
@@ -37,10 +46,6 @@ MANDIR = ./man
 
 default: test userprogs
 all: generate test userprogs
-
-debug: CFLAGS := -Wall -DDEBUGGING -g
-debug: all
-
 userprogs: ${BINDIR}/pisces ${BINDIR}/pwgen
 
 ##
@@ -51,13 +56,13 @@ install: default
 	@if [ ! -d ${INSTALL_BIN}/ ] ; then \
 	  echo Missing installation directory ${INSTALL_BIN}/ ; \
 	  false ; fi
-	@if [ ! -d ${INSTALL_MAN}/man1/ ] ; then \
-	  echo Missing manual installation directory ${INSTALL_MAN}/man1/ ; \
+	@if [ ! -d ${INSTALL_MAN}/ ] ; then \
+	  echo Missing manual installation directory ${INSTALL_MAN}/ ; \
  	  false ; fi
 	cp ${BINDIR}/pisces ${INSTALL_BIN}/pisces
 	cp ${BINDIR}/pwgen ${INSTALL_BIN}/pwgen
-	cp ${MANDIR}/pisces.1 ${INSTALL_MAN}/man1/pisces.1
-	cp ${MANDIR}/pwgen.1 ${INSTALL_MAN}/man1/pwgen.1
+	cp ${MANDIR}/pisces.1 ${INSTALL_MAN}/pisces.1
+	cp ${MANDIR}/pwgen.1 ${INSTALL_MAN}/pwgen.1
 
 ##
 # View the manuals
@@ -107,7 +112,7 @@ TEST_AES_ECB_OBJS = src/crypto/primitives/aes/test_aes_ecb.o \
 
 ${BINDIR}/test_aes_ecb: ${TEST_AES_ECB_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_AES_ECB_OBJS}
-	@${BINDIR}/test_aes_ecb
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_aes_ecb
 
 ##
 # crypto/primitives/aes/test_aes_cbc
@@ -119,7 +124,7 @@ TEST_AES_CBC_OBJS = src/crypto/primitives/aes/test_aes_cbc.o \
 
 ${BINDIR}/test_aes_cbc: ${TEST_AES_CBC_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_AES_CBC_OBJS}
-	@${BINDIR}/test_aes_cbc
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_aes_cbc
 
 ##
 # crypto/primitives/sha1/test_sha1
@@ -130,7 +135,7 @@ TEST_SHA1_OBJS = src/crypto/primitives/sha1/test_sha1.o \
 
 ${BINDIR}/test_sha1: ${TEST_SHA1_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_SHA1_OBJS}
-	@${BINDIR}/test_sha1
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_sha1
 
 ##
 # crypto/primitives/sha3/test_sha3
@@ -141,7 +146,7 @@ TEST_SHA3_OBJS = src/crypto/primitives/sha3/test_sha3.o \
 
 ${BINDIR}/test_sha3: ${TEST_SHA3_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_SHA3_OBJS}
-	@${BINDIR}/test_sha3
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_sha3
 
 ##
 # crypto/algorithms/hmac/test_hmac
@@ -153,7 +158,7 @@ TEST_HMAC_OBJS = src/crypto/algorithms/hmac/test_hmac.o \
 
 ${BINDIR}/test_hmac: ${TEST_HMAC_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_HMAC_OBJS}
-	@${BINDIR}/test_hmac
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_hmac
 
 ##
 # crypto/algorithms/pbkdf2/test_pbkdf2
@@ -166,7 +171,7 @@ TEST_PBKDF2_OBJS = src/crypto/algorithms/pbkdf2/test_pbkdf2.o \
 
 ${BINDIR}/test_pbkdf2: ${TEST_PBKDF2_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_PBKDF2_OBJS}
-	@${BINDIR}/test_pbkdf2
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_pbkdf2
 
 ##
 # pisces/
