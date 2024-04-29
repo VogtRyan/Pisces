@@ -16,14 +16,17 @@
 
 CC    = cc
 BUILD = release
+CPRNG = arc4random
 
-CFLAGS.release = -Wall -O2
-CFLAGS.debug   = -Wall -DDEBUGGING -g
-CFLAGS         = ${CFLAGS.${BUILD}}
+CFLAGS.BUILD.release    = -Wall -O2
+CFLAGS.BUILD.debug      = -Wall -DDEBUGGING -g
+CFLAGS.CPRNG.arc4random =
+CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
+CFLAGS                  = ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
 
-IGNORE_FAILED_TESTS.release =
-IGNORE_FAILED_TESTS.debug   = -
-IGNORE_FAILED_TESTS         = ${IGNORE_FAILED_TESTS.${BUILD}}
+IGNORE_FAILED_TESTS.BUILD.release =
+IGNORE_FAILED_TESTS.BUILD.debug   = -
+IGNORE_FAILED_TESTS               = ${IGNORE_FAILED_TESTS.BUILD.${BUILD}}
 
 PREFIX         = /usr/local
 INSTALL_BIN    = ${PREFIX}/bin

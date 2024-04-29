@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -97,7 +97,7 @@
  * error messages).
  */
 static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
-                        byte_t *bodyIV);
+                        byte_t *bodyIV, struct cprng *rng);
 
 /*
  * Reads in the Pisces identification header, sets the version of Pisces being
@@ -111,7 +111,8 @@ static int read_header(int fd, byte_t *salt, byte_t *imprintIV,
  * Writes the key-verification imprint to the file, using the provided key and
  * imprint IV. Returns 0 on success, -1 on error (and prints error messages).
  */
-static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV);
+static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV,
+                         struct cprng *rng);
 
 /*
  * Reads the key-verification imprint from the file, and verifies that the
@@ -163,6 +164,7 @@ size_t cipher_block_ceiling(size_t bytes, const struct cipher_ctx *cipher);
 int encrypt_file(const char *inputFile, const char *outputFile,
                  const char *password, size_t passwordLen)
 {
+    struct cprng *rng = NULL;
     byte_t key[CIPHER_MAX_KEY_BYTES];
     byte_t salt[CIPHER_MAX_KEY_BYTES];
     byte_t imprintIV[CIPHER_MAX_BLOCK_BYTES];
@@ -184,7 +186,8 @@ int encrypt_file(const char *inputFile, const char *outputFile,
     }
 
     /* Generate and write the salt+IVs into the header, and derive our key. */
-    if (write_header(out, salt, imprintIV, bodyIV)) {
+    rng = cprng_alloc_default();
+    if (write_header(out, salt, imprintIV, bodyIV, rng)) {
         ERROR_QUIET(isErr, errVal);
     }
     if (password_to_key(key, password, passwordLen, salt)) {
@@ -192,7 +195,7 @@ int encrypt_file(const char *inputFile, const char *outputFile,
     }
 
     /* Write the imprint, then encrypt the file */
-    if (write_imprint(out, key, imprintIV)) {
+    if (write_imprint(out, key, imprintIV, rng)) {
         ERROR_QUIET(isErr, errVal);
     }
     if (encrypt_body(in, out, key, bodyIV)) {
@@ -206,6 +209,7 @@ isErr:
     if (out != -1) {
         close(out);
     }
+    cprng_free_scrub(rng);
     scrub_memory(key, CIPHER_MAX_KEY_BYTES);
     return errVal ? -1 : 0;
 }
@@ -266,10 +270,9 @@ isErr:
 }
 
 static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
-                        byte_t *bodyIV)
+                        byte_t *bodyIV, struct cprng *rng)
 {
     struct cipher_ctx *cipher = NULL;
-    struct cprng *rng = NULL;
     byte_t versionByte;
     size_t keyAndSaltLen, ivLen;
     int errVal = 0;
@@ -285,7 +288,6 @@ static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
 
     /* Generate the random salt and IVs */
     cipher = pisces_unpadded_cipher_alloc();
-    rng = cprng_alloc_default();
     keyAndSaltLen = cipher_key_size(cipher);
     ivLen = cipher_iv_size(cipher);
     cprng_bytes(rng, salt, keyAndSaltLen);
@@ -305,7 +307,6 @@ static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
 
 isErr:
     cipher_free_scrub(cipher);
-    cprng_free_scrub(rng);
     return errVal ? -1 : 0;
 }
 
@@ -353,11 +354,11 @@ isErr:
     return errVal ? -1 : 0;
 }
 
-static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV)
+static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV,
+                         struct cprng *rng)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
-    struct cprng *rng = NULL;
     byte_t randomData[PISCES_MAX_RANDOM_SIZE];
     byte_t randomHash[CHF_MAX_DIGEST_BYTES];
     byte_t encryptedImprint[PISCES_MAX_IMPRINT_SIZE];
@@ -368,7 +369,6 @@ static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV)
     /* Generate the random data */
     chf = pisces_chf_alloc();
     cipher = pisces_unpadded_cipher_alloc();
-    rng = cprng_alloc_default();
     hashLen = chf_digest_size(chf);
     compute_imprint_sizes(&randomLen, &totalLen, cipher, chf);
     cprng_bytes(rng, randomData, randomLen);
@@ -400,7 +400,6 @@ static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV)
 isErr:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
-    cprng_free_scrub(rng);
     scrub_memory(randomData, PISCES_MAX_RANDOM_SIZE);
     scrub_memory(randomHash, CHF_MAX_DIGEST_BYTES);
     return errVal ? -1 : 0;
