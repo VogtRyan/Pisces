@@ -52,6 +52,15 @@ Two executables, `pisces` and `pwgen` (a password generator for Pisces), will
 be installed in `/usr/local/bin/`, and the manual pages for both in
 `/usr/local/man/man1`.
 
+By default, Pisces uses the `arc4random()` family of functions to generate
+random data. For C libraries that do not provide, e.g., `arc4random_buf()`,
+use the following `make` command to draw random data from the `/dev/random`
+cryptographic pseudorandom number generator (CPRNG) instead:
+```
+    $ make CPRNG=dev
+    $ sudo make install
+```
+
 The installation location can be modified by setting the `PREFIX` variable
 during the `make install` build step:
 ```
