@@ -21,6 +21,7 @@
 #include "crypto/test/hex.h"
 
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 TEST_PREAMBLE("SHA1");
