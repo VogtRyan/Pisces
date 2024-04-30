@@ -157,7 +157,8 @@ ${BINDIR}/test_sha3: ${TEST_SHA3_OBJS}
 
 TEST_HMAC_OBJS = src/crypto/algorithms/hmac/test_hmac.o \
   src/crypto/algorithms/hmac/hmac.o src/crypto/abstract/chf.o \
-  src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o
+  src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o \
+  src/crypto/test/hex.o
 
 ${BINDIR}/test_hmac: ${TEST_HMAC_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_HMAC_OBJS}
@@ -246,8 +247,9 @@ src/crypto/algorithms/hmac/hmac.o: src/crypto/algorithms/hmac/hmac.c \
   src/crypto/abstract/chf.h src/common/errorflow.h src/common/scrub.h
 src/crypto/algorithms/hmac/test_hmac.o: \
   src/crypto/algorithms/hmac/test_hmac.c src/common/bytetype.h \
-  src/crypto/abstract/chf.h src/crypto/algorithms/hmac/hmac.h \
-  src/crypto/test/framework.h
+  src/common/errorflow.h src/crypto/abstract/chf.h \
+  src/crypto/algorithms/hmac/hmac.h src/crypto/test/framework.h \
+  src/crypto/test/hex.h
 src/crypto/algorithms/pbkdf2/test_pbkdf2.o: \
   src/crypto/algorithms/pbkdf2/test_pbkdf2.c src/common/bytetype.h \
   src/crypto/abstract/chf.h src/crypto/algorithms/pbkdf2/pbkdf2.h \
