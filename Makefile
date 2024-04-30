@@ -145,7 +145,7 @@ ${BINDIR}/test_sha1: ${TEST_SHA1_OBJS}
 ##
 
 TEST_SHA3_OBJS = src/crypto/primitives/sha3/test_sha3.o \
-  src/crypto/primitives/sha3/sha3.o
+  src/crypto/primitives/sha3/sha3.o src/crypto/test/hex.o
 
 ${BINDIR}/test_sha3: ${TEST_SHA3_OBJS}
 	${CC} ${CFLAGS} -o $@ ${TEST_SHA3_OBJS}
@@ -266,7 +266,7 @@ src/crypto/primitives/sha3/generate_sha3.o: \
 src/crypto/primitives/sha3/test_sha3.o: \
   src/crypto/primitives/sha3/test_sha3.c src/common/bytetype.h \
   src/common/errorflow.h src/crypto/primitives/sha3/sha3.h \
-  src/crypto/test/framework.h
+  src/crypto/test/framework.h src/crypto/test/hex.h
 src/crypto/primitives/sha3/sha3.o: src/crypto/primitives/sha3/sha3.c \
   src/crypto/primitives/sha3/sha3.h src/common/bytetype.h \
   src/common/errorflow.h src/common/scrub.h src/crypto/machine/endian.h
