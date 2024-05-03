@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,7 +36,7 @@
  * error that the key is too long takes precedence over the error that the
  * message is too long.
  */
-#define HMAC_ERROR_KEY_TOO_LONG (-1)
+#define HMAC_ERROR_KEY_TOO_LONG     (-1)
 #define HMAC_ERROR_MESSAGE_TOO_LONG (-2)
 
 /*

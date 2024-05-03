@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,8 +27,8 @@
  * this header.
  */
 #define CIPHER_MAX_BLOCK_BYTES (16)
-#define CIPHER_MAX_IV_BYTES (16)
-#define CIPHER_MAX_KEY_BYTES (32)
+#define CIPHER_MAX_IV_BYTES    (16)
+#define CIPHER_MAX_KEY_BYTES   (32)
 
 /*
  * Supported cipher algorithms.
@@ -59,8 +59,8 @@ typedef enum {
  * invalid.
  */
 #define CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE (-1)
-#define CIPHER_ERROR_NO_BLOCK_TO_DEPAD (-2)
-#define CIPHER_ERROR_INVALID_PAD_DATA (-3)
+#define CIPHER_ERROR_NO_BLOCK_TO_DEPAD             (-2)
+#define CIPHER_ERROR_INVALID_PAD_DATA              (-3)
 
 /*
  * Opaque cipher context.

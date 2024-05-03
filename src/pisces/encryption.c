@@ -48,7 +48,7 @@
  * The Pisces header: these 6 bytes, followed by a one-byte version number. The
  * version number is not included in the length.
  */
-#define PISCES_HEADER "PISCES"
+#define PISCES_HEADER     "PISCES"
 #define PISCES_HEADER_LEN (6)
 
 /*

@@ -25,7 +25,7 @@
  * The largest input string size accepted by hex_to_bytes(), and the largest
  * possible number of bytes output by that function.
  */
-#define HEX_TO_BYTES_MAX_STRLEN (1000)
+#define HEX_TO_BYTES_MAX_STRLEN    (1000)
 #define HEX_TO_BYTES_MAX_NUM_BYTES (HEX_TO_BYTES_MAX_STRLEN / 2)
 
 /*

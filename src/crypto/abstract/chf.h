@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,7 +26,7 @@
  * function.
  */
 #define CHF_MAX_DIGEST_BYTES (64)
-#define CHF_MAX_BLOCK_BYTES (144)
+#define CHF_MAX_BLOCK_BYTES  (144)
 
 /*
  * Supported cryptographic hash function primitives.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,8 +27,8 @@
  * conditions are true, the password being too long has the highest precedence,
  * then the salt being too long, and finally the derived key being too long.
  */
-#define PBKDF2_ERROR_PASSWORD_TOO_LONG (-1)
-#define PBKDF2_ERROR_SALT_TOO_LONG (-2)
+#define PBKDF2_ERROR_PASSWORD_TOO_LONG    (-1)
+#define PBKDF2_ERROR_SALT_TOO_LONG        (-2)
 #define PBKDF2_ERROR_DERIVED_KEY_TOO_LONG (-3)
 
 /*
