@@ -1,5 +1,5 @@
 PISCES: PASSWORD-BASED FILE ENCRYPTION
-Version 5.2.0 (26 July 2023)
+Version 5.2.1 (3 May 2024)
 
 Ryan Vogt
 rvogt.ca@gmail.com
@@ -18,7 +18,7 @@ Contents:
 
 1. Copyright Notice
 
-Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -67,7 +67,25 @@ Or, for OpenBSD users:
     $ doas make install
 
 Two executables, pisces and pwgen (a password generator for Pisces), will be
-installed in /usr/local/bin/, and the manual pages for both in /usr/local/man/.
+installed in /usr/local/bin/, and the manual pages for both in
+/usr/local/man/man1/.
+
+By default, Pisces uses the arc4random() family of functions to generate random
+data. For C libraries that do not provide, e.g., arc4random_buf(), use the
+following make command to draw random data from the /dev/random cryptographic
+pseudorandom number generator (CPRNG) instead:
+
+    $ make CPRNG=dev
+    $ sudo make install
+
+The installation location can be modified by setting the PREFIX variable during
+the "make install" build step:
+
+    $ make
+    $ make PREFIX=~/pisces install
+
+That will install the executables to ~/pisces/bin/ and the manual pages to
+~/pisces/man/man1/.
 
 -------------------------------------------------------------------------------
 
@@ -207,14 +225,25 @@ In Pisces version 3,
 Some of the code in aes_ecb.c and sha3.c has been algorithmically generated. To
 build the code that generates the code in those two files, run:
 
-% make generate
+    $ make generate
 
-The executables to generate the AES and SHA3 code will be located in:
+To generate the AES and SHA3 code, run:
 
-bin/generate_aes
-bin/generate_sha3
+    $ ./bin/generate_aes
+    $ ./bin/generate_sha3
 
-To run a series of tests to ensure that Pisces' AES-ECB, AES-CBC, SHA1, SHA3,
-HMAC, and PBKDF2 implementations are running correctly on your system, run:
+Additionally, there are a series of tests to ensure that Pisces' AES-ECB,
+AES-CBC, SHA1, SHA3, HMAC, and PBKDF2 implementations are running correctly.
+They are run automatically by the default make target, but can be run
+explicitly using:
 
-% make test
+    $ make test
+
+Finally, any build target can be built in debug mode, to contain symbols for a
+C debugger and to produce more verbose output, by setting the BUILD variable to
+debug:
+
+    $ make BUILD=debug clean all
+
+When a make target is built with BUILD set to debug, a failed test in the
+cryptographic test suite will not cause the build to abort.
