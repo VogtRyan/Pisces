@@ -1,12 +1,14 @@
----
 BasedOnStyle: LLVM
+ColumnLimit: 79
 IndentWidth: 4
+UseTab: Never
+BreakBeforeBraces: Stroustrup
+InsertBraces: true
 DerivePointerAlignment: false
 PointerAlignment: Right
 SpaceBeforeParens: ControlStatements
 SpacesBeforeTrailingComments: 1
-UseTab: Never
+AlignConsecutiveMacros: true
 AllowShortFunctionsOnASingleLine: false
-BreakBeforeBraces: Stroustrup
-ColumnLimit: 79
 BinPackParameters: true
+InsertNewlineAtEOF: true

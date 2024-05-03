@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,7 +26,7 @@
  * SHA-1.
  */
 #define SHA1_DIGEST_BYTES (20)
-#define SHA1_BLOCK_BYTES (64)
+#define SHA1_BLOCK_BYTES  (64)
 
 /*
  * Opaque SHA-1 context. Note that there are undefined behaviours, described
