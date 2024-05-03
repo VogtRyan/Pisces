@@ -55,9 +55,9 @@ static void run_parsed_hmac_test(chf_algorithm_t hashAlg, const byte_t *key,
                                  size_t outputLen);
 
 /*
- * All of the HMAC tests to run.
+ * HMAC test vectors from official sources: FIPS documents or NIST examples.
  */
-static const struct hmac_test allTests[] = {
+static const struct hmac_test officialTests[] = {
     /* FIPS 198, A.1, SHA-1 with 64-Byte Key */
     {
         .hashAlg = CHF_ALG_SHA1,
@@ -278,15 +278,95 @@ static const struct hmac_test allTests[] = {
 };
 
 /*
+ * Custom test vectors. These tests are not official, and should be treated
+ * accordingly. However, they have been verified against two other
+ * independent implementations of HMAC:
+ *
+ * - LibreSSL 3.9.0 libcrypto implementation of HMAC in C
+ * - BouncyCastle 1.78.1 implementation of HMAC in Java
+ *
+ * These vectors are designed to test edge cases of the HMAC algorithm for both
+ * HMAC-SHA1 and HMAC-SHA3-512.
+ */
+static const struct hmac_test customTests[] = {
+    /* HMAC-SHA1, empty key and message */
+    {
+        .hashAlg = CHF_ALG_SHA1,
+        .key = "",
+        .msg = "",
+        .output = "FBDB1D1B18AA6C08324B7D64B71FB76370690E1D",
+    },
+
+    /* HMAC-SHA1, key is one block, empty message */
+    {
+        .hashAlg = CHF_ALG_SHA1,
+        .key =
+            "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
+            "02122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F",
+        .msg = "",
+        .output = "60BF8C95C85CFA61279A2B9B079AA19D7FA5F31A",
+    },
+
+    /* HMAC-SHA1, empty key, message is one block */
+    {
+        .hashAlg = CHF_ALG_SHA1,
+        .key = "",
+        .msg =
+            "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
+            "02122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F",
+        .output = "BD466286495DAB05EA52B570E0047E0AB17B0D8D",
+    },
+
+    /* HMAC-SHA3-512, empty key, empty message */
+    {
+        .hashAlg = CHF_ALG_SHA3_512,
+        .key = "",
+        .msg = "",
+        .output =
+            "CBCF45540782D4BC7387FBBF7D30B3681D6D66CC435CAFD82546B0FCE96B367EA"
+            "79662918436FBA442E81A01D0F9592DFCD30F7A7A8F1475693D30BE4150CA84",
+    },
+
+    /* HMAC-SHA3-512, key is one block, empty message */
+    {
+        .hashAlg = CHF_ALG_SHA3_512,
+        .key = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E"
+               "1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D"
+               "3E3F4041424344454647",
+        .msg = "",
+        .output =
+            "AE200D280CBAA355C0E99F30E0ABB86173A58A4FC747860B87A2CC7D356C25525"
+            "290792A8E5EE9E02B437BDA16C47AE234EEB8F70891AB8B640B6AA1F564B6F3",
+    },
+
+    /* HMAC-SHA3-512, empty key, message is one block */
+    {
+        .hashAlg = CHF_ALG_SHA3_512,
+        .key = "",
+        .msg = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E"
+               "1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D"
+               "3E3F4041424344454647",
+        .output =
+            "09726AEAB10BDE6722DD09BACD431E3B2FFEBCF545226AF92868407D55B97920E"
+            "F56F0665E693956D8400662DAE7D3044D5C1123999F264ED47843D19716AF3C",
+    },
+};
+
+/*
  * Run the HMAC tests and report the success rate.
  */
 int main()
 {
     size_t onTest;
 
-    for (onTest = 0; onTest < sizeof(allTests) / sizeof(struct hmac_test);
+    for (onTest = 0; onTest < sizeof(officialTests) / sizeof(struct hmac_test);
          onTest++) {
-        run_hmac_test(&allTests[onTest]);
+        run_hmac_test(&officialTests[onTest]);
+    }
+
+    for (onTest = 0; onTest < sizeof(customTests) / sizeof(struct hmac_test);
+         onTest++) {
+        run_hmac_test(&customTests[onTest]);
     }
 
     TEST_CONCLUDE();
