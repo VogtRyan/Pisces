@@ -50,7 +50,7 @@ Or, for OpenBSD users:
 ```
 Two executables, `pisces` and `pwgen` (a password generator for Pisces), will
 be installed in `/usr/local/bin/`, and the manual pages for both in
-`/usr/local/man/man1`.
+`/usr/local/man/man1/`.
 
 By default, Pisces uses the `arc4random()` family of functions to generate
 random data. For C libraries that do not provide, e.g., `arc4random_buf()`,
@@ -67,8 +67,8 @@ during the `make install` build step:
     $ make
     $ make PREFIX=~/pisces install
 ```
-That will install the executables to `~/pisces/bin` and the manual pages to
-`~/pisces/man/man1`.
+That will install the executables to `~/pisces/bin/` and the manual pages to
+`~/pisces/man/man1/`.
 
 ## Example Pisces Usage
 
@@ -207,25 +207,25 @@ length.
 Some of the code in `aes_ecb.c` and `sha3.c` has been algorithmically
 generated. To build the code that generates the code in those two files, run:
 ```
-% make generate
+    $ make generate
 ```
-The executables to generate the AES and SHA3 code will be located in:
+To generate the AES and SHA3 code, run:
 ```
-bin/generate_aes
-bin/generate_sha3
+    $ ./bin/generate_aes
+    $ ./bin/generate_sha3
 ```
 Additionally, there are a series of tests to ensure that Pisces' AES-ECB,
 AES-CBC, SHA1, SHA3, HMAC, and PBKDF2 implementations are running correctly.
 They are run automatically by the default `make` target, but can be run
 explicitly using:
 ```
-% make test
+    $ make test
 ```
 Finally, any build target can be built in debug mode, to contain symbols for a
 C debugger and to produce more verbose output, by setting the `BUILD` variable
 to `debug`:
 ```
-% make BUILD=debug clean all
+    $ make BUILD=debug clean all
 ```
 When a `make` target is built with `BUILD` set to `debug`, a failed test in the
 cryptographic test suite will not cause the build to abort.
