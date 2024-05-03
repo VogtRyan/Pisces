@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,7 +27,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define IMPLEMENTATION_VERSION "5.2.0"
+#define IMPLEMENTATION_VERSION "5.2.1"
 
 /*
  * Parse the command line options passed to Pisces.
