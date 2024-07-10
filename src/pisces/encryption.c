@@ -534,24 +534,6 @@ isErr:
     return errVal ? -1 : 0;
 }
 
-static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
-                                  struct cprng *rng)
-{
-    cprng_bytes(rng, ivA, ivLen);
-    cprng_bytes(rng, ivB, ivLen);
-
-    /*
-     * The generated IVs being identical would be a coincidence so unlikely it
-     * should realistically never happen. But, check for it and attempt to
-     * re-generate one of the IVs if it does happen. If they're identical twice
-     * in a row, assume there's an error in the underlying CPRNG library.
-     */
-    if (memcmp(ivA, ivB, ivLen) == 0) {
-        cprng_bytes(rng, ivB, ivLen);
-        ASSERT(memcmp(ivA, ivB, ivLen) != 0, "Identical IVs generated twice");
-    }
-}
-
 static int decrypt_body(int in, int out, const byte_t *key,
                         const byte_t *bodyIV)
 {
@@ -642,6 +624,24 @@ isErr:
     scrub_memory(storedHash, CHF_MAX_DIGEST_BYTES);
     scrub_memory(computedHash, CHF_MAX_DIGEST_BYTES);
     return errVal ? -1 : 0;
+}
+
+static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
+                                  struct cprng *rng)
+{
+    cprng_bytes(rng, ivA, ivLen);
+    cprng_bytes(rng, ivB, ivLen);
+
+    /*
+     * The generated IVs being identical would be a coincidence so unlikely it
+     * should realistically never happen. But, check for it and attempt to
+     * re-generate one of the IVs if it does happen. If they're identical twice
+     * in a row, assume there's an error in the underlying CPRNG library.
+     */
+    if (memcmp(ivA, ivB, ivLen) == 0) {
+        cprng_bytes(rng, ivB, ivLen);
+        ASSERT(memcmp(ivA, ivB, ivLen) != 0, "Identical IVs generated twice");
+    }
 }
 
 static int password_to_key(byte_t *derivedKey, const char *password,
