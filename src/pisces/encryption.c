@@ -90,7 +90,7 @@
 #define PISCES_MAX_IMPRINT_SIZE (PISCES_MAX_RANDOM_SIZE + CHF_MAX_DIGEST_BYTES)
 
 /*
- * Generates the salt and two IVs and stores them into the provided arrays
+ * Generates the salt and two IVs and stores them into the provided arrays.
  * Writes out the Pisces identification header, followed by the salt and IVs.
  * This function relies on the Pisces version already having been set, as it
  * uses pisces_get_version(). Returns 0 on success, -1 on error (and prints
@@ -137,6 +137,13 @@ static int encrypt_body(int in, int out, const byte_t *key,
  */
 static int decrypt_body(int in, int out, const byte_t *key,
                         const byte_t *bodyIV);
+
+/*
+ * Generates two random IVs of the provided length, and stores them into the
+ * provided arrays. Guarantees that the two IVs will be distinct.
+ */
+static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
+                                  struct cprng *rng);
 
 /*
  * Converts the given password and salt into a key to be used with a
@@ -291,8 +298,7 @@ static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
     keyAndSaltLen = cipher_key_size(cipher);
     ivLen = cipher_iv_size(cipher);
     cprng_bytes(rng, salt, keyAndSaltLen);
-    cprng_bytes(rng, imprintIV, ivLen);
-    cprng_bytes(rng, bodyIV, ivLen);
+    generate_distinct_ivs(imprintIV, bodyIV, ivLen, rng);
 
     /* Write out the salt and IVs */
     if (write_exactly(fd, salt, keyAndSaltLen)) {
@@ -526,6 +532,24 @@ isErr:
     scrub_memory(buffer, BYTES_AT_ONCE);
     scrub_memory(hash, CHF_MAX_DIGEST_BYTES);
     return errVal ? -1 : 0;
+}
+
+static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
+                                  struct cprng *rng)
+{
+    cprng_bytes(rng, ivA, ivLen);
+    cprng_bytes(rng, ivB, ivLen);
+
+    /*
+     * The generated IVs being identical would be a coincidence so unlikely it
+     * should realistically never happen. But, check for it and attempt to
+     * re-generate one of the IVs if it does happen. If they're identical twice
+     * in a row, assume there's an error in the underlying CPRNG library.
+     */
+    if (memcmp(ivA, ivB, ivLen) == 0) {
+        cprng_bytes(rng, ivB, ivLen);
+        ASSERT(memcmp(ivA, ivB, ivLen) != 0, "Identical IVs generated twice");
+    }
 }
 
 static int decrypt_body(int in, int out, const byte_t *key,
