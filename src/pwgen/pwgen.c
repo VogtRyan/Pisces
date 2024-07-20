@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define IMPLEMENTATION_VERSION "1.2.1"
+#define IMPLEMENTATION_VERSION "1.2.2"
 
 /* Default setting is an enforced password of length 20 */
 #define DEFAULT_METHOD (get_usq_simple_enforced)

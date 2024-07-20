@@ -27,7 +27,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define IMPLEMENTATION_VERSION "5.2.1"
+#define IMPLEMENTATION_VERSION "5.2.2"
 
 /*
  * Parse the command line options passed to Pisces.
