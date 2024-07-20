@@ -108,6 +108,11 @@ To encrypt a file from standard input, piped from cat:
 
     $ cat foo.txt | pisces -i foo.enc
 
+To verify that a file would decrypt and pass Pisces' file-integrity check,
+without writing the decrypted file to disk:
+
+    $ pisces -d foo.enc /dev/null
+
 To archive and encrypt a directory, foodir/, with the GNU version of tar
 (installed as gtar in the example) performing the archiving operation:
 
