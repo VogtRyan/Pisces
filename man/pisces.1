@@ -95,6 +95,11 @@ To encrypt a file from standard input, piped from
 .Pp
 .Dl $ cat foo.txt | pisces -i foo.enc
 .Pp
+To verify that a file would decrypt and pass Pisces' file-integrity check,
+without writing the decrypted file to disk:
+.Pp
+.Dl $ pisces -d foo.enc /dev/null
+.Pp
 To archive and encrypt a directory, foodir/, with the GNU version of
 .Xr tar 1
 (installed as
