@@ -1,5 +1,5 @@
 PISCES: PASSWORD-BASED FILE ENCRYPTION
-Version 5.2.2 (20 July 2024)
+Version 5.2.3 (21 March 2025)
 
 Ryan Vogt
 rvogt.ca@gmail.com
@@ -18,7 +18,7 @@ Contents:
 
 1. Copyright Notice
 
-Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
