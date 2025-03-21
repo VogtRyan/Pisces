@@ -1,4 +1,4 @@
-# Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+# Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -18,8 +18,8 @@ CC    = cc
 BUILD = release
 CPRNG = arc4random
 
-CFLAGS.BUILD.release    = -Wall -O2
-CFLAGS.BUILD.debug      = -Wall -DDEBUGGING -g
+CFLAGS.BUILD.release    = -Wall -pedantic -std=c99 -O2
+CFLAGS.BUILD.debug      = -Wall -pedantic -std=c99 -DDEBUGGING -g
 CFLAGS.CPRNG.arc4random =
 CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
 CFLAGS                  = ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
@@ -27,6 +27,8 @@ CFLAGS                  = ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
 IGNORE_FAILED_TESTS.BUILD.release =
 IGNORE_FAILED_TESTS.BUILD.debug   = -
 IGNORE_FAILED_TESTS               = ${IGNORE_FAILED_TESTS.BUILD.${BUILD}}
+
+LDFLAGS = ${CFLAGS}
 
 PREFIX         = /usr/local
 INSTALL_BIN    = ${PREFIX}/bin
@@ -88,7 +90,7 @@ generate: ${BINDIR}/generate_aes ${BINDIR}/generate_sha3
 GENERATE_AES_OBJS = src/crypto/primitives/aes/generate_aes.o
 
 ${BINDIR}/generate_aes: ${GENERATE_AES_OBJS}
-	${CC} ${CFLAGS} -o $@ ${GENERATE_AES_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${GENERATE_AES_OBJS}
 
 ##
 # crypto/generate/generate_sha3
@@ -97,7 +99,7 @@ ${BINDIR}/generate_aes: ${GENERATE_AES_OBJS}
 GENERATE_SHA3_OBJS = src/crypto/primitives/sha3/generate_sha3.o
 
 ${BINDIR}/generate_sha3: ${GENERATE_SHA3_OBJS}
-	${CC} ${CFLAGS} -o $@ ${GENERATE_SHA3_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${GENERATE_SHA3_OBJS}
 
 ##
 # Tests
@@ -114,7 +116,7 @@ TEST_AES_ECB_OBJS = src/crypto/primitives/aes/test_aes_ecb.o \
   src/crypto/primitives/aes/aes_ecb.o src/crypto/test/hex.o
 
 ${BINDIR}/test_aes_ecb: ${TEST_AES_ECB_OBJS}
-	${CC} ${CFLAGS} -o $@ ${TEST_AES_ECB_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_AES_ECB_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_aes_ecb
 
 ##
@@ -126,7 +128,7 @@ TEST_AES_CBC_OBJS = src/crypto/primitives/aes/test_aes_cbc.o \
   src/crypto/test/hex.o
 
 ${BINDIR}/test_aes_cbc: ${TEST_AES_CBC_OBJS}
-	${CC} ${CFLAGS} -o $@ ${TEST_AES_CBC_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_AES_CBC_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_aes_cbc
 
 ##
@@ -137,7 +139,7 @@ TEST_SHA1_OBJS = src/crypto/primitives/sha1/test_sha1.o \
   src/crypto/primitives/sha1/sha1.o src/crypto/test/hex.o
 
 ${BINDIR}/test_sha1: ${TEST_SHA1_OBJS}
-	${CC} ${CFLAGS} -o $@ ${TEST_SHA1_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_SHA1_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_sha1
 
 ##
@@ -148,7 +150,7 @@ TEST_SHA3_OBJS = src/crypto/primitives/sha3/test_sha3.o \
   src/crypto/primitives/sha3/sha3.o src/crypto/test/hex.o
 
 ${BINDIR}/test_sha3: ${TEST_SHA3_OBJS}
-	${CC} ${CFLAGS} -o $@ ${TEST_SHA3_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_SHA3_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_sha3
 
 ##
@@ -161,7 +163,7 @@ TEST_HMAC_OBJS = src/crypto/algorithms/hmac/test_hmac.o \
   src/crypto/test/hex.o
 
 ${BINDIR}/test_hmac: ${TEST_HMAC_OBJS}
-	${CC} ${CFLAGS} -o $@ ${TEST_HMAC_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_HMAC_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_hmac
 
 ##
@@ -174,7 +176,7 @@ TEST_PBKDF2_OBJS = src/crypto/algorithms/pbkdf2/test_pbkdf2.o \
   src/crypto/primitives/sha3/sha3.o src/crypto/test/hex.o
 
 ${BINDIR}/test_pbkdf2: ${TEST_PBKDF2_OBJS}
-	${CC} ${CFLAGS} -o $@ ${TEST_PBKDF2_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_PBKDF2_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_pbkdf2
 
 ##
@@ -191,7 +193,7 @@ PISCES_OBJS = src/crypto/abstract/cprng.o src/crypto/abstract/kdf.o \
   src/pisces/version.o src/pisces/encryption.o src/pisces/pisces.o
 
 ${BINDIR}/pisces: ${PISCES_OBJS}
-	${CC} ${CFLAGS} -o $@ ${PISCES_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${PISCES_OBJS}
 
 ##
 # pwgen/
@@ -201,7 +203,7 @@ PWGEN_OBJS = src/pwgen/pwgen.o src/pwgen/ascii.o src/pwgen/hex.o \
   src/pwgen/usq.o src/crypto/abstract/cprng.o
 
 ${BINDIR}/pwgen: ${PWGEN_OBJS}
-	${CC} ${CFLAGS} -o $@ ${PWGEN_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${PWGEN_OBJS}
 
 ##
 # Clean: remove all object files

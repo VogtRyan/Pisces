@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -85,7 +85,7 @@ static void build_sub_mix_table(const uint8_t *sbox,
 /*
  * Builds the round constant table and outputs it.
  */
-static void build_rcon_table();
+static void build_rcon_table(void);
 
 /*
  * Treats the two given bytes as a polynomials over GF(2^8) and multiplies them
@@ -117,7 +117,7 @@ void print_bytes(const uint8_t *bytes, size_t numBytes);
  * source file, provided that S_BOX_ENC is already defined.  The contents of
  * the encryption S-Box can be found in FIPS-197.
  */
-int main()
+int main(void)
 {
     uint8_t decSBox[256];
     build_dec_sbox(S_BOX_ENC, decSBox);
@@ -204,7 +204,7 @@ static void build_sub_mix_table(const uint8_t *sbox,
     print_table(table, 256, 4, 6, name, "uint32_t");
 }
 
-static void build_rcon_table()
+static void build_rcon_table(void)
 {
     uint8_t table[40];
     uint8_t poly = 0x01;

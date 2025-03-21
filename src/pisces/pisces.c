@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,7 +58,7 @@ static int check_files(char *inputFile, char *outputFile);
  * Prints the usage message and version number to stderr and exit with a
  * negative code.
  */
-static void usage();
+static void usage(void);
 
 int main(int argc, char **argv)
 {
@@ -212,7 +212,7 @@ isErr:
     return errVal ? -1 : 0;
 }
 
-static void usage()
+static void usage(void)
 {
     fprintf(stderr,
             "usage: pisces [-de] [-p password] input_file output_file\n"

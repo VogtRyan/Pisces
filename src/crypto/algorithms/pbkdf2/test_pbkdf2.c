@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2023-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -385,7 +385,7 @@ static const struct pbkdf2_test customTests[] = {
 /*
  * Run the PBKDF2 tests and report the success rate.
  */
-int main()
+int main(void)
 {
     size_t onTest;
 

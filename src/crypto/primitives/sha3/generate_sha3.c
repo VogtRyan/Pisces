@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2013-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2013-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,7 +21,7 @@
 /*
  * Generates and outputs the keccak_f function.
  */
-static void generate_keccak_f();
+static void generate_keccak_f(void);
 
 /*
  * Computes the rotation constant in the rho step for the given x, y pair.
@@ -49,13 +49,13 @@ static int two_dim_array(int x, int y);
  */
 static int mod(int x, int m);
 
-int main()
+int main(void)
 {
     generate_keccak_f();
     return 0;
 }
 
-static void generate_keccak_f()
+static void generate_keccak_f(void)
 {
     int round, x, y, rot, i;
     uint64_t rc;
