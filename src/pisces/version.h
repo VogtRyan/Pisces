@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,26 +37,26 @@ int pisces_set_version(int version);
 /*
  * Gets the version of Pisces that is currently in use.
  */
-int pisces_get_version();
+int pisces_get_version(void);
 
 /*
  * Gets the cipher used by this version of Pisces to encrypt the header.
  */
-struct cipher_ctx *pisces_unpadded_cipher_alloc();
+struct cipher_ctx *pisces_unpadded_cipher_alloc(void);
 
 /*
  * Gets the cipher used by this version of Pisces to encrypt the file body.
  */
-struct cipher_ctx *pisces_padded_cipher_alloc();
+struct cipher_ctx *pisces_padded_cipher_alloc(void);
 
 /*
  * Gets the cryptographic hash function used by this version of Pisces.
  */
-struct chf_ctx *pisces_chf_alloc();
+struct chf_ctx *pisces_chf_alloc(void);
 
 /*
  * Gets the key derivation function used by this version of Pisces.
  */
-struct kdf *pisces_kdf_alloc();
+struct kdf *pisces_kdf_alloc(void);
 
 #endif

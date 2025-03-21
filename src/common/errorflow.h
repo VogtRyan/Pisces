@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,20 +30,20 @@
  * the output.
  */
 #ifdef DEBUGGING
-#define ERROR(target, flag, printfArgs...)                                    \
+#define ERROR(target, flag, ...)                                              \
     do {                                                                      \
         fprintf(ERROR_OUTPUT, "Error [%s:%d]: ", __FILE__, __LINE__);         \
-        fprintf(ERROR_OUTPUT, ##printfArgs);                                  \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
         flag = 1;                                                             \
         goto target;                                                          \
     } while (0)
 #else
-#define ERROR(target, flag, printfArgs...)                                    \
+#define ERROR(target, flag, ...)                                              \
     do {                                                                      \
         fprintf(ERROR_OUTPUT, "Error: ");                                     \
-        fprintf(ERROR_OUTPUT, ##printfArgs);                                  \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
         flag = 1;                                                             \
@@ -102,23 +102,23 @@
  * case.
  */
 #ifdef DEBUGGING
-#define ASSERT(condition, printfArgs...)                                      \
+#define ASSERT(condition, ...)                                                \
     do {                                                                      \
         if (!(condition)) {                                                   \
             fprintf(ERROR_OUTPUT, "Failed assertion [%s:%d]\n", __FILE__,     \
                     __LINE__);                                                \
-            fprintf(ERROR_OUTPUT, ##printfArgs);                              \
+            fprintf(ERROR_OUTPUT, __VA_ARGS__);                               \
             fprintf(ERROR_OUTPUT, "\n");                                      \
             fflush(ERROR_OUTPUT);                                             \
             abort();                                                          \
         }                                                                     \
     } while (0)
 #else
-#define ASSERT(condition, printfArgs...)                                      \
+#define ASSERT(condition, ...)                                                \
     do {                                                                      \
         if (!(condition)) {                                                   \
             fprintf(ERROR_OUTPUT, "Error: ");                                 \
-            fprintf(ERROR_OUTPUT, ##printfArgs);                              \
+            fprintf(ERROR_OUTPUT, __VA_ARGS__);                               \
             fprintf(ERROR_OUTPUT, "\n");                                      \
             fflush(ERROR_OUTPUT);                                             \
             abort();                                                          \
@@ -158,20 +158,20 @@
  * be aborted in either case.
  */
 #ifdef DEBUGGING
-#define FATAL_ERROR(printfArgs...)                                            \
+#define FATAL_ERROR(...)                                                      \
     do {                                                                      \
         fprintf(ERROR_OUTPUT, "Fatal error at [%s:%d]\n", __FILE__,           \
                 __LINE__);                                                    \
-        fprintf(ERROR_OUTPUT, ##printfArgs);                                  \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
         abort();                                                              \
     } while (0)
 #else
-#define FATAL_ERROR(printfArgs...)                                            \
+#define FATAL_ERROR(...)                                                      \
     do {                                                                      \
         fprintf(ERROR_OUTPUT, "Fatal error: ");                               \
-        fprintf(ERROR_OUTPUT, ##printfArgs);                                  \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
         abort();                                                              \

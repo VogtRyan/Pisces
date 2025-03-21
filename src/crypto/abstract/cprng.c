@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -79,7 +79,7 @@ static void cprng_bytes_arc4random(struct cprng *rng, byte_t *bytes,
 static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
                                   size_t numBytes);
 
-struct cprng *cprng_alloc_default()
+struct cprng *cprng_alloc_default(void)
 {
     struct cprng *ret = (struct cprng *)calloc(1, sizeof(struct cprng));
     ASSERT_ALLOC(ret);

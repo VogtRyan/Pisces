@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2023-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,7 +34,7 @@
 #define TEST_PREAMBLE(name)                                                   \
     static const char *TEST_NAME = (name);                                    \
     static int TEST_ASSERTIONS_FAILED = 0;                                    \
-    static int TEST_ASSERTIONS_TOTAL = 0;
+    static int TEST_ASSERTIONS_TOTAL = 0
 
 /*
  * If the given condition is not true, output the source location where it

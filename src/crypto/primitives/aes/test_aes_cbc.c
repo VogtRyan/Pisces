@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2023-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -306,7 +306,7 @@ static const struct aes_cbc_monte_test monteTests[] = {
 /*
  * Run the AES-CBC tests and report the success rate.
  */
-int main()
+int main(void)
 {
     size_t onTest;
 

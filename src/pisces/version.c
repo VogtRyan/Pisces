@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -40,12 +40,12 @@ isErr:
     return errVal ? -1 : 0;
 }
 
-int pisces_get_version()
+int pisces_get_version(void)
 {
     return piscesVersion;
 }
 
-struct cipher_ctx *pisces_unpadded_cipher_alloc()
+struct cipher_ctx *pisces_unpadded_cipher_alloc(void)
 {
     switch (piscesVersion) {
     case 3:
@@ -59,7 +59,7 @@ struct cipher_ctx *pisces_unpadded_cipher_alloc()
     }
 }
 
-struct cipher_ctx *pisces_padded_cipher_alloc()
+struct cipher_ctx *pisces_padded_cipher_alloc(void)
 {
     switch (piscesVersion) {
     case 3:
@@ -73,7 +73,7 @@ struct cipher_ctx *pisces_padded_cipher_alloc()
     }
 }
 
-struct chf_ctx *pisces_chf_alloc()
+struct chf_ctx *pisces_chf_alloc(void)
 {
     switch (piscesVersion) {
     case 3:
@@ -87,7 +87,7 @@ struct chf_ctx *pisces_chf_alloc()
     }
 }
 
-struct kdf *pisces_kdf_alloc()
+struct kdf *pisces_kdf_alloc(void)
 {
     switch (piscesVersion) {
     case 3:
