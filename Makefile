@@ -18,8 +18,8 @@ CC    = cc
 BUILD = release
 CPRNG = arc4random
 
-CFLAGS.BUILD.release    = -Wall -pedantic -std=c99 -O2
-CFLAGS.BUILD.debug      = -Wall -pedantic -std=c99 -DDEBUGGING -g
+CFLAGS.BUILD.release    = -Wall -Wextra -Wpedantic -std=c99 -O2
+CFLAGS.BUILD.debug      = -Wall -Wextra -Wpedantic -std=c99 -DDEBUGGING -g
 CFLAGS.CPRNG.arc4random =
 CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
 CFLAGS                  = ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
@@ -228,7 +228,7 @@ deps:
 
 src/crypto/abstract/cprng.o: src/crypto/abstract/cprng.c \
   src/crypto/abstract/cprng.h src/common/bytetype.h \
-  src/common/errorflow.h src/common/scrub.h
+  src/common/errorflow.h src/common/scrub.h src/common/unusedvar.h
 src/crypto/abstract/kdf.o: src/crypto/abstract/kdf.c \
   src/crypto/abstract/kdf.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h src/crypto/abstract/chf.h \
@@ -239,7 +239,7 @@ src/crypto/abstract/chf.o: src/crypto/abstract/chf.c \
   src/crypto/primitives/sha3/sha3.h
 src/crypto/abstract/cipher.o: src/crypto/abstract/cipher.c \
   src/crypto/abstract/cipher.h src/common/bytetype.h \
-  src/common/errorflow.h src/common/scrub.h \
+  src/common/errorflow.h src/common/scrub.h src/common/unusedvar.h \
   src/crypto/algorithms/pkcs7/pkcs7_padding.h \
   src/crypto/primitives/aes/aes_cbc.h
 src/crypto/test/hex.o: src/crypto/test/hex.c src/crypto/test/hex.h \
