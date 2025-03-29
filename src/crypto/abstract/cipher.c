@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +19,7 @@
 #include "common/bytetype.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
+#include "common/unusedvar.h"
 #include "crypto/algorithms/pkcs7/pkcs7_padding.h"
 #include "crypto/primitives/aes/aes_cbc.h"
 
@@ -242,11 +243,13 @@ isErr:
 
 size_t cipher_block_size(const struct cipher_ctx *cipher)
 {
+    UNUSED(cipher);
     return AES_CBC_BLOCK_SIZE;
 }
 
 size_t cipher_iv_size(const struct cipher_ctx *cipher)
 {
+    UNUSED(cipher);
     return AES_CBC_IV_SIZE;
 }
 

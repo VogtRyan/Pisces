@@ -19,6 +19,7 @@
 #include "common/bytetype.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
+#include "common/unusedvar.h"
 
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -126,8 +127,12 @@ static void cprng_bytes_arc4random(struct cprng *rng, byte_t *bytes,
                                    size_t numBytes)
 {
 #if PISCES_NO_ARC4RANDOM
+    UNUSED(rng);
+    UNUSED(bytes);
+    UNUSED(numBytes);
     FATAL_ERROR("Not compiled with arc4random_buf() support");
 #else
+    UNUSED(rng);
     arc4random_buf(bytes, numBytes);
 #endif
 }
