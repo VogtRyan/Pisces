@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,7 +34,7 @@ struct kdf {
 struct kdf *kdf_alloc(kdf_algorithm_t alg)
 {
     struct kdf *ret = (struct kdf *)calloc(1, sizeof(struct kdf));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     switch (alg) {
     case KDF_ALG_PBKDF2_HMAC_SHA3_512_16384:

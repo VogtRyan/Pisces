@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -44,7 +44,7 @@ struct hmac_ctx *hmac_alloc(chf_algorithm_t alg)
 {
     struct hmac_ctx *ret =
         (struct hmac_ctx *)calloc(1, sizeof(struct hmac_ctx));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     ret->innerCtx = chf_alloc(alg);
     ret->outerCtx = chf_alloc(alg);

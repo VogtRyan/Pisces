@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2024-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,7 +37,7 @@ void hex_to_bytes(const char *hex, byte_t **bytes, size_t *numBytes)
 
     outLen = hex_byte_len(hex);
     out = (byte_t *)calloc(outLen, 1);
-    ASSERT_ALLOC(out);
+    GUARD_ALLOC(out);
 
     *numBytes = outLen;
     *bytes = out;

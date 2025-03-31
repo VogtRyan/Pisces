@@ -59,7 +59,7 @@ static size_t process_block(struct cipher_ctx *cipher, const byte_t *block,
 struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
 {
     struct cipher_ctx *ret = calloc(1, sizeof(struct cipher_ctx));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     switch (alg) {
     case CIPHER_ALG_AES_128_CBC_NOPAD:

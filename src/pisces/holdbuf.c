@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,10 +32,10 @@ struct holdbuf {
 struct holdbuf *holdbuf_alloc(size_t stopSize)
 {
     struct holdbuf *ret = calloc(1, sizeof(struct holdbuf));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     ret->buf = calloc(1, stopSize);
-    ASSERT_ALLOC(ret->buf);
+    GUARD_ALLOC(ret->buf);
     ret->stopSize = stopSize;
 
     return ret;

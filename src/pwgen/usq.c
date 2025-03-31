@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -65,7 +65,7 @@ static void get_usq_simple_cprng(char *result, size_t num, struct cprng *rng)
     /* Allocate a temporary array to store raw random bytes */
     remaining = num;
     randArray = (byte_t *)malloc(num);
-    ASSERT_ALLOC(randArray);
+    GUARD_ALLOC(randArray);
 
     /*
      * Generate random bytes and convert to characters.  Since there are 72

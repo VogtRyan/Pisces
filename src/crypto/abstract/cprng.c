@@ -83,7 +83,7 @@ static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
 struct cprng *cprng_alloc_default(void)
 {
     struct cprng *ret = (struct cprng *)calloc(1, sizeof(struct cprng));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     if (PISCES_NO_ARC4RANDOM) {
         ret->type = CPRNG_ALG_DEVRANDOM;

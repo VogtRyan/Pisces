@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -50,7 +50,7 @@ static inline void chf_ctx_free_scrub(struct chf_ctx *chf);
 struct chf_ctx *chf_alloc(chf_algorithm_t alg)
 {
     struct chf_ctx *ret = (struct chf_ctx *)calloc(1, sizeof(struct chf_ctx));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     switch (alg) {
     case CHF_ALG_SHA1:

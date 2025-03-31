@@ -133,7 +133,7 @@
  * checked in either case.
  */
 #ifdef DEBUGGING
-#define ASSERT_ALLOC(ptr)                                                     \
+#define GUARD_ALLOC(ptr)                                                      \
     do {                                                                      \
         if ((ptr) == NULL) {                                                  \
             fprintf(ERROR_OUTPUT, "Memory allocation failed [%s:%d]\n",       \
@@ -143,7 +143,7 @@
         }                                                                     \
     } while (0)
 #else
-#define ASSERT_ALLOC(ptr)                                                     \
+#define GUARD_ALLOC(ptr)                                                      \
     do {                                                                      \
         if ((ptr) == NULL) {                                                  \
             fprintf(ERROR_OUTPUT, "Memory allocation failed\n");              \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,7 +53,7 @@ static void get_hex_chars(char *result, size_t num, char tenChar)
         rawSize++;
     }
     randArray = (byte_t *)malloc(rawSize);
-    ASSERT_ALLOC(randArray);
+    GUARD_ALLOC(randArray);
 
     /*
      * Generate random bytes and convert to characters.  We get two unbiased

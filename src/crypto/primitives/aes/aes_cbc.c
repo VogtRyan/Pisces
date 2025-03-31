@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,7 +34,7 @@ struct aes_cbc_ctx *aes_cbc_alloc(void)
 {
     struct aes_cbc_ctx *ret =
         (struct aes_cbc_ctx *)calloc(1, sizeof(struct aes_cbc_ctx));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
     ret->ecbCtx = aes_ecb_alloc();
     return ret;
 }
