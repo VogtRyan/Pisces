@@ -25,7 +25,7 @@
 #endif
 
 /*
- * Print the given message, set the error flag to 1, and jump to the specified
+ * Print the given message, set the error flag to -1, and jump to the specified
  * target. If DEBUGGING is defined, also include the file and line number in
  * the output.
  */
@@ -36,7 +36,7 @@
         fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
-        flag = 1;                                                             \
+        flag = -1;                                                            \
         goto target;                                                          \
     } while (0)
 #else
@@ -46,7 +46,7 @@
         fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
-        flag = 1;                                                             \
+        flag = -1;                                                            \
         goto target;                                                          \
     } while (0)
 #endif
@@ -74,7 +74,7 @@
 #endif
 
 /*
- * Set the error flag to 1, and jump to the specified target. If DEBUGGING is
+ * Set the error flag to -1, and jump to the specified target. If DEBUGGING is
  * defined, print a message with the file and line number (otherwise print
  * nothing). Functionally equivalent to ERROR_CODE(target, flag, 1), though the
  * message printed is slightly different.
@@ -84,13 +84,13 @@
     do {                                                                      \
         fprintf(ERROR_OUTPUT, "Quiet error [%s:%d]\n", __FILE__, __LINE__);   \
         fflush(ERROR_OUTPUT);                                                 \
-        flag = 1;                                                             \
+        flag = -1;                                                            \
         goto target;                                                          \
     } while (0)
 #else
 #define ERROR_QUIET(target, flag)                                             \
     do {                                                                      \
-        flag = 1;                                                             \
+        flag = -1;                                                            \
         goto target;                                                          \
     } while (0)
 #endif
