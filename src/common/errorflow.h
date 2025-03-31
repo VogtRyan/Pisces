@@ -139,7 +139,7 @@
             fprintf(ERROR_OUTPUT, "Memory allocation failed [%s:%d]\n",       \
                     __FILE__, __LINE__);                                      \
             fflush(ERROR_OUTPUT);                                             \
-            abort();                                                          \
+            exit(EXIT_FAILURE);                                               \
         }                                                                     \
     } while (0)
 #else
@@ -147,7 +147,7 @@
     do {                                                                      \
         if ((ptr) == NULL) {                                                  \
             fprintf(ERROR_OUTPUT, "Memory allocation failed\n");              \
-            abort();                                                          \
+            exit(EXIT_FAILURE);                                               \
         }                                                                     \
     } while (0)
 #endif
@@ -165,7 +165,7 @@
         fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
-        abort();                                                              \
+        exit(EXIT_FAILURE);                                                   \
     } while (0)
 #else
 #define FATAL_ERROR(...)                                                      \
@@ -174,7 +174,7 @@
         fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
-        abort();                                                              \
+        exit(EXIT_FAILURE);                                                   \
     } while (0)
 #endif
 
