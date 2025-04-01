@@ -171,7 +171,7 @@ static int get_secret_input(const char *prompt, char *userInput,
 
     fp = fopen(ctermid(NULL), "r+");
     if (fp == NULL) {
-        ERROR(isErr, errVal, "Could not open terminal for reading");
+        FATAL_ERROR("Could not open terminal for reading");
     }
     fprintf(fp, "%s", prompt);
     setbuf(fp, NULL);
