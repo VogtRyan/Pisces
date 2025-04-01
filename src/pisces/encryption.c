@@ -635,12 +635,18 @@ static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
     /*
      * The generated IVs being identical would be a coincidence so unlikely it
      * should realistically never happen. But, check for it and attempt to
-     * re-generate one of the IVs if it does happen. If they're identical twice
-     * in a row, assume there's an error in the underlying CPRNG library.
+     * re-generate one of the IVs if it does happen.
+     *
+     * If they're identical twice in a row, terminate the program with a fatal
+     * error. At that point, it's almost certainly an error in the underlying
+     * cryptographic library. But, since it is mathematically possible, we use
+     * a fatal error here instead of aborting on a failed assertion.
      */
     if (memcmp(ivA, ivB, ivLen) == 0) {
         cprng_bytes(rng, ivB, ivLen);
-        ASSERT(memcmp(ivA, ivB, ivLen) != 0, "Identical IVs generated twice");
+        if (memcmp(ivA, ivB, ivLen) == 0) {
+            FATAL_ERROR("Identical IVs generated twice");
+        }
     }
 }
 
