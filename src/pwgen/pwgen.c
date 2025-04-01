@@ -91,7 +91,7 @@ isErr:
         scrub_memory(password, length);
         free(password);
     }
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static void parse_command_line(int argc, char **argv, size_t *outputLen,

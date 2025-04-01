@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -218,7 +218,7 @@ isErr:
     }
     cprng_free_scrub(rng);
     scrub_memory(key, CIPHER_MAX_KEY_BYTES);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 int decrypt_file(const char *inputFile, const char *outputFile,
@@ -273,7 +273,7 @@ isErr:
         close(out);
     }
     scrub_memory(key, CIPHER_MAX_KEY_BYTES);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
@@ -313,7 +313,7 @@ static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
 
 isErr:
     cipher_free_scrub(cipher);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int read_header(int fd, byte_t *salt, byte_t *imprintIV, byte_t *bodyIV)
@@ -357,7 +357,7 @@ static int read_header(int fd, byte_t *salt, byte_t *imprintIV, byte_t *bodyIV)
 
 isErr:
     cipher_free_scrub(cipher);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV,
@@ -408,7 +408,7 @@ isErr:
     cipher_free_scrub(cipher);
     scrub_memory(randomData, PISCES_MAX_RANDOM_SIZE);
     scrub_memory(randomHash, CHF_MAX_DIGEST_BYTES);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int read_imprint(int fd, const byte_t *key, const byte_t *imprintIV)
@@ -459,7 +459,7 @@ isErr:
     cipher_free_scrub(cipher);
     scrub_memory(decryptedImprint, PISCES_MAX_IMPRINT_SIZE);
     scrub_memory(computedHash, CHF_MAX_DIGEST_BYTES);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int encrypt_body(int in, int out, const byte_t *key,
@@ -531,7 +531,7 @@ isErr:
     cipher_free_scrub(cipher);
     scrub_memory(buffer, BYTES_AT_ONCE);
     scrub_memory(hash, CHF_MAX_DIGEST_BYTES);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int decrypt_body(int in, int out, const byte_t *key,
@@ -623,7 +623,7 @@ isErr:
     scrub_memory(retFromHB, BYTES_AT_ONCE + CIPHER_MAX_BLOCK_BYTES);
     scrub_memory(storedHash, CHF_MAX_DIGEST_BYTES);
     scrub_memory(computedHash, CHF_MAX_DIGEST_BYTES);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
@@ -664,7 +664,7 @@ static int password_to_key(byte_t *derivedKey, const char *password,
 isErr:
     cipher_free_scrub(cipher);
     kdf_free_scrub(fn);
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static void compute_imprint_sizes(size_t *randomData, size_t *total,

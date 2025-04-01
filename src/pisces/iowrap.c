@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,7 +42,10 @@ int open_input_file(const char *inputFile)
     }
 
 isErr:
-    return errVal ? -1 : inFile;
+    if (errVal) {
+        return errVal;
+    }
+    return inFile;
 }
 
 int open_output_file(const char *outputFile)
@@ -62,7 +65,10 @@ int open_output_file(const char *outputFile)
     }
 
 isErr:
-    return errVal ? -1 : outFile;
+    if (errVal) {
+        return errVal;
+    }
+    return outFile;
 }
 
 int read_exactly(int fd, byte_t *buf, size_t nBytes)
@@ -78,7 +84,7 @@ int read_exactly(int fd, byte_t *buf, size_t nBytes)
     }
 
 isErr:
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 int read_up_to(int fd, byte_t *buf, size_t nBytes, size_t *numRead)
@@ -101,7 +107,7 @@ int read_up_to(int fd, byte_t *buf, size_t nBytes, size_t *numRead)
     }
 
 isErr:
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 int write_exactly(int fd, const byte_t *buf, size_t nBytes)
@@ -119,5 +125,5 @@ int write_exactly(int fd, const byte_t *buf, size_t nBytes)
     }
 
 isErr:
-    return errVal ? -1 : 0;
+    return errVal;
 }

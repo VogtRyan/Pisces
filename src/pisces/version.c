@@ -37,7 +37,7 @@ int pisces_set_version(int version)
     piscesVersion = version;
 
 isErr:
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 int pisces_get_version(void)
