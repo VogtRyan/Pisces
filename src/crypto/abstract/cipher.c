@@ -77,7 +77,7 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
         ret->algPadded = 1;
         break;
     default:
-        FATAL_ERROR("Invalid cipher algorithm");
+        ASSERT_NEVER_REACH("Invalid cipher algorithm");
     }
 
     ret->ctx = aes_cbc_alloc();
@@ -270,7 +270,7 @@ const char *cipher_error(const struct cipher_ctx *cipher)
     case CIPHER_ERROR_NO_BLOCK_TO_DEPAD:
         return "Cipher lacks input block to de-pad";
     default:
-        FATAL_ERROR("Invalid cipher error code");
+        ASSERT_NEVER_REACH("Invalid cipher error code");
     }
 }
 

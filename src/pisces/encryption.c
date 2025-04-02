@@ -639,7 +639,7 @@ static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
      *
      * If they're identical twice in a row, terminate the program with a fatal
      * error. At that point, it's almost certainly an error in the underlying
-     * cryptographic library. But, since it is mathematically possible, we use
+     * cryptographic library. But, since it is theoretically possible, we use
      * a fatal error here instead of aborting on a failed assertion.
      */
     if (memcmp(ivA, ivB, ivLen) == 0) {

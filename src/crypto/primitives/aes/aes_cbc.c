@@ -53,7 +53,7 @@ void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte_t *key,
         aes_ecb_set_key(ctx->ecbCtx, key, AES_ECB_KEY_SIZE_256);
         break;
     default:
-        FATAL_ERROR("Invalid AES-CBC key size");
+        ASSERT_NEVER_REACH("Invalid AES-CBC key size");
     }
 }
 

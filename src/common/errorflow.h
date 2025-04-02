@@ -174,4 +174,20 @@
         }                                                                     \
     } while (0)
 
+/*
+ * Asserts that a line of code should not be reached. If it is reached, this
+ * macro prints the given variable-argument message, along with the filename
+ * and line number. Then, it aborts the program.
+ */
+#define ASSERT_NEVER_REACH(...)                                               \
+    do {                                                                      \
+        fprintf(ERROR_OUTPUT,                                                 \
+                "Failed assertion [%s:%d, never reach]: ", __FILE__,          \
+                __LINE__);                                                    \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
+        fprintf(ERROR_OUTPUT, "\n");                                          \
+        fflush(ERROR_OUTPUT);                                                 \
+        abort();                                                              \
+    } while (0)
+
 #endif

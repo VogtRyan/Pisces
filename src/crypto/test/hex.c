@@ -34,6 +34,7 @@ void hex_to_bytes(const char *hex, byte_t **bytes, size_t *numBytes)
     size_t outLen;
     byte_t *out;
     unsigned int byteVal;
+    int scanRes;
 
     outLen = hex_byte_len(hex);
     out = (byte_t *)calloc(outLen, 1);
@@ -43,9 +44,8 @@ void hex_to_bytes(const char *hex, byte_t **bytes, size_t *numBytes)
     *bytes = out;
 
     while (outLen > 0) {
-        if (sscanf(hex, "%2x", &byteVal) != 1) {
-            FATAL_ERROR("Invalid value in hexadecimal string");
-        }
+        scanRes = sscanf(hex, "%2x", &byteVal);
+        ASSERT(scanRes == 1, "Invalid value in hexadecimal string");
         *out++ = (byte_t)byteVal;
         hex += 2;
         outLen--;

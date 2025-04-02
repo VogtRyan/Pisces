@@ -50,7 +50,7 @@ struct kdf *kdf_alloc(kdf_algorithm_t alg)
         ret->chfAlg = CHF_ALG_SHA1;
         break;
     default:
-        FATAL_ERROR("Invalid KDF algorithm");
+        ASSERT_NEVER_REACH("Invalid KDF algorithm");
     }
 
     return ret;
@@ -79,7 +79,7 @@ int kdf_derive(struct kdf *fn, byte_t *derivedKey, size_t derivedKeyLen,
         ret = KDF_ERROR_SALT_TOO_LONG;
         break;
     default:
-        FATAL_ERROR("Unknown PBKDF2 error return");
+        ASSERT_NEVER_REACH("Unknown PBKDF2 error return");
     }
 
     fn->errorCode = ret;
@@ -98,7 +98,7 @@ const char *kdf_error(const struct kdf *fn)
     case KDF_ERROR_SALT_TOO_LONG:
         return "KDF salt too long";
     default:
-        FATAL_ERROR("Invalid KDF error code");
+        ASSERT_NEVER_REACH("Invalid KDF error code");
     }
 }
 

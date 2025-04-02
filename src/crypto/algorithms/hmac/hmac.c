@@ -103,7 +103,7 @@ int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen)
     }
     chf_start(hmac->innerCtx);
     if (chf_add(hmac->innerCtx, pad, blockSize)) {
-        FATAL_ERROR("HMAC inner context CHF initialization failed");
+        ASSERT_NEVER_REACH("HMAC inner context CHF initialization failed");
     }
 
     /*
@@ -116,7 +116,7 @@ int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen)
     }
     chf_start(hmac->outerCtx);
     if (chf_add(hmac->outerCtx, pad, blockSize)) {
-        FATAL_ERROR("HMAC outer context CHF initialization failed");
+        ASSERT_NEVER_REACH("HMAC outer context CHF initialization failed");
     }
 
 isErr:
@@ -146,6 +146,7 @@ int hmac_end(struct hmac_ctx *hmac, byte_t *digest)
 {
     byte_t *innerDigest = hmac->digestSizedBuffer;
     size_t digestSize;
+    int chfRes;
     int errVal = 0;
 
     ASSERT(hmac->isRunning, "HMAC context is not running");
@@ -166,16 +167,16 @@ int hmac_end(struct hmac_ctx *hmac, byte_t *digest)
      * inner digest and digest that to get the HMAC.
      */
     chf_add(hmac->outerCtx, innerDigest, digestSize);
-    if (chf_end(hmac->outerCtx, digest)) {
-        /*
-         * The outer context computes the hash of: a single block related to
-         * the key, concatenated with a single hash output. That is, there are
-         * no more than two blocks of input to the outer context. If the
-         * outer-context hash computation fails because the input is too long,
-         * there is some manner of fatal flaw in the underlying CHF library.
-         */
-        FATAL_ERROR("HMAC outer-context CHF computation failed");
-    }
+    chfRes = chf_end(hmac->outerCtx, digest);
+
+    /*
+     * The outer context computes the hash of: a single block related to the
+     * key, concatenated with a single hash output. That is, there are no more
+     * than two blocks of input to the outer context. If the outer-context hash
+     * computation fails because the input is too long, there is some manner of
+     * fatal flaw in the underlying CHF library.
+     */
+    ASSERT(chfRes == 0, "HMAC outer-context CHF computation failed");
 
 isErr:
     hmac->errorCode = errVal;

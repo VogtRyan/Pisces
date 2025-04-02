@@ -736,7 +736,7 @@ void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte_t *key,
         nk = 8;
         break;
     default:
-        FATAL_ERROR("Invalid AES-ECB key size");
+        ASSERT_NEVER_REACH("Invalid AES-ECB key size");
     }
 
     /* The first words in the key expansion are equal to the key itself */

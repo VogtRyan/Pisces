@@ -55,7 +55,7 @@ struct cipher_ctx *pisces_unpadded_cipher_alloc(void)
     case 5:
         return cipher_alloc(CIPHER_ALG_AES_256_CBC_NOPAD);
     default:
-        FATAL_ERROR("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces version");
     }
 }
 
@@ -69,7 +69,7 @@ struct cipher_ctx *pisces_padded_cipher_alloc(void)
     case 5:
         return cipher_alloc(CIPHER_ALG_AES_256_CBC_PKCS7PAD);
     default:
-        FATAL_ERROR("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces version");
     }
 }
 
@@ -83,7 +83,7 @@ struct chf_ctx *pisces_chf_alloc(void)
     case 5:
         return chf_alloc(CHF_ALG_SHA3_512);
     default:
-        FATAL_ERROR("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces version");
     }
 }
 
@@ -97,6 +97,6 @@ struct kdf *pisces_kdf_alloc(void)
     case 5:
         return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA3_512_16384);
     default:
-        FATAL_ERROR("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces version");
     }
 }
