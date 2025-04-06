@@ -349,7 +349,7 @@ static void run_parsed_aes_ecb_plain_test(const byte_t *key, size_t keySize,
     ctx = aes_ecb_alloc();
     textLen = numBlocks * AES_ECB_BLOCK_SIZE;
     actual = (byte_t *)calloc(textLen, 1);
-    ASSERT_ALLOC(actual);
+    GUARD_ALLOC(actual);
 
     aes_ecb_set_key(ctx, key, keySize);
     aes_ecb_multi_block(ctx, plaintext, actual, numBlocks,

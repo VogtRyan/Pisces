@@ -430,7 +430,7 @@ static void run_parsed_pbkdf2_test(chf_algorithm_t hashAlg,
 {
     byte_t *actual;
     actual = calloc(1, derivedKeyLen);
-    ASSERT_ALLOC(actual);
+    GUARD_ALLOC(actual);
 
     pbkdf2_hmac(actual, derivedKeyLen, (const char *)password, passwordLen,
                 salt, saltLen, iterationCount, hashAlg);

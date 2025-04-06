@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -50,7 +50,7 @@ static inline void chf_ctx_free_scrub(struct chf_ctx *chf);
 struct chf_ctx *chf_alloc(chf_algorithm_t alg)
 {
     struct chf_ctx *ret = (struct chf_ctx *)calloc(1, sizeof(struct chf_ctx));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     switch (alg) {
     case CHF_ALG_SHA1:
@@ -62,7 +62,7 @@ struct chf_ctx *chf_alloc(chf_algorithm_t alg)
         ret->blockBytes = SHA3_512_BLOCK_BYTES;
         break;
     default:
-        FATAL_ERROR("Invalid CHF algorithm");
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
 
     ret->type = alg;
@@ -152,7 +152,7 @@ const char *chf_error(const struct chf_ctx *chf)
     case CHF_ERROR_MESSAGE_TOO_LONG:
         return "Message length exceeded CHF maximum";
     default:
-        FATAL_ERROR("Invalid CHF error code");
+        ASSERT_NEVER_REACH("Invalid CHF error code");
     }
 }
 
@@ -175,7 +175,7 @@ static inline void chf_ctx_alloc(struct chf_ctx *chf)
         chf->ctx = sha3_alloc();
         break;
     default:
-        FATAL_ERROR("Invalid CHF algorithm");
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
 }
 
@@ -189,7 +189,7 @@ static inline void chf_ctx_start(struct chf_ctx *chf)
         sha3_512_start((struct sha3_ctx *)chf->ctx);
         break;
     default:
-        FATAL_ERROR("Invalid CHF algorithm");
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
 }
 
@@ -203,7 +203,7 @@ static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *bytes,
         sha3_add((struct sha3_ctx *)chf->ctx, bytes, numBytes);
         return 0;
     default:
-        FATAL_ERROR("Invalid CHF algorithm");
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
 }
 
@@ -216,7 +216,7 @@ static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *digest)
         sha3_end((struct sha3_ctx *)chf->ctx, digest);
         return 0;
     default:
-        FATAL_ERROR("Invalid CHF algorithm");
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
 }
 
@@ -233,7 +233,7 @@ static inline void chf_ctx_copy(struct chf_ctx *dst, const struct chf_ctx *src)
                   (const struct sha3_ctx *)src->ctx);
         break;
     default:
-        FATAL_ERROR("Invalid CHF algorithm");
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
 }
 
@@ -251,7 +251,7 @@ static inline void chf_ctx_free_scrub(struct chf_ctx *chf)
         sha3_free_scrub((struct sha3_ctx *)chf->ctx);
         break;
     default:
-        FATAL_ERROR("Invalid CHF algorithm");
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
     chf->ctx = NULL;
 }

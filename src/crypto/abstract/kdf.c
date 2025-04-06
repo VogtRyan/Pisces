@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,7 +34,7 @@ struct kdf {
 struct kdf *kdf_alloc(kdf_algorithm_t alg)
 {
     struct kdf *ret = (struct kdf *)calloc(1, sizeof(struct kdf));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     switch (alg) {
     case KDF_ALG_PBKDF2_HMAC_SHA3_512_16384:
@@ -50,7 +50,7 @@ struct kdf *kdf_alloc(kdf_algorithm_t alg)
         ret->chfAlg = CHF_ALG_SHA1;
         break;
     default:
-        FATAL_ERROR("Invalid KDF algorithm");
+        ASSERT_NEVER_REACH("Invalid KDF algorithm");
     }
 
     return ret;
@@ -79,7 +79,7 @@ int kdf_derive(struct kdf *fn, byte_t *derivedKey, size_t derivedKeyLen,
         ret = KDF_ERROR_SALT_TOO_LONG;
         break;
     default:
-        FATAL_ERROR("Unknown PBKDF2 error return");
+        ASSERT_NEVER_REACH("Unknown PBKDF2 error return");
     }
 
     fn->errorCode = ret;
@@ -98,7 +98,7 @@ const char *kdf_error(const struct kdf *fn)
     case KDF_ERROR_SALT_TOO_LONG:
         return "KDF salt too long";
     default:
-        FATAL_ERROR("Invalid KDF error code");
+        ASSERT_NEVER_REACH("Invalid KDF error code");
     }
 }
 

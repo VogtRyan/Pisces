@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -63,7 +63,7 @@ struct sha1_ctx *sha1_alloc(void)
 {
     struct sha1_ctx *ret =
         (struct sha1_ctx *)calloc(1, sizeof(struct sha1_ctx));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
     return ret;
 }
 

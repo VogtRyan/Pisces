@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,7 +34,7 @@ struct aes_cbc_ctx *aes_cbc_alloc(void)
 {
     struct aes_cbc_ctx *ret =
         (struct aes_cbc_ctx *)calloc(1, sizeof(struct aes_cbc_ctx));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
     ret->ecbCtx = aes_ecb_alloc();
     return ret;
 }
@@ -53,7 +53,7 @@ void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte_t *key,
         aes_ecb_set_key(ctx->ecbCtx, key, AES_ECB_KEY_SIZE_256);
         break;
     default:
-        FATAL_ERROR("Invalid AES-CBC key size");
+        ASSERT_NEVER_REACH("Invalid AES-CBC key size");
     }
 }
 

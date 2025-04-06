@@ -524,7 +524,7 @@ static void start_ctx(struct sha3_ctx *ctx, size_t digestLen)
         sha3_512_start(ctx);
         break;
     default:
-        FATAL_ERROR("Invalid SHA-3 digest size");
+        ASSERT_NEVER_REACH("Invalid SHA-3 digest size");
     }
 }
 
@@ -540,6 +540,6 @@ static size_t block_bytes(size_t digestLen)
     case SHA3_512_DIGEST_BYTES:
         return SHA3_512_BLOCK_BYTES;
     default:
-        FATAL_ERROR("Invalid SHA-3 digest size");
+        ASSERT_NEVER_REACH("Invalid SHA-3 digest size");
     }
 }

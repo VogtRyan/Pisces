@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 isErr:
     scrub_memory(password, PASSWORD_LENGTH_MAX);
     scrub_memory(&passwordLen, sizeof(size_t));
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static void parse_command_line(int argc, char **argv, int *encrypt,
@@ -209,7 +209,7 @@ static int check_files(char *inputFile, char *outputFile)
     }
 
 isErr:
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static void usage(void)

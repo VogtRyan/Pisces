@@ -74,14 +74,14 @@ int pbkdf2_hmac(byte_t *derivedKey, size_t derivedKeyLen, const char *password,
     size_t octetsFromT, onOctet, hLen;
     unsigned int uMinusOne;
     uint32_t i;
-    int initRet;
+    int res;
     int errVal = 0;
 
     ASSERT(iterationCount != 0, "PBKDF2 iteration count of zero");
-    initRet = init_hmac_trio(password, passwordLen, salt, saltLen, alg, &prf,
-                             &pwdOnly, &pwdAndSalt);
-    if (initRet) {
-        ERROR_CODE(isErr, errVal, initRet);
+    res = init_hmac_trio(password, passwordLen, salt, saltLen, alg, &prf,
+                         &pwdOnly, &pwdAndSalt);
+    if (res) {
+        ERROR_CODE(isErr, errVal, res);
     }
 
     /*
@@ -134,14 +134,15 @@ int pbkdf2_hmac(byte_t *derivedKey, size_t derivedKeyLen, const char *password,
         for (uMinusOne = 1; uMinusOne < iterationCount; uMinusOne++) {
             hmac_copy(prf, pwdOnly);
             hmac_add(prf, U, hLen);
-            if (hmac_end(prf, U)) {
-                /*
-                 * To the prf context this time, we added only a single HMAC
-                 * output, U_{uMinusOne}. This computation should never fail
-                 * unless there is an error in the underlying HMAC library.
-                 */
-                FATAL_ERROR("PBKDF2 U_i HMAC computation failed for i > 1");
-            }
+            res = hmac_end(prf, U);
+
+            /*
+             * To the prf context this time, we added only a single HMAC
+             * output, U_{uMinusOne}. This computation should never fail
+             * unless there is an error in the underlying HMAC library.
+             */
+            ASSERT(res == 0, "PBKDF2 U_i HMAC computation failed for i > 1");
+
             for (onOctet = 0; onOctet < octetsFromT; onOctet++) {
                 derivedKey[onOctet] ^= U[onOctet];
             }

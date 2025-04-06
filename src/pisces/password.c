@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -87,7 +87,7 @@ isErr:
     scrub_memory(input2, PASSWORD_LENGTH_MAX);
     scrub_memory(&len1, sizeof(size_t));
     scrub_memory(&len2, sizeof(size_t));
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 int get_decryption_password(char *password, size_t *passwordLen,
@@ -113,7 +113,7 @@ int get_decryption_password(char *password, size_t *passwordLen,
 isErr:
     scrub_memory(input, PASSWORD_LENGTH_MAX);
     scrub_memory(&len, sizeof(size_t));
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int use_provided_password(char *password, size_t *passwordLen,
@@ -127,7 +127,7 @@ static int use_provided_password(char *password, size_t *passwordLen,
     memcpy(password, providedPassword, *passwordLen);
 
 isErr:
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int password_strlen(const char *provided, size_t *passwordLen)
@@ -150,7 +150,7 @@ static int password_strlen(const char *provided, size_t *passwordLen)
 
 isErr:
     scrub_memory(&len, sizeof(size_t));
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static int get_secret_input(const char *prompt, char *userInput,
@@ -171,7 +171,7 @@ static int get_secret_input(const char *prompt, char *userInput,
 
     fp = fopen(ctermid(NULL), "r+");
     if (fp == NULL) {
-        ERROR(isErr, errVal, "Could not open terminal for reading");
+        FATAL_ERROR("Could not open terminal for reading");
     }
     fprintf(fp, "%s", prompt);
     setbuf(fp, NULL);
@@ -210,5 +210,5 @@ static int get_secret_input(const char *prompt, char *userInput,
 isErr:
     scrub_memory(&c, sizeof(int));
     scrub_memory(&len, sizeof(size_t));
-    return errVal ? -1 : 0;
+    return errVal;
 }

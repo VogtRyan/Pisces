@@ -360,7 +360,7 @@ static void run_parsed_aes_cbc_plain_test(const byte_t *key, size_t keySize,
     ctx = aes_cbc_alloc();
     textLen = numBlocks * AES_CBC_BLOCK_SIZE;
     actual = (byte_t *)calloc(textLen, 1);
-    ASSERT_ALLOC(actual);
+    GUARD_ALLOC(actual);
 
     aes_cbc_set_key(ctx, key, keySize);
     aes_cbc_multi_block(ctx, plaintext, iv, actual, numBlocks,

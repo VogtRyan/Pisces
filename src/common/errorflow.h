@@ -25,157 +25,169 @@
 #endif
 
 /*
- * Print the given message, set the error flag to 1, and jump to the specified
- * target. If DEBUGGING is defined, also include the file and line number in
- * the output.
+ * Prints the given variable-argument message, sets the int-type flag variable
+ * to -1, and jumps to the specified target.
+ *
+ * If DEBUGGING is defined, the filename and line number are included the
+ * output.
  */
-#ifdef DEBUGGING
+#ifndef DEBUGGING
 #define ERROR(target, flag, ...)                                              \
     do {                                                                      \
-        fprintf(ERROR_OUTPUT, "Error [%s:%d]: ", __FILE__, __LINE__);         \
-        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
-        fprintf(ERROR_OUTPUT, "\n");                                          \
-        fflush(ERROR_OUTPUT);                                                 \
-        flag = 1;                                                             \
-        goto target;                                                          \
-    } while (0)
-#else
-#define ERROR(target, flag, ...)                                              \
-    do {                                                                      \
+        flag = -1;                                                            \
         fprintf(ERROR_OUTPUT, "Error: ");                                     \
         fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
-        flag = 1;                                                             \
-        goto target;                                                          \
-    } while (0)
-#endif
-
-/*
- * Set the error flag to the given integer value, and jump to the specified
- * target. If DEBUGGING is defined, print a message with the file and line
- * number (otherwise, print nothing).
- */
-#ifdef DEBUGGING
-#define ERROR_CODE(target, flag, flagValue)                                   \
-    do {                                                                      \
-        fprintf(ERROR_OUTPUT, "Error code %d [%s:%d]\n", flagValue, __FILE__, \
-                __LINE__);                                                    \
-        fflush(ERROR_OUTPUT);                                                 \
-        flag = (flagValue);                                                   \
         goto target;                                                          \
     } while (0)
 #else
-#define ERROR_CODE(target, flag, flagValue)                                   \
+#define ERROR(target, flag, ...)                                              \
     do {                                                                      \
-        flag = (flagValue);                                                   \
-        goto target;                                                          \
-    } while (0)
-#endif
-
-/*
- * Set the error flag to 1, and jump to the specified target. If DEBUGGING is
- * defined, print a message with the file and line number (otherwise print
- * nothing). Functionally equivalent to ERROR_CODE(target, flag, 1), though the
- * message printed is slightly different.
- */
-#ifdef DEBUGGING
-#define ERROR_QUIET(target, flag)                                             \
-    do {                                                                      \
-        fprintf(ERROR_OUTPUT, "Quiet error [%s:%d]\n", __FILE__, __LINE__);   \
-        fflush(ERROR_OUTPUT);                                                 \
-        flag = 1;                                                             \
-        goto target;                                                          \
-    } while (0)
-#else
-#define ERROR_QUIET(target, flag)                                             \
-    do {                                                                      \
-        flag = 1;                                                             \
-        goto target;                                                          \
-    } while (0)
-#endif
-
-/*
- * Assert that the given condition is true. Otherwise, print the given error
- * message and abort the program. If DEBUGGING is defined, additional
- * information will be printed; however, the assertion is checked in either
- * case.
- */
-#ifdef DEBUGGING
-#define ASSERT(condition, ...)                                                \
-    do {                                                                      \
-        if (!(condition)) {                                                   \
-            fprintf(ERROR_OUTPUT, "Failed assertion [%s:%d]\n", __FILE__,     \
-                    __LINE__);                                                \
-            fprintf(ERROR_OUTPUT, __VA_ARGS__);                               \
-            fprintf(ERROR_OUTPUT, "\n");                                      \
-            fflush(ERROR_OUTPUT);                                             \
-            abort();                                                          \
-        }                                                                     \
-    } while (0)
-#else
-#define ASSERT(condition, ...)                                                \
-    do {                                                                      \
-        if (!(condition)) {                                                   \
-            fprintf(ERROR_OUTPUT, "Error: ");                                 \
-            fprintf(ERROR_OUTPUT, __VA_ARGS__);                               \
-            fprintf(ERROR_OUTPUT, "\n");                                      \
-            fflush(ERROR_OUTPUT);                                             \
-            abort();                                                          \
-        }                                                                     \
-    } while (0)
-#endif
-
-/*
- * Assert that the return from an allocation call, such as malloc() or calloc()
- * is non-NULL. If not, print an error message and abort. If DEBUGGING is
- * defined, additional information will be printed; however, the pointer is
- * checked in either case.
- */
-#ifdef DEBUGGING
-#define ASSERT_ALLOC(ptr)                                                     \
-    do {                                                                      \
-        if ((ptr) == NULL) {                                                  \
-            fprintf(ERROR_OUTPUT, "Memory allocation failed [%s:%d]\n",       \
-                    __FILE__, __LINE__);                                      \
-            fflush(ERROR_OUTPUT);                                             \
-            abort();                                                          \
-        }                                                                     \
-    } while (0)
-#else
-#define ASSERT_ALLOC(ptr)                                                     \
-    do {                                                                      \
-        if ((ptr) == NULL) {                                                  \
-            fprintf(ERROR_OUTPUT, "Memory allocation failed\n");              \
-            abort();                                                          \
-        }                                                                     \
-    } while (0)
-#endif
-
-/*
- * Print the given error message and abort the program. If DEBUGGING is
- * defined, additional information will be printed; however, the program will
- * be aborted in either case.
- */
-#ifdef DEBUGGING
-#define FATAL_ERROR(...)                                                      \
-    do {                                                                      \
-        fprintf(ERROR_OUTPUT, "Fatal error at [%s:%d]\n", __FILE__,           \
-                __LINE__);                                                    \
+        flag = -1;                                                            \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d]: ", __FILE__, __LINE__);         \
         fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
-        abort();                                                              \
+        goto target;                                                          \
+    } while (0)
+#endif
+
+/*
+ * Sets the int-type flag variable to -1, and jumps to the specified target.
+ *
+ * If DEBUGGING is defined, this macro also outputs a message with the
+ * filename and line number.
+ */
+#ifndef DEBUGGING
+#define ERROR_QUIET(target, flag)                                             \
+    do {                                                                      \
+        flag = -1;                                                            \
+        goto target;                                                          \
     } while (0)
 #else
+#define ERROR_QUIET(target, flag)                                             \
+    do {                                                                      \
+        flag = -1;                                                            \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d, quiet]\n", __FILE__, __LINE__);  \
+        fflush(ERROR_OUTPUT);                                                 \
+        goto target;                                                          \
+    } while (0)
+#endif
+
+/*
+ * Sets the int-type flag variable to the given error code, and jumps to the
+ * specified target.
+ *
+ * If DEBUGGING is defined, this macro also outputs a message with the
+ * filename, line number, and error code.
+ */
+#ifndef DEBUGGING
+#define ERROR_CODE(target, flag, code)                                        \
+    do {                                                                      \
+        flag = (code);                                                        \
+        goto target;                                                          \
+    } while (0)
+#else
+#define ERROR_CODE(target, flag, code)                                        \
+    do {                                                                      \
+        flag = (code);                                                        \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d, code %d]\n", __FILE__, __LINE__, \
+                flag);                                                        \
+        fflush(ERROR_OUTPUT);                                                 \
+        goto target;                                                          \
+    } while (0)
+#endif
+
+/*
+ * Prints the given variable-argument message, and exits the program with a
+ * failure code.
+ *
+ * If DEBUGGING is defined, the filename and line number are included in the
+ * output.
+ */
+#ifndef DEBUGGING
 #define FATAL_ERROR(...)                                                      \
     do {                                                                      \
         fprintf(ERROR_OUTPUT, "Fatal error: ");                               \
         fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
         fprintf(ERROR_OUTPUT, "\n");                                          \
         fflush(ERROR_OUTPUT);                                                 \
-        abort();                                                              \
+        exit(EXIT_FAILURE);                                                   \
+    } while (0)
+#else
+#define FATAL_ERROR(...)                                                      \
+    do {                                                                      \
+        fprintf(ERROR_OUTPUT, "Fatal error [%s:%d]: ", __FILE__, __LINE__);   \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
+        fprintf(ERROR_OUTPUT, "\n");                                          \
+        fflush(ERROR_OUTPUT);                                                 \
+        exit(EXIT_FAILURE);                                                   \
     } while (0)
 #endif
+
+/*
+ * Verifies that the given return from an allocation call, such as malloc() or
+ * calloc(), is non-NULL. If not, this macro prints an error message and exits
+ * the program with a failure code.
+ *
+ * If DEBUGGING is defined, the filename and line number are included in the
+ * output.
+ */
+#ifndef DEBUGGING
+#define GUARD_ALLOC(ptr)                                                      \
+    do {                                                                      \
+        if ((ptr) == NULL) {                                                  \
+            fprintf(ERROR_OUTPUT,                                             \
+                    "Fatal error: Memory allocation failure\n");              \
+            fflush(ERROR_OUTPUT);                                             \
+            exit(EXIT_FAILURE);                                               \
+        }                                                                     \
+    } while (0)
+#else
+#define GUARD_ALLOC(ptr)                                                      \
+    do {                                                                      \
+        if ((ptr) == NULL) {                                                  \
+            fprintf(ERROR_OUTPUT,                                             \
+                    "Fatal error [%s:%d]: Memory allocation failure\n",       \
+                    __FILE__, __LINE__);                                      \
+            fflush(ERROR_OUTPUT);                                             \
+            exit(EXIT_FAILURE);                                               \
+        }                                                                     \
+    } while (0)
+#endif
+
+/*
+ * Asserts that the given condition is true. If not, this macro prints the
+ * given variable-argument message, along with the filename, line number, and
+ * condition that failed. Then, it aborts the program.
+ */
+#define ASSERT(condition, ...)                                                \
+    do {                                                                      \
+        if (!(condition)) {                                                   \
+            fprintf(ERROR_OUTPUT, "Failed assertion [%s:%d, %s]: ", __FILE__, \
+                    __LINE__, #condition);                                    \
+            fprintf(ERROR_OUTPUT, __VA_ARGS__);                               \
+            fprintf(ERROR_OUTPUT, "\n");                                      \
+            fflush(ERROR_OUTPUT);                                             \
+            abort();                                                          \
+        }                                                                     \
+    } while (0)
+
+/*
+ * Asserts that a line of code should not be reached. If it is reached, this
+ * macro prints the given variable-argument message, along with the filename
+ * and line number. Then, it aborts the program.
+ */
+#define ASSERT_NEVER_REACH(...)                                               \
+    do {                                                                      \
+        fprintf(ERROR_OUTPUT,                                                 \
+                "Failed assertion [%s:%d, never reach]: ", __FILE__,          \
+                __LINE__);                                                    \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
+        fprintf(ERROR_OUTPUT, "\n");                                          \
+        fflush(ERROR_OUTPUT);                                                 \
+        abort();                                                              \
+    } while (0)
 
 #endif

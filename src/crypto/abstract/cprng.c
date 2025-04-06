@@ -83,7 +83,7 @@ static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
 struct cprng *cprng_alloc_default(void)
 {
     struct cprng *ret = (struct cprng *)calloc(1, sizeof(struct cprng));
-    ASSERT_ALLOC(ret);
+    GUARD_ALLOC(ret);
 
     if (PISCES_NO_ARC4RANDOM) {
         ret->type = CPRNG_ALG_DEVRANDOM;
@@ -108,7 +108,7 @@ void cprng_bytes(struct cprng *rng, byte_t *bytes, size_t numBytes)
         cprng_bytes_devrandom(rng, bytes, numBytes);
         break;
     default:
-        FATAL_ERROR("Invalid CPRNG algorithm");
+        ASSERT_NEVER_REACH("Invalid CPRNG algorithm");
     }
 }
 
@@ -130,7 +130,7 @@ static void cprng_bytes_arc4random(struct cprng *rng, byte_t *bytes,
     UNUSED(rng);
     UNUSED(bytes);
     UNUSED(numBytes);
-    FATAL_ERROR("Not compiled with arc4random_buf() support");
+    ASSERT_NEVER_REACH("Not compiled with arc4random_buf() support");
 #else
     UNUSED(rng);
     arc4random_buf(bytes, numBytes);

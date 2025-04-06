@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     /* Allocate memory to hold the generated password */
     ASSERT(length + 1 > length, "Overflow should never happen");
     password = (char *)calloc(length + 1, sizeof(char));
-    ASSERT_ALLOC(password);
+    GUARD_ALLOC(password);
 
     /* Generate the password and output it */
     genFn(password, length);
@@ -91,7 +91,7 @@ isErr:
         scrub_memory(password, length);
         free(password);
     }
-    return errVal ? -1 : 0;
+    return errVal;
 }
 
 static void parse_command_line(int argc, char **argv, size_t *outputLen,
