@@ -19,7 +19,6 @@
 #include "common/bytetype.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
-#include "common/unusedvar.h"
 
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -79,6 +78,9 @@ static void cprng_bytes_arc4random(struct cprng *rng, byte_t *bytes,
  */
 static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
                                   size_t numBytes);
+
+/* Annotate a variable as unused, inside a function body */
+#define UNUSED(varname) (void)(varname)
 
 struct cprng *cprng_alloc_default(void)
 {
