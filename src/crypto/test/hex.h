@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2024-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,11 +22,10 @@
 #include <stddef.h>
 
 /*
- * The largest input string size accepted by hex_to_bytes(), and the largest
- * possible number of bytes output by that function.
+ * The largest input string size accepted by hex_to_bytes(), which is twice the
+ * maximum number of input bytes accepted.
  */
-#define HEX_TO_BYTES_MAX_STRLEN    (1000)
-#define HEX_TO_BYTES_MAX_NUM_BYTES (HEX_TO_BYTES_MAX_STRLEN / 2)
+#define HEX_TO_BYTES_MAX_STRLEN (1000)
 
 /*
  * Converts a string of hexadecimal characters to an array of bytes. The string

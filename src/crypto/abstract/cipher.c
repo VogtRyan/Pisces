@@ -19,7 +19,6 @@
 #include "common/bytetype.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
-#include "common/unusedvar.h"
 #include "crypto/algorithms/pkcs7/pkcs7_padding.h"
 #include "crypto/primitives/aes/aes_cbc.h"
 
@@ -55,6 +54,9 @@ struct cipher_ctx {
  */
 static size_t process_block(struct cipher_ctx *cipher, const byte_t *block,
                             byte_t *output);
+
+/* Annotate a variable as unused, inside a function body */
+#define UNUSED(varname) (void)(varname)
 
 struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
 {
