@@ -54,12 +54,20 @@ void hex_to_bytes(const char *hex, byte_t **bytes, size_t *numBytes)
 
 static size_t hex_byte_len(const char *hex)
 {
-    size_t inLen;
+    size_t inLen = 0;
 
-    inLen = strnlen(hex, HEX_TO_BYTES_MAX_STRLEN + 1);
+    /*
+     * Essentially a portable substitute for strnlen(), for POSIX.1-2001
+     * compatibility.
+     */
+    while (inLen < HEX_TO_BYTES_MAX_STRLEN) {
+        if (hex[inLen] == '\0') {
+            break;
+        }
+        inLen++;
+    }
 
-    ASSERT(inLen != HEX_TO_BYTES_MAX_STRLEN + 1,
-           "Input hexadecimal string too long: %zu", inLen);
+    ASSERT(hex[inLen] == '\0', "Input hexadecimal string too long");
     ASSERT(inLen % 2 == 0, "Input hexadecimal string has odd length: %zu",
            inLen);
 

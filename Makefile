@@ -18,21 +18,24 @@ CC    = cc
 BUILD = release
 CPRNG = arc4random
 
-CFLAGS.BUILD.release    = -Wall -Wextra -Wpedantic -std=c99 -O2
-CFLAGS.BUILD.debug      = -Wall -Wextra -Wpedantic -std=c99 -DDEBUGGING -g
+PREFIX         = /usr/local
+INSTALL_BIN    = ${PREFIX}/bin
+INSTALL_MAN    = ${PREFIX}/man/man1
+
+CFLAGS.COMMON = -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200112L
+
+CFLAGS.BUILD.release = -O2
+CFLAGS.BUILD.debug   = -DDEBUGGING -g
+
 CFLAGS.CPRNG.arc4random =
 CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
-CFLAGS                  = ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
 
 IGNORE_FAILED_TESTS.BUILD.release =
 IGNORE_FAILED_TESTS.BUILD.debug   = -
 IGNORE_FAILED_TESTS               = ${IGNORE_FAILED_TESTS.BUILD.${BUILD}}
 
+CFLAGS  = ${CFLAGS.COMMON} ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
 LDFLAGS = ${CFLAGS}
-
-PREFIX         = /usr/local
-INSTALL_BIN    = ${PREFIX}/bin
-INSTALL_MAN    = ${PREFIX}/man/man1
 
 BINDIR = ./bin
 MANDIR = ./man

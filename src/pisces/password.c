@@ -44,7 +44,8 @@ static int use_provided_password(char *password, size_t *passwordLen,
 /*
  * Finds the length of the given NULL-terminated password and returns 0; or,
  * returns -1 if the provided password is too long (and prints error messages).
- * This function exists only because strnlen() is surprisingly non-portable.
+ * Essentially a portable substitute for strnlen(), for POSIX.1-2001
+ * compatibility.
  */
 static int password_strlen(const char *provided, size_t *passwordLen);
 
@@ -132,17 +133,16 @@ isErr:
 
 static int password_strlen(const char *provided, size_t *passwordLen)
 {
-    size_t len;
+    size_t len = 0;
     int errVal = 0;
 
-    len = 0;
-    while (len <= PASSWORD_LENGTH_MAX) {
+    while (len < PASSWORD_LENGTH_MAX) {
         if (provided[len] == '\0') {
             break;
         }
         len++;
     }
-    if (len > PASSWORD_LENGTH_MAX) {
+    if (provided[len] != '\0') {
         ERROR(isErr, errVal, "Password can be at most %d characters long",
               PASSWORD_LENGTH_MAX);
     }
