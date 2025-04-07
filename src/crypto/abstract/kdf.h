@@ -31,8 +31,8 @@ typedef enum {
 } kdf_algorithm_t;
 
 /*
- * The return value from kdf_derive_key() if either input is too long, or if
- * the requested output is too long. If multiple error conditions are true, the
+ * The return value from kdf_derive() if either input is too long, or if the
+ * requested output is too long. If multiple error conditions are true, the
  * password being too long has the highest precedence, then the salt being too
  * long, and finally the derived key being too long.
  */

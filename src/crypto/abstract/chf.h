@@ -63,7 +63,7 @@ void chf_start(struct chf_ctx *chf);
  * Returns 0 on success or a negative value (specifically
  * CHF_ERROR_MESSAGE_TOO_LONG) if the hash function's maximum message length
  * has been exceeded. Note: if this error condition is triggered in chf_add(),
- * it is will also be triggered in chf_end().
+ * it will also be triggered in chf_end().
  *
  * It is a fatal error if a hash operation has not been started with
  * chf_start().
