@@ -207,10 +207,10 @@ static uint8_t x_to_the_t(int t)
     uint8_t res = 0x01;
     while (t > 0) {
         if (res & 0x80) {
-            res = (res << 1) ^ 0x71;
+            res = (uint8_t)((res << 1) ^ 0x71);
         }
         else {
-            res = res << 1;
+            res <<= 1;
         }
         t--;
     }

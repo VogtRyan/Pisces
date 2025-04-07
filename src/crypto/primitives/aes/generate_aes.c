@@ -237,10 +237,10 @@ static uint8_t muly_polys(uint8_t polyA, uint8_t polyB)
 static uint8_t mult_by_x(uint8_t polynomial)
 {
     if (polynomial & 0x80) {
-        return (polynomial << 1) ^ 0x1B;
+        return (uint8_t)((polynomial << 1) ^ 0x1B);
     }
     else {
-        return (polynomial << 1);
+        return (uint8_t)(polynomial << 1);
     }
 }
 

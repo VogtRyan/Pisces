@@ -183,7 +183,7 @@ static int get_secret_input(const char *prompt, char *userInput,
 
     tcgetattr(fileno(fp), &termsave);
     term = termsave;
-    term.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+    term.c_lflag &= (tcflag_t)(~(ECHO | ECHOE | ECHOK | ECHONL));
     tcsetattr(fileno(fp), TCSAFLUSH, &term);
 
     len = 0;
