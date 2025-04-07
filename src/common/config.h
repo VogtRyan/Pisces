@@ -20,7 +20,7 @@
 /*
  * Shared implementation version for pisces and pwgen.
  */
-#define IMPLEMENTATION_VERSION "5.2.3"
+#define IMPLEMENTATION_VERSION "5.2.4"
 
 /*
  * Maximum length of passwords in both pisces and pwgen. Note that both a
