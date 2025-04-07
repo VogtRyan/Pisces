@@ -306,7 +306,7 @@ src/crypto/primitives/aes/generate_aes.o: \
   src/crypto/primitives/aes/generate_aes.c src/crypto/machine/endian.h \
   src/common/bytetype.h
 src/pisces/password.o: src/pisces/password.c src/pisces/password.h \
-  src/common/pwlimits.h src/common/bytetype.h src/common/errorflow.h \
+  src/common/config.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h
 src/pisces/iowrap.o: src/pisces/iowrap.c src/pisces/iowrap.h \
   src/common/bytetype.h src/common/errorflow.h
@@ -322,7 +322,7 @@ src/pisces/encryption.o: src/pisces/encryption.c src/pisces/encryption.h \
   src/crypto/abstract/cprng.h src/crypto/abstract/kdf.h \
   src/pisces/holdbuf.h src/pisces/iowrap.h src/pisces/version.h
 src/pisces/pisces.o: src/pisces/pisces.c src/pisces/encryption.h \
-  src/pisces/password.h src/common/pwlimits.h src/pisces/version.h \
+  src/pisces/password.h src/common/config.h src/pisces/version.h \
   src/crypto/abstract/chf.h src/common/bytetype.h \
   src/crypto/abstract/cipher.h src/crypto/abstract/kdf.h \
   src/common/errorflow.h src/common/scrub.h
@@ -332,7 +332,7 @@ src/pwgen/ascii.o: src/pwgen/ascii.c src/pwgen/ascii.h \
   src/common/bytetype.h src/common/errorflow.h src/common/scrub.h \
   src/crypto/abstract/cprng.h
 src/pwgen/pwgen.o: src/pwgen/pwgen.c src/pwgen/ascii.h src/pwgen/hex.h \
-  src/pwgen/usq.h src/common/errorflow.h src/common/pwlimits.h \
+  src/pwgen/usq.h src/common/config.h src/common/errorflow.h \
   src/common/scrub.h src/common/bytetype.h
 src/pwgen/usq.o: src/pwgen/usq.c src/pwgen/usq.h src/common/bytetype.h \
   src/common/errorflow.h src/common/scrub.h src/crypto/abstract/cprng.h

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2023-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef PISCES_COMMON_PWLIMITS_H_
-#define PISCES_COMMON_PWLIMITS_H_
+#ifndef PISCES_COMMON_CONFIG_H_
+#define PISCES_COMMON_CONFIG_H_
+
+/*
+ * Shared implementation version for pisces and pwgen.
+ */
+#define IMPLEMENTATION_VERSION "5.2.3"
 
 /*
  * Maximum length of passwords in both pisces and pwgen. Note that both a
- * size_t and an int are guaranteed to hold at least 32767, so this number can
- * be compared safely to both those types.
+ * size_t and an int are guaranteed to hold values up to at least 32767, so
+ * this constant can be compared safely to both those types.
  */
 #define PASSWORD_LENGTH_MAX (1024)
 

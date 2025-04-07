@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,7 +17,7 @@
 #ifndef PISCES_PISCES_PASSWORD_H_
 #define PISCES_PISCES_PASSWORD_H_
 
-#include "common/pwlimits.h"
+#include "common/config.h"
 
 #include <stddef.h>
 

@@ -18,16 +18,14 @@
 #include "password.h"
 #include "version.h"
 
+#include "common/config.h"
 #include "common/errorflow.h"
-#include "common/pwlimits.h"
 #include "common/scrub.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#define IMPLEMENTATION_VERSION "5.2.3"
 
 /*
  * Parse the command line options passed to Pisces.

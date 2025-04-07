@@ -17,8 +17,8 @@
 #include "password.h"
 
 #include "common/bytetype.h"
+#include "common/config.h"
 #include "common/errorflow.h"
-#include "common/pwlimits.h"
 #include "common/scrub.h"
 
 #include <signal.h>

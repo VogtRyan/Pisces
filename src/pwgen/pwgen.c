@@ -18,8 +18,8 @@
 #include "hex.h"
 #include "usq.h"
 
+#include "common/config.h"
 #include "common/errorflow.h"
-#include "common/pwlimits.h"
 #include "common/scrub.h"
 
 #include <errno.h>
@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#define IMPLEMENTATION_VERSION "1.2.3"
 
 /* Default setting is an enforced password of length 20 */
 #define DEFAULT_METHOD (get_usq_simple_enforced)
