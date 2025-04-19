@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,6 +29,12 @@
 void get_usq_simple(char *result, size_t num);
 
 /*
+ * Returns the number of bits of security offered by a get_usq_simple password
+ * of the given length.
+ */
+double bits_security_usq_simple(size_t num);
+
+/*
  * Fills the result array with the same types of characters used by
  * get_usq_simple(). But, results are guaranteed to contain at least one
  * uppercase character, at least one lowercase character, at least one number,
@@ -36,5 +42,11 @@ void get_usq_simple(char *result, size_t num);
  * produce unbiased generated passwords.
  */
 void get_usq_simple_enforced(char *result, size_t num);
+
+/*
+ * Returns the number of bits of security offered by a get_usq_simple_enforced
+ * password of the given length.
+ */
+double bits_security_usq_simple_enforced(size_t num);
 
 #endif

@@ -22,6 +22,7 @@
 #include "crypto/abstract/cprng.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 /*
  * Fills the result with the given number of hex characters, using tenChar as
@@ -37,6 +38,12 @@ void get_hex_lowercase(char *result, size_t num)
 void get_hex_uppercase(char *result, size_t num)
 {
     get_hex_chars(result, num, 'A');
+}
+
+size_t bits_security_hex(size_t num)
+{
+    ASSERT(num <= SIZE_MAX / 4, "Multiplication overflow");
+    return num * 4;
 }
 
 static void get_hex_chars(char *result, size_t num, char tenChar)

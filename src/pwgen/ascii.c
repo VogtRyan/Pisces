@@ -21,6 +21,7 @@
 #include "common/scrub.h"
 #include "crypto/abstract/cprng.h"
 
+#include <math.h>
 #include <stddef.h>
 
 void get_ascii(char *result, size_t num)
@@ -56,6 +57,12 @@ void get_ascii(char *result, size_t num)
     cprng_free_scrub(rng);
     scrub_memory(randArray, num);
     free(randArray);
+}
+
+double bits_security_ascii(size_t num)
+{
+    /* log_2(94^n) == n * log_2(94) */
+    return num * log2(94);
 }
 
 void get_alpha_num(char *result, size_t num)
@@ -102,4 +109,10 @@ void get_alpha_num(char *result, size_t num)
     cprng_free_scrub(rng);
     scrub_memory(randArray, num);
     free(randArray);
+}
+
+double bits_security_alpha_num(size_t num)
+{
+    /* log_2(62^n) == n * log_2(62) */
+    return num * log2(62);
 }
