@@ -28,9 +28,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-/* Default setting is an enforced password of length 20 */
+/* Password generation settings if none specified on the command line */
 #define DEFAULT_METHOD (get_usq_simple_enforced)
-#define DEFAULT_LENGTH (20)
+#define DEFAULT_LENGTH (24)
 
 /*
  * Parse the options on the command line, setting the output length and the
