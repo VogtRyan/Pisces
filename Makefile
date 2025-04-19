@@ -25,7 +25,7 @@ INSTALL_MAN    = ${PREFIX}/man/man1
 CFLAGS.COMMON = -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200112L
 
 CFLAGS.BUILD.release = -O2
-CFLAGS.BUILD.debug   = -DDEBUGGING -g
+CFLAGS.BUILD.debug   = -O0 -g -DDEBUGGING
 
 CFLAGS.CPRNG.arc4random =
 CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
