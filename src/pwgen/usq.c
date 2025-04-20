@@ -67,7 +67,7 @@ void get_usq_simple_enforced(char *result, size_t num)
 /*
  * Computing the number of bits of security for enforced passwords:
  *
- * Denote n = password length
+ * Denote n = password length, n >= 4.
  *
  * Define sets:
  *   P = capital letters (26)
@@ -83,7 +83,7 @@ void get_usq_simple_enforced(char *result, size_t num)
  *   Passwords without Q = (72-26)^n = 46^n
  *   Passwords without R = (72-10)^n = 62^n
  *   Passwords without S = (72-10)^n = 62^n
- *   Total = 2*62^n + 2*46^n
+ *   Sum = 2*62^n + 2*46^n
  *
  * Invalid passwords, because they lack characters from two sets:
  *   Passwords without P/Q = (72-26-26)^n = 20^n
@@ -92,21 +92,24 @@ void get_usq_simple_enforced(char *result, size_t num)
  *   Passwords without Q/R = (72-26-10)^n = 36^n
  *   Passwords without Q/S = (72-26-10)^n = 36^n
  *   Passwords without R/S = (72-10-10)^n = 52^n
- *   Total = 52^n + 4*36^n + 20^n
+ *   Sum = 52^n + 4*36^n + 20^n
  *
  * Invalid passwords, because they lack characters from three sets:
  *   Passwords without P/Q/R = (72-26-26-10)^n = 10^n
  *   Passwords without P/Q/S = (72-26-26-10)^n = 10^n
  *   Passwords without P/R/S = (72-26-10-10)^n = 26^n
  *   Passwords without Q/R/S = (72-26-10-10)^n = 26^n
- *   Total = 2*26^n + 2*10^n
+ *   Sum = 2*26^n + 2*10^n
  *
  * Number of valid passwords, per the inclusion-exclusion principle:
  * v(n) = 72^n - (2*62^n + 2*46^n) + (52^n + 4*36^n + 20^n) - (2*26^n + 2*10^n)
  *      = 72^n - 2*62^n + 52^n - 2*46^n + 4*36^n - 2*26^n + 20^n - 2*10^n
  *
- * Computing log_2(v(n)) directly would be numerically unstable, so move into
- * log space.
+ * Note: v(n) > 0 for all integers n >= 4, so log_2(v(n)) is well-defined for
+ * n >= 4.
+ *
+ * Computing log_2(v(n)) directly would be numerically unstable for large n,
+ * so move the computation into log space.
  *
  * Denote each term of v(n) as a_i = (c_i) * (b_i)^n
  *   a_0 = ( 1) * (72)^n
@@ -148,6 +151,8 @@ double bits_security_usq_simple_enforced(size_t num)
     double x[numBases];
     double sum;
     size_t i;
+
+    ASSERT(num >= 4, "Bits of security undefined for password length < 4");
 
     for (i = 0; i < numBases; i++) {
         x[i] = num * log2(bases[i]);
