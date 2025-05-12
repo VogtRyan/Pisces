@@ -28,25 +28,41 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+/* Supported password-generation functions */
+typedef enum {
+    GEN_FN_ALPHA_NUM,
+    GEN_FN_ASCII,
+    GEN_FN_HEX_LOWER,
+    GEN_FN_HEX_UPPER,
+    GEN_FN_USQ_ENFORCED,
+    GEN_FN_USQ_SIMPLE
+} gen_fn_t;
+
 /* Password generation settings if none specified on the command line */
-#define DEFAULT_METHOD (get_usq_simple_enforced)
+#define DEFAULT_GEN_FN (GEN_FN_USQ_ENFORCED)
 #define DEFAULT_LENGTH (24)
+
+/*
+ * Fill the password array with the given number of random characters, using
+ * the provided function.
+ */
+static void generate_password(char *password, size_t length, gen_fn_t genFn);
 
 /*
  * Parse the options on the command line, setting the output length and the
  * generation function. On any error, print a message to stderr and exit with
  * a negative code.
  */
-static void parse_command_line(int argc, char **argv, size_t *outputLen,
-                               void (**genFn)(char *, size_t));
+static void parse_command_line(int argc, char **argv, gen_fn_t *genFn,
+                               size_t *outputLen);
 
 /*
- * Sets the genFn variable to the given value function. If the genFn was not
- * NULL and was set to something different, print the usage message and exit
- * with a negative code.
+ * If no generation function has yet been set, set the function to newGenFn and
+ * raise the genFnSet flag. If the generation function has already been set to
+ * a different value, print the usage message and exit with a negative code.
  */
-static void set_generation_fn(void (**genFn)(char *, size_t),
-                              void (*value)(char *, size_t));
+static void set_generation_fn(gen_fn_t *genFn, int *genFnSet,
+                              gen_fn_t newGenFn);
 
 /*
  * Sets the length variable to the value of the given string argument. If the
@@ -56,6 +72,13 @@ static void set_generation_fn(void (**genFn)(char *, size_t),
 static void set_length_value(size_t *length, char *theArg);
 
 /*
+ * Parse the length variable from a string format. If the value is invalid
+ * (including if it's larger than the maximum password length), print an error
+ * and return -1. Otherwise, return 0.
+ */
+static int parse_length_value(size_t *result, char *theArg);
+
+/*
  * Prints the usage message and version number to stderr and exit with a
  * negative code.
  */
@@ -63,14 +86,14 @@ static void usage(void);
 
 int main(int argc, char **argv)
 {
+    gen_fn_t genFn;
     size_t length;
-    void (*genFn)(char *, size_t);
     char *password = NULL;
     int errVal = 0;
 
     /* Parse the command line and ensure option sanity */
-    parse_command_line(argc, argv, &length, &genFn);
-    if (genFn == get_usq_simple_enforced && length < 4) {
+    parse_command_line(argc, argv, &genFn, &length);
+    if (genFn == GEN_FN_USQ_ENFORCED && length < 4) {
         ERROR(isErr, errVal,
               "An \"enforced\" password must have at least four characters");
     }
@@ -81,7 +104,7 @@ int main(int argc, char **argv)
     GUARD_ALLOC(password);
 
     /* Generate the password and output it */
-    genFn(password, length);
+    generate_password(password, length, genFn);
     printf("%s\n", password);
 
 isErr:
@@ -92,33 +115,60 @@ isErr:
     return errVal;
 }
 
-static void parse_command_line(int argc, char **argv, size_t *outputLen,
-                               void (**genFn)(char *, size_t))
+static void generate_password(char *password, size_t length, gen_fn_t genFn)
 {
+    switch (genFn) {
+    case GEN_FN_ALPHA_NUM:
+        get_alpha_num(password, length);
+        break;
+    case GEN_FN_ASCII:
+        get_ascii(password, length);
+        break;
+    case GEN_FN_HEX_LOWER:
+        get_hex_lowercase(password, length);
+        break;
+    case GEN_FN_HEX_UPPER:
+        get_hex_uppercase(password, length);
+        break;
+    case GEN_FN_USQ_ENFORCED:
+        get_usq_simple_enforced(password, length);
+        break;
+    case GEN_FN_USQ_SIMPLE:
+        get_usq_simple(password, length);
+        break;
+    default:
+        ASSERT_NEVER_REACH("Invalid password-generation function");
+    }
+}
+
+static void parse_command_line(int argc, char **argv, gen_fn_t *genFn,
+                               size_t *outputLen)
+{
+    int genFnSet = 0;
     int ch;
-    *genFn = NULL;
+
+    *genFn = DEFAULT_GEN_FN;
     *outputLen = 0;
 
-    /* Process input options */
     while ((ch = getopt(argc, argv, "aeHhnsl:v")) != -1) {
         switch (ch) {
         case 'a':
-            set_generation_fn(genFn, get_ascii);
+            set_generation_fn(genFn, &genFnSet, GEN_FN_ASCII);
             break;
         case 'e':
-            set_generation_fn(genFn, get_usq_simple_enforced);
+            set_generation_fn(genFn, &genFnSet, GEN_FN_USQ_ENFORCED);
             break;
         case 'H':
-            set_generation_fn(genFn, get_hex_uppercase);
+            set_generation_fn(genFn, &genFnSet, GEN_FN_HEX_UPPER);
             break;
         case 'h':
-            set_generation_fn(genFn, get_hex_lowercase);
+            set_generation_fn(genFn, &genFnSet, GEN_FN_HEX_LOWER);
             break;
         case 'n':
-            set_generation_fn(genFn, get_alpha_num);
+            set_generation_fn(genFn, &genFnSet, GEN_FN_ALPHA_NUM);
             break;
         case 's':
-            set_generation_fn(genFn, get_usq_simple);
+            set_generation_fn(genFn, &genFnSet, GEN_FN_USQ_SIMPLE);
             break;
         case 'l':
             set_length_value(outputLen, optarg);
@@ -128,25 +178,39 @@ static void parse_command_line(int argc, char **argv, size_t *outputLen,
         }
     }
 
-    if (*genFn == NULL) {
-        *genFn = DEFAULT_METHOD;
-    }
     if (*outputLen == 0) {
         *outputLen = DEFAULT_LENGTH;
     }
 }
 
-static void set_generation_fn(void (**genFn)(char *, size_t),
-                              void (*value)(char *, size_t))
+static void set_generation_fn(gen_fn_t *genFn, int *genFnSet,
+                              gen_fn_t newGenFn)
 {
-    if (*genFn == NULL) {
-        *genFn = value;
+    if (*genFnSet == 0) {
+        *genFn = newGenFn;
+        *genFnSet = 1;
     }
-    else if (*genFn != value) {
+    else if (*genFn != newGenFn) {
         usage();
     }
 }
+
 static void set_length_value(size_t *length, char *theArg)
+{
+    size_t newLen;
+
+    if (parse_length_value(&newLen, theArg)) {
+        exit(-1);
+    }
+
+    if (*length != 0 && *length != newLen) {
+        usage();
+    }
+
+    *length = newLen;
+}
+
+static int parse_length_value(size_t *result, char *theArg)
 {
     long lval;
     char *ep;
@@ -168,15 +232,10 @@ static void set_length_value(size_t *length, char *theArg)
         ERROR(isErr, errVal, "Length must be greater than zero: \'%s\'",
               theArg);
     }
-    else if (*length != 0 && *length != (size_t)lval) {
-        usage();
-    }
 
-    *length = (size_t)lval;
+    *result = (size_t)lval;
 isErr:
-    if (errVal) {
-        exit(-1);
-    }
+    return errVal;
 }
 
 static void usage(void)
