@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd April 7, 2025
+.Dd May 12, 2025
 .Dt PWGEN 1
 .Os
 .Sh NAME
@@ -20,7 +20,7 @@
 .Nd generate passwords from various character sets
 .Sh SYNOPSIS
 .Nm pwgen
-.Op Fl aeHhns
+.Op Fl adeHhns
 .Op Fl l Ar length
 .Sh DESCRIPTION
 The
@@ -38,6 +38,10 @@ The options are as follows:
 Use the typeable portion of the ASCII character, excluding whitespace
 characters, to generate the password. This set corresponds to the range 33-126
 in the ASCII character set.
+.It Fl d
+Describe the password generation method specified on the command line,
+including the number of bits of security it provides, instead of generating a
+password.
 .It Fl e
 Use a simple character set designed for ease of use on a U.S. QWERTY keyboard
 to generate the password, and enforce that there be at least one of each of
