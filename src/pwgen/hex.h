@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,5 +25,11 @@
  */
 void get_hex_lowercase(char *result, size_t num);
 void get_hex_uppercase(char *result, size_t num);
+
+/*
+ * Returns the number of bits of security offered by a get_hex_* password
+ * of the given length.
+ */
+size_t bits_security_hex(size_t num);
 
 #endif

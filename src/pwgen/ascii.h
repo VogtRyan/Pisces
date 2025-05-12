@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,10 +26,22 @@
 void get_ascii(char *result, size_t num);
 
 /*
+ * Returns the number of bits of security offered by a get_ascii password of
+ * the given length.
+ */
+double bits_security_ascii(size_t num);
+
+/*
  * Fills the result array with the requested number of unbiased set of
  * uppercase, lowercase, and numeric characters in the standard ASCII character
  * set.
  */
 void get_alpha_num(char *result, size_t num);
+
+/*
+ * Returns the number of bits of security offered by a get_alpha_num password
+ * of the given length.
+ */
+double bits_security_alpha_num(size_t num);
 
 #endif

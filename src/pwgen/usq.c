@@ -21,6 +21,7 @@
 #include "common/scrub.h"
 #include "crypto/abstract/cprng.h"
 
+#include <math.h>
 #include <stddef.h>
 
 /*
@@ -46,6 +47,12 @@ void get_usq_simple(char *result, size_t num)
     cprng_free_scrub(rng);
 }
 
+double bits_security_usq_simple(size_t num)
+{
+    /* log_2(72^n) == n * log_2(72) */
+    return num * log2(72);
+}
+
 void get_usq_simple_enforced(char *result, size_t num)
 {
     ASSERT(num >= 4, "An enforced password must have length of at least 4");
@@ -55,6 +62,108 @@ void get_usq_simple_enforced(char *result, size_t num)
         get_usq_simple_cprng(result, num, rng);
     } while (has_upper_lower_num_special(result, num) == 0);
     cprng_free_scrub(rng);
+}
+
+/*
+ * Computing the number of bits of security for enforced passwords:
+ *
+ * Denote n = password length, n >= 4.
+ *
+ * Define sets:
+ *   P = capital letters (26)
+ *   Q = lowercase letters (26)
+ *   R = numbers (10)
+ *   S = symbols (10)
+ *
+ * Number of USQ simple passwords, without any enforcement that they contain
+ * one character from each set: 72^n
+ *
+ * Invalid passwords, because they lack characters from one set:
+ *   Passwords without P = (72-26)^n = 46^n
+ *   Passwords without Q = (72-26)^n = 46^n
+ *   Passwords without R = (72-10)^n = 62^n
+ *   Passwords without S = (72-10)^n = 62^n
+ *   Sum = 2*62^n + 2*46^n
+ *
+ * Invalid passwords, because they lack characters from two sets:
+ *   Passwords without P/Q = (72-26-26)^n = 20^n
+ *   Passwords without P/R = (72-26-10)^n = 36^n
+ *   Passwords without P/S = (72-26-10)^n = 36^n
+ *   Passwords without Q/R = (72-26-10)^n = 36^n
+ *   Passwords without Q/S = (72-26-10)^n = 36^n
+ *   Passwords without R/S = (72-10-10)^n = 52^n
+ *   Sum = 52^n + 4*36^n + 20^n
+ *
+ * Invalid passwords, because they lack characters from three sets:
+ *   Passwords without P/Q/R = (72-26-26-10)^n = 10^n
+ *   Passwords without P/Q/S = (72-26-26-10)^n = 10^n
+ *   Passwords without P/R/S = (72-26-10-10)^n = 26^n
+ *   Passwords without Q/R/S = (72-26-10-10)^n = 26^n
+ *   Sum = 2*26^n + 2*10^n
+ *
+ * Number of valid passwords, per the inclusion-exclusion principle:
+ * v(n) = 72^n - (2*62^n + 2*46^n) + (52^n + 4*36^n + 20^n) - (2*26^n + 2*10^n)
+ *      = 72^n - 2*62^n + 52^n - 2*46^n + 4*36^n - 2*26^n + 20^n - 2*10^n
+ *
+ * Note: v(n) > 0 for all integers n >= 4, so log_2(v(n)) is well-defined for
+ * n >= 4.
+ *
+ * Computing log_2(v(n)) directly would overflow for large n, so move the
+ * computation into log space.
+ *
+ * Denote each term of v(n) as a_i = (c_i) * (b_i)^n
+ *   a_0 = ( 1) * (72)^n
+ *   a_1 = (-2) * (62)^n
+ *   [...]
+ *   a_7 = (-2) * (10)^n
+ *
+ * Rewrite in log space: a_i = (c_i) * 2^(n * log_2(b_i))
+ *   a_0 = ( 1) * 2^(n * log_2(72))
+ *   a_1 = (-2) * 2^(n * log_2(62))
+ *   [...]
+ *   a_7 = (-2) * 2^(n * log_2(10))
+ *
+ * Denote each exponent as x_i:
+ *   x_0 = n * log_2(72)
+ *   x_1 = n * log_2(62)
+ *   [...]
+ *   x_7 = n * log_2(10)
+ *
+ * So, v(n) = sum_{i}[c_i * 2^(x_i)]
+ *
+ * Denote x_max = max(x_i) = n * log_2(72) = x_0
+ *
+ * Factor 2^(x_max) out of the sum:
+ * v(n) = 2^{x_max} * sum_{i}[c_i * 2^(x_i - x_max)]
+ *
+ * Compute log_2(v(n)) from that expression of v(n):
+ * log_2(v(n)) = log_2[2^(x_max) * sum_{i}[c_i * 2^(x_i - x_max)]]
+ *             = log_2[2^(x_max)] + log_2[sum_{i}[c_i * 2^(x_i - x_max)]]]
+ *             = x_max + log_2[sum_{i}[c_i * 2^(x_i - x_max)]]
+ *             = x_0 + log_2[sum_{i}[c_i * 2^(x_i - x_0)]]
+ */
+double bits_security_usq_simple_enforced(size_t num)
+{
+    const double bases[] = {72, 62, 52, 46, 36, 26, 20, 10};
+    const double coefficients[] = {1, -2, 1, -2, 4, -2, 1, -2};
+    const size_t numBases = sizeof(bases) / sizeof(double);
+
+    double x[numBases];
+    double sum;
+    size_t i;
+
+    ASSERT(num >= 4, "Bits of security undefined for password length < 4");
+
+    for (i = 0; i < numBases; i++) {
+        x[i] = num * log2(bases[i]);
+    }
+
+    sum = 0.0;
+    for (i = 0; i < numBases; i++) {
+        sum += coefficients[i] * pow(2.0, x[i] - x[0]);
+    }
+
+    return x[0] + log2(sum);
 }
 
 static void get_usq_simple_cprng(char *result, size_t num, struct cprng *rng)
