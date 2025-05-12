@@ -133,14 +133,15 @@ To generate a 15-character alphanumeric password:
 
     $ pwgen -n -l 15
 
-To generate a 16-character hexadecimal password:
-
-    $ pwgen -h -l 16
-
 To generate a 24-character password with at least one of each of an uppercase
 letter, a lowercase letter, a number, and a special character:
 
     $ pwgen -e -l 24
+
+To describe the number of bits of security provided by the previous generation
+method:
+
+    $ pwgen -e -l 24 -d
 
 See the pwgen.1 man page for more details.
 
