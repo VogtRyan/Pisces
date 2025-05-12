@@ -61,7 +61,7 @@ consists of numbers and the letters 'a' through 'f'.
 .It Fl l Ar length
 The password generated will consist of
 .Ar length
-characters. The default is 20 characters.
+characters. The default is 24 characters.
 .It Fl n
 Use the alphanumeric set to generate the password. This set consists of the
 ASCII lowercase and uppercase letters and numbers.
@@ -83,13 +83,13 @@ To generate a 16-character hexadecimal password:
 .Pp
 .Dl $ pwgen -h -l 16
 .Pp
-To generate a 20-character password with at least one of each of an uppercase
+To generate a 24-character password with at least one of each of an uppercase
 letter, a lowercase letter, a number, and a special character (this is the
 default behaviour of
 .Nm
 if no command-line arguments are provided):
 .Pp
-.Dl $ pwgen -e -l 20
+.Dl $ pwgen -e -l 24
 .Sh HISTORY
 The
 .Nm
