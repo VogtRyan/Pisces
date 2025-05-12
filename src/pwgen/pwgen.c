@@ -275,6 +275,10 @@ static void parse_command_line(int argc, char **argv, gen_fn_t *genFn,
         }
     }
 
+    if (argc - optind != 0) {
+        usage();
+    }
+
     if (*outputLen == 0) {
         *outputLen = DEFAULT_LENGTH;
     }
