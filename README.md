@@ -118,10 +118,10 @@ To generate a 16-character hexadecimal password:
 ```
     $ pwgen -h -l 16
 ```
-To generate a 20-character password with at least one of each of an uppercase
+To generate a 24-character password with at least one of each of an uppercase
 letter, a lowercase letter, a number, and a special character:
 ```
-    $ pwgen -e -l 20
+    $ pwgen -e -l 24
 ```
 See the `pwgen.1` man page for more details.
 
