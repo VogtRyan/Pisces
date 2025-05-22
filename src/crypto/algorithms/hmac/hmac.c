@@ -71,6 +71,7 @@ int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen)
     byte_t *keyHash = hmac->digestSizedBuffer;
     byte_t *pad = hmac->blockSizedBuffer;
     size_t blockSize, i;
+    int chfRes;
     int errVal = 0;
 
     hmac->isRunning = 1;
@@ -102,9 +103,8 @@ int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen)
         pad[i] ^= key[i];
     }
     chf_start(hmac->innerCtx);
-    if (chf_add(hmac->innerCtx, pad, blockSize)) {
-        ASSERT_NEVER_REACH("HMAC inner context CHF initialization failed");
-    }
+    chfRes = chf_add(hmac->innerCtx, pad, blockSize);
+    ASSERT(chfRes == 0, "HMAC inner context CHF initialization failed");
 
     /*
      * Compute o_key_pad and start the outer context with it. As above, the
@@ -115,9 +115,8 @@ int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen)
         pad[i] ^= key[i];
     }
     chf_start(hmac->outerCtx);
-    if (chf_add(hmac->outerCtx, pad, blockSize)) {
-        ASSERT_NEVER_REACH("HMAC outer context CHF initialization failed");
-    }
+    chfRes = chf_add(hmac->outerCtx, pad, blockSize);
+    ASSERT(chfRes == 0, "HMAC outer context CHF initialization failed");
 
 isErr:
     hmac->errorCode = errVal;
