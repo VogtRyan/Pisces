@@ -270,6 +270,9 @@ static void parse_command_line(int argc, char **argv, gen_fn_t *genFn,
         case 'd':
             *describe = 1;
             break;
+        case 'v':
+            printf("pwgen version %s\n", IMPLEMENTATION_VERSION);
+            exit(EXIT_SUCCESS);
         default:
             usage();
         }
@@ -341,7 +344,6 @@ isErr:
 
 static void usage(void)
 {
-    fprintf(stderr, "usage: pwgen [-adeHhns] [-l length]\n");
-    fprintf(stderr, "pwgen version %s\n", IMPLEMENTATION_VERSION);
+    fprintf(stderr, "usage: pwgen [-adeHhnsv] [-l length]\n");
     exit(-1);
 }

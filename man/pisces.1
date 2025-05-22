@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd April 7, 2025
+.Dd May 21, 2025
 .Dt PISCES 1
 .Os
 .Sh NAME
@@ -20,22 +20,22 @@
 .Nd encrypt and decrypt files based on the AES standard
 .Sh SYNOPSIS
 .Nm pisces
-.Op Fl de
+.Op Fl dev
 .Op Fl p Ar password
 .Ar input_file
 .Ar output_file
 .Nm pisces
-.Op Fl de
+.Op Fl dev
 .Op Fl p Ar password
 .Fl i
 .Ar output_file
 .Nm pisces
-.Op Fl de
+.Op Fl dev
 .Op Fl p Ar password
 .Fl o
 .Ar input_file
 .Nm pisces
-.Op Fl de
+.Op Fl dev
 .Op Fl p Ar password
 .Fl i
 .Fl o
@@ -73,6 +73,10 @@ from attempting to parse it. Note that this option may compromise the security
 of the password, e.g., if an adversary is running
 .Xr ps 1
 or has access to your shell history.
+.It Fl v
+Print the version of
+.Nm
+to standard output and exit.
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES

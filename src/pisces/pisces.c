@@ -154,6 +154,9 @@ static void parse_command_line(int argc, char **argv, int *encrypt,
         case 'o':
             needOutput = 0;
             break;
+        case 'v':
+            printf("pisces version %s\n", IMPLEMENTATION_VERSION);
+            exit(EXIT_SUCCESS);
         default:
             usage();
         }
@@ -213,10 +216,9 @@ isErr:
 static void usage(void)
 {
     fprintf(stderr,
-            "usage: pisces [-de] [-p password] input_file output_file\n"
-            "       pisces [-de] [-p password] -i output_file\n"
-            "       pisces [-de] [-p password] -o input_file\n"
-            "       pisces [-de] [-p password] -i -o\n");
-    fprintf(stderr, "pisces version %s\n", IMPLEMENTATION_VERSION);
+            "usage: pisces [-dev] [-p password] input_file output_file\n"
+            "       pisces [-dev] [-p password] -i output_file\n"
+            "       pisces [-dev] [-p password] -o input_file\n"
+            "       pisces [-dev] [-p password] -i -o\n");
     exit(-1);
 }
