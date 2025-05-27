@@ -35,6 +35,7 @@ typedef enum {
     GEN_FN_ASCII,
     GEN_FN_HEX_LOWER,
     GEN_FN_HEX_UPPER,
+    GEN_FN_NUMERIC,
     GEN_FN_USQ_ENFORCED,
     GEN_FN_USQ_SIMPLE
 } gen_fn_t;
@@ -165,6 +166,9 @@ static void generate_password(char *password, size_t length, gen_fn_t genFn)
     case GEN_FN_HEX_UPPER:
         get_hex_uppercase(password, length);
         break;
+    case GEN_FN_NUMERIC:
+        get_numeric(password, length);
+        break;
     case GEN_FN_USQ_ENFORCED:
         get_usq_simple_enforced(password, length);
         break;
@@ -194,6 +198,10 @@ static void describe_gen_fn(size_t length, gen_fn_t genFn)
     case GEN_FN_HEX_UPPER:
         print_description_whole("Hexadecimal (uppercase)", length,
                                 bits_security_hex(length));
+        break;
+    case GEN_FN_NUMERIC:
+        print_description_decimal("Numeric PIN", length,
+                                  bits_security_numeric(length));
         break;
     case GEN_FN_USQ_ENFORCED:
         print_description_decimal("Enforced (uppercase, lowercase, number, "
@@ -244,7 +252,7 @@ static void parse_command_line(int argc, char **argv, gen_fn_t *genFn,
     *outputLen = 0;
     *describe = 0;
 
-    while ((ch = getopt(argc, argv, "adeHhnsl:v")) != -1) {
+    while ((ch = getopt(argc, argv, "adeHhnpsl:v")) != -1) {
         switch (ch) {
         case 'a':
             set_generation_fn(genFn, &genFnSet, GEN_FN_ASCII);
@@ -260,6 +268,9 @@ static void parse_command_line(int argc, char **argv, gen_fn_t *genFn,
             break;
         case 'n':
             set_generation_fn(genFn, &genFnSet, GEN_FN_ALPHA_NUM);
+            break;
+        case 'p':
+            set_generation_fn(genFn, &genFnSet, GEN_FN_NUMERIC);
             break;
         case 's':
             set_generation_fn(genFn, &genFnSet, GEN_FN_USQ_SIMPLE);
@@ -344,6 +355,6 @@ isErr:
 
 static void usage(void)
 {
-    fprintf(stderr, "usage: pwgen [-adeHhnsv] [-l length]\n");
+    fprintf(stderr, "usage: pwgen [-adeHhnpsv] [-l length]\n");
     exit(-1);
 }

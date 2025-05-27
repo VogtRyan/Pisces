@@ -116,3 +116,60 @@ double bits_security_alpha_num(size_t num)
     /* log_2(62^n) == n * log_2(62) */
     return num * log2(62);
 }
+
+void get_numeric(char *result, size_t num)
+{
+    byte_t *randArray;
+    struct cprng *rng;
+    size_t rawSize, rawSizeMax, i;
+
+    /*
+     * Allocate a temporary array to store raw random bytes. We can potentially
+     * extract two random characters from each random byte.
+     */
+    rawSizeMax = num / 2;
+    if (num & 0x1) {
+        rawSizeMax++;
+    }
+    randArray = (byte_t *)malloc(rawSizeMax);
+    GUARD_ALLOC(randArray);
+    rng = cprng_alloc_default();
+
+    /*
+     * If any random byte is less than 200, we can extract two unbiased values
+     * in the range 0-9 from it: the ones digit, and the floored remainder
+     * when it's divided by 20.
+     *
+     * If the random byte is in the range [200, 249], we can extract one
+     * unbiased value from it: the ones digit.
+     */
+    while (num > 0) {
+        rawSize = num / 2;
+        if (num & 0x1) {
+            rawSize++;
+        }
+        cprng_bytes(rng, randArray, rawSize);
+        for (i = 0; i < rawSize; i++) {
+            if (randArray[i] < 250) {
+                *result = '0' + (char)(randArray[i] % 10);
+                result++;
+                num--;
+            }
+            if (num > 0 && randArray[i] < 200) {
+                *result = '0' + (char)(randArray[i] / 20);
+                result++;
+                num--;
+            }
+        }
+    }
+
+    cprng_free_scrub(rng);
+    scrub_memory(randArray, rawSizeMax);
+    free(randArray);
+}
+
+double bits_security_numeric(size_t num)
+{
+    /* log_2(10^n) == n * log_2(10) */
+    return num * log2(10);
+}

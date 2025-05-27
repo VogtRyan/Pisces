@@ -32,9 +32,9 @@ void get_ascii(char *result, size_t num);
 double bits_security_ascii(size_t num);
 
 /*
- * Fills the result array with the requested number of unbiased set of
- * uppercase, lowercase, and numeric characters in the standard ASCII character
- * set.
+ * Fills the result array with the requested number of unbiased characters from
+ * the set of uppercase, lowercase, and numeric characters in the standard
+ * ASCII character set.
  */
 void get_alpha_num(char *result, size_t num);
 
@@ -43,5 +43,16 @@ void get_alpha_num(char *result, size_t num);
  * of the given length.
  */
 double bits_security_alpha_num(size_t num);
+
+/*
+ * Fills the result array with the requested number of numeric characters.
+ */
+void get_numeric(char *result, size_t num);
+
+/*
+ * Returns the number of bits of security offered by a get_numeric password of
+ * the given length.
+ */
+double bits_security_numeric(size_t num);
 
 #endif

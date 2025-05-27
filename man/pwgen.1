@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 21, 2025
+.Dd May 26, 2025
 .Dt PWGEN 1
 .Os
 .Sh NAME
@@ -20,15 +20,15 @@
 .Nd generate passwords from various character sets
 .Sh SYNOPSIS
 .Nm pwgen
-.Op Fl adeHhnsv
+.Op Fl adeHhnpsv
 .Op Fl l Ar length
 .Sh DESCRIPTION
 The
 .Nm
 utility generates cryptographically secure, unbiased random passwords from the
 ASCII character set, the alphanumeric character set, the hexadecimal character
-set, or a simplified character set designed for ease of use on a U.S. QWERTY
-keyboard. The passwords generated will be
+set, the set of decimal digits, or a simplified character set designed for
+ease of use on a U.S. QWERTY keyboard. The passwords generated will be
 .Ar length
 characters long.
 .Pp
@@ -65,6 +65,9 @@ characters. The default is 24 characters.
 .It Fl n
 Use the alphanumeric set to generate the password. This set consists of the
 ASCII lowercase and uppercase letters and numbers.
+.It Fl p
+Use the ASCII numbers '0' through '9' to generate the password, which can
+function as a PIN.
 .It Fl s
 Use a simple character set designed for ease of use on a U.S. QWERTY keyboard
 to generate the password. This character set consists of all uppercase and
