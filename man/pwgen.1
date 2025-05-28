@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 26, 2025
+.Dd May 27, 2025
 .Dt PWGEN 1
 .Os
 .Sh NAME
@@ -44,10 +44,10 @@ including the number of bits of security it provides, instead of generating a
 password.
 .It Fl e
 Use a simple character set designed for ease of use on a U.S. QWERTY keyboard
-to generate the password, and enforce that there be at least one of each of
-an uppercase letter, a lowercase letter, a number, and a special character in
-the result. This enforcement is performed in a manner that does not bias the
-password. This option is the default behaviour of
+to generate the password, and enforce that it contains at least one uppercase
+letter, one lowercase letter, one number, and one special character. This
+enforcement is performed in a manner that does not bias the password. This
+option is the default behaviour of
 .Nm .
 See the
 .Fl s
@@ -82,22 +82,29 @@ to standard output and exit.
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
-To generate a 15-character alphanumeric password:
+To generate a 24-character password guaranteed to contain at least one
+uppercase letter, one lowercase letter, one number, and one special character:
 .Pp
-.Dl $ pwgen -n -l 15
+.Dl $ pwgen
 .Pp
-To generate a 24-character password with at least one of each of an uppercase
-letter, a lowercase letter, a number, and a special character (this is the
-default behaviour of
-.Nm
-if no command-line arguments are provided):
+To generate a four-digit PIN:
 .Pp
-.Dl $ pwgen -e -l 24
+.Dl $ pwgen -l 4 -p
 .Pp
-To describe the number of bits of security provided by the previous generation
-method:
+To generate a 12-character hexadecimal string:
 .Pp
-.Dl $ pwgen -e -l 24 -d
+.Dl $ pwgen -l 12 -h
+.Pp
+To generate a 22-character alphanumeric password using uppercase letters,
+lowercase letters, and numbers, without guaranteeing the presence of each type:
+.Pp
+.Dl $ pwgen -l 22 -n
+.Pp
+To describe how many bits of security are provided by the 22-character
+alphanumeric password generated above:
+.Pp
+.Dl $ pwgen -l 22 -n -d
+.Pp
 .Sh HISTORY
 The
 .Nm

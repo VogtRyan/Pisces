@@ -129,19 +129,28 @@ See the pisces.1 man page for more details.
 
 5. Example Pwgen Usage
 
-To generate a 15-character alphanumeric password:
+To generate a 24-character password guaranteed to contain at least one
+uppercase letter, one lowercase letter, one number, and one special character:
 
-    $ pwgen -n -l 15
+    $ pwgen
 
-To generate a 24-character password with at least one of each of an uppercase
-letter, a lowercase letter, a number, and a special character:
+To generate a four-digit PIN:
 
-    $ pwgen -e -l 24
+    $ pwgen -l 4 -p
 
-To describe the number of bits of security provided by the previous generation
-method:
+To generate a 12-character hexadecimal string:
 
-    $ pwgen -e -l 24 -d
+    $ pwgen -l 12 -h
+
+To generate a 22-character alphanumeric password using uppercase letters,
+lowercase letters, and numbers, without guaranteeing the presence of each type:
+
+    $ pwgen -l 22 -n
+
+To describe how many bits of security are provided by the 22-character
+alphanumeric password generated above:
+
+    $ pwgen -l 22 -n -d
 
 See the pwgen.1 man page for more details.
 
