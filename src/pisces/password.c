@@ -55,6 +55,7 @@ static int password_strlen(const char *provided, size_t *passwordLen);
  */
 static int get_secret_input(const char *prompt, char *userInput,
                             size_t *passwordLen);
+static int read_secret_line(FILE *fp, char *line, size_t *len);
 
 int get_encryption_password(char *password, size_t *passwordLen,
                             const char *providedPassword)
@@ -165,8 +166,6 @@ static int get_secret_input(const char *prompt, char *userInput,
     sigset_t sig, sigsave;
     struct termios term, termsave;
     FILE *fp;
-    int c;
-    size_t len;
     int errVal = 0;
 
     fp = fopen(ctermid(NULL), "r+");
@@ -186,29 +185,34 @@ static int get_secret_input(const char *prompt, char *userInput,
     term.c_lflag &= (tcflag_t)(~(ECHO | ECHOE | ECHOK | ECHONL));
     tcsetattr(fileno(fp), TCSAFLUSH, &term);
 
-    len = 0;
+    if (read_secret_line(fp, userInput, passwordLen)) {
+        ERROR(isErr, errVal, "Password can be at most %d characters long",
+              PASSWORD_LENGTH_MAX);
+    }
+
+isErr:
+    tcsetattr(fileno(fp), TCSAFLUSH, &termsave);
+    sigprocmask(SIG_SETMASK, &sigsave, NULL);
+    fclose(fp);
+    return errVal;
+}
+
+static int read_secret_line(FILE *fp, char *line, size_t *len)
+{
+    int c;
+    int ret = 0;
+
+    *len = 0;
     while ((c = getc(fp)) != EOF && c != '\n') {
-        if (len < PASSWORD_LENGTH_MAX) {
-            userInput[len++] = (char)c;
+        if (*len < PASSWORD_LENGTH_MAX) {
+            line[(*len)++] = (char)c;
         }
         else {
-            len = PASSWORD_LENGTH_MAX + 1;
+            ret = -1;
         }
     }
     putc('\n', fp);
 
-    tcsetattr(fileno(fp), TCSAFLUSH, &termsave);
-    sigprocmask(SIG_SETMASK, &sigsave, NULL);
-    fclose(fp);
-
-    if (len == PASSWORD_LENGTH_MAX + 1) {
-        ERROR(isErr, errVal, "Password can be at most %d characters long",
-              PASSWORD_LENGTH_MAX);
-    }
-    *passwordLen = len;
-
-isErr:
     scrub_memory(&c, sizeof(int));
-    scrub_memory(&len, sizeof(size_t));
-    return errVal;
+    return ret;
 }
