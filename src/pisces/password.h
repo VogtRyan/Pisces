@@ -22,27 +22,17 @@
 #include <stddef.h>
 
 /*
- * Prompts the user to input an encryption password, then a second time to
- * confirm it, if providedPassword is NULL. The user-input password will be
- * written to the password array and its length stored in passwordLen.
+ * Prompts the user to input a password (and, for encryption, to confirm it).
+ * The password array must be at least PASSWORD_LENGTH_MAX long. Its contents
+ * will NOT be NULL-terminated.
  *
- * If providedPassword is non-NULL, it is treated as both the user's first
- * password input and its confirmation input, and the password and passwordLen
- * variables are updated accordingly.
+ * If providedPassword is non-NULL, it is treated as the user's input (and
+ * confirmation). It must be NULL-terminated.
  *
- * The data stored in the password array will NOT be NULL-terminated. The
- * password array must be of length at least PASSWORD_LENGTH_MAX. Returns 0 on
- * success, or -1 on error (and prints an error message).
+ * Returns 0 on success, <0 on error, prints error messages.
  */
 int get_encryption_password(char *password, size_t *passwordLen,
                             const char *providedPassword);
-
-/*
- * Prompts the user to input a decryption password. Unlike with
- * get_encryption_password(), there is no second input to confirm the password.
- * Otherwise, the contract of this function is identical to that of
- * get_encryption_password().
- */
 int get_decryption_password(char *password, size_t *passwordLen,
                             const char *providedPassword);
 
