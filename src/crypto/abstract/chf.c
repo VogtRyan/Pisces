@@ -79,39 +79,32 @@ void chf_start(struct chf_ctx *chf)
 
 int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen)
 {
-    int errVal = 0;
-
     ASSERT(chf->isRunning, "CHF context is not running");
+
     if (chf->errorCode) {
         return chf->errorCode;
     }
-
     if (chf_ctx_add(chf, input, inputLen)) {
-        ERROR_CODE(isErr, errVal, CHF_ERROR_MESSAGE_TOO_LONG);
+        ERROR_SET(chf->errorCode, CHF_ERROR_MESSAGE_TOO_LONG);
     }
 
-isErr:
-    chf->errorCode = errVal;
-    return errVal;
+    return chf->errorCode;
 }
 
 int chf_end(struct chf_ctx *chf, byte_t *output)
 {
-    int errVal = 0;
-
     ASSERT(chf->isRunning, "CHF context is not running");
+
     chf->isRunning = 0;
 
     if (chf->errorCode) {
         return chf->errorCode;
     }
     if (chf_ctx_end(chf, output)) {
-        ERROR_CODE(isErr, errVal, CHF_ERROR_MESSAGE_TOO_LONG);
+        ERROR_SET(chf->errorCode, CHF_ERROR_MESSAGE_TOO_LONG);
     }
 
-isErr:
-    chf->errorCode = errVal;
-    return errVal;
+    return chf->errorCode;
 }
 
 int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
