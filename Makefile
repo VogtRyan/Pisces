@@ -25,12 +25,14 @@ INSTALL_MAN    = ${PREFIX}/man/man1
 CFLAGS.COMMON = -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200112L
 
 CFLAGS.BUILD.release = -O2
+CFLAGS.BUILD.strict  = -O2 -Werror
 CFLAGS.BUILD.debug   = -O0 -g -DDEBUGGING
 
 CFLAGS.CPRNG.arc4random =
 CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
 
 IGNORE_FAILED_TESTS.BUILD.release =
+IGNORE_FAILED_TESTS.BUILD.strict  =
 IGNORE_FAILED_TESTS.BUILD.debug   = -
 IGNORE_FAILED_TESTS               = ${IGNORE_FAILED_TESTS.BUILD.${BUILD}}
 
