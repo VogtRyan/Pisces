@@ -25,10 +25,33 @@
 #endif
 
 /*
+ * - Programming errors (e.g., should not reach): ASSERT*
  * - User-level errors (e.g., incorrect inputs): ERROR*
  * - System-level errors (e.g., out of memory): FATAL* and GUARD*
- * - Programming errors (e.g., should not reach): ASSERT*
  */
+
+#define ASSERT(condition, ...)                                                \
+    do {                                                                      \
+        if (!(condition)) {                                                   \
+            fprintf(ERROR_OUTPUT, "Failed assertion [%s:%d, %s]: ", __FILE__, \
+                    __LINE__, #condition);                                    \
+            fprintf(ERROR_OUTPUT, __VA_ARGS__);                               \
+            fprintf(ERROR_OUTPUT, "\n");                                      \
+            fflush(ERROR_OUTPUT);                                             \
+            abort();                                                          \
+        }                                                                     \
+    } while (0)
+
+#define ASSERT_NEVER_REACH(...)                                               \
+    do {                                                                      \
+        fprintf(ERROR_OUTPUT,                                                 \
+                "Failed assertion [%s:%d, never reach]: ", __FILE__,          \
+                __LINE__);                                                    \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
+        fprintf(ERROR_OUTPUT, "\n");                                          \
+        fflush(ERROR_OUTPUT);                                                 \
+        abort();                                                              \
+    } while (0)
 
 #ifndef DEBUGGING
 #define ERROR(target, flag, ...)                                              \
@@ -53,6 +76,23 @@
 #endif
 
 #ifndef DEBUGGING
+#define ERROR_CODE(target, flag, code)                                        \
+    do {                                                                      \
+        flag = (code);                                                        \
+        goto target;                                                          \
+    } while (0)
+#else
+#define ERROR_CODE(target, flag, code)                                        \
+    do {                                                                      \
+        flag = (code);                                                        \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d, code %d]\n", __FILE__, __LINE__, \
+                flag);                                                        \
+        fflush(ERROR_OUTPUT);                                                 \
+        goto target;                                                          \
+    } while (0)
+#endif
+
+#ifndef DEBUGGING
 #define ERROR_QUIET(target, flag)                                             \
     do {                                                                      \
         flag = -1;                                                            \
@@ -69,19 +109,17 @@
 #endif
 
 #ifndef DEBUGGING
-#define ERROR_CODE(target, flag, code)                                        \
+#define ERROR_SET(flag, code)                                                 \
     do {                                                                      \
         flag = (code);                                                        \
-        goto target;                                                          \
     } while (0)
 #else
-#define ERROR_CODE(target, flag, code)                                        \
+#define ERROR_SET(flag, code)                                                 \
     do {                                                                      \
         flag = (code);                                                        \
         fprintf(ERROR_OUTPUT, "Error [%s:%d, code %d]\n", __FILE__, __LINE__, \
                 flag);                                                        \
         fflush(ERROR_OUTPUT);                                                 \
-        goto target;                                                          \
     } while (0)
 #endif
 
@@ -127,28 +165,5 @@
         }                                                                     \
     } while (0)
 #endif
-
-#define ASSERT(condition, ...)                                                \
-    do {                                                                      \
-        if (!(condition)) {                                                   \
-            fprintf(ERROR_OUTPUT, "Failed assertion [%s:%d, %s]: ", __FILE__, \
-                    __LINE__, #condition);                                    \
-            fprintf(ERROR_OUTPUT, __VA_ARGS__);                               \
-            fprintf(ERROR_OUTPUT, "\n");                                      \
-            fflush(ERROR_OUTPUT);                                             \
-            abort();                                                          \
-        }                                                                     \
-    } while (0)
-
-#define ASSERT_NEVER_REACH(...)                                               \
-    do {                                                                      \
-        fprintf(ERROR_OUTPUT,                                                 \
-                "Failed assertion [%s:%d, never reach]: ", __FILE__,          \
-                __LINE__);                                                    \
-        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
-        fprintf(ERROR_OUTPUT, "\n");                                          \
-        fflush(ERROR_OUTPUT);                                                 \
-        abort();                                                              \
-    } while (0)
 
 #endif
