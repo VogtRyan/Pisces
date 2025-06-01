@@ -40,9 +40,9 @@ struct chf_ctx {
  */
 static inline void chf_ctx_alloc(struct chf_ctx *chf);
 static inline void chf_ctx_start(struct chf_ctx *chf);
-static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *bytes,
-                              size_t numBytes);
-static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *digest);
+static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
+                              size_t inputLen);
+static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *output);
 static inline void chf_ctx_copy(struct chf_ctx *dst,
                                 const struct chf_ctx *src);
 static inline void chf_ctx_free_scrub(struct chf_ctx *chf);
@@ -77,7 +77,7 @@ void chf_start(struct chf_ctx *chf)
     chf_ctx_start(chf);
 }
 
-int chf_add(struct chf_ctx *chf, const byte_t *bytes, size_t numBytes)
+int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen)
 {
     int errVal = 0;
 
@@ -86,7 +86,7 @@ int chf_add(struct chf_ctx *chf, const byte_t *bytes, size_t numBytes)
         return chf->errorCode;
     }
 
-    if (chf_ctx_add(chf, bytes, numBytes)) {
+    if (chf_ctx_add(chf, input, inputLen)) {
         ERROR_CODE(isErr, errVal, CHF_ERROR_MESSAGE_TOO_LONG);
     }
 
@@ -95,7 +95,7 @@ isErr:
     return errVal;
 }
 
-int chf_end(struct chf_ctx *chf, byte_t *digest)
+int chf_end(struct chf_ctx *chf, byte_t *output)
 {
     int errVal = 0;
 
@@ -105,7 +105,7 @@ int chf_end(struct chf_ctx *chf, byte_t *digest)
     if (chf->errorCode) {
         return chf->errorCode;
     }
-    if (chf_ctx_end(chf, digest)) {
+    if (chf_ctx_end(chf, output)) {
         ERROR_CODE(isErr, errVal, CHF_ERROR_MESSAGE_TOO_LONG);
     }
 
@@ -114,12 +114,12 @@ isErr:
     return errVal;
 }
 
-int chf_single(struct chf_ctx *chf, const byte_t *bytes, size_t numBytes,
-               byte_t *digest)
+int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
+               byte_t *output)
 {
     chf_start(chf);
-    chf_add(chf, bytes, numBytes);
-    return chf_end(chf, digest);
+    chf_add(chf, input, inputLen);
+    return chf_end(chf, output);
 }
 
 size_t chf_digest_size(const struct chf_ctx *chf)
@@ -193,27 +193,27 @@ static inline void chf_ctx_start(struct chf_ctx *chf)
     }
 }
 
-static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *bytes,
-                              size_t numBytes)
+static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
+                              size_t inputLen)
 {
     switch (chf->type) {
     case CHF_ALG_SHA1:
-        return sha1_add((struct sha1_ctx *)chf->ctx, bytes, numBytes);
+        return sha1_add((struct sha1_ctx *)chf->ctx, input, inputLen);
     case CHF_ALG_SHA3_512:
-        sha3_add((struct sha3_ctx *)chf->ctx, bytes, numBytes);
+        sha3_add((struct sha3_ctx *)chf->ctx, input, inputLen);
         return 0;
     default:
         ASSERT_NEVER_REACH("Invalid CHF algorithm");
     }
 }
 
-static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *digest)
+static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *output)
 {
     switch (chf->type) {
     case CHF_ALG_SHA1:
-        return sha1_end((struct sha1_ctx *)chf->ctx, digest);
+        return sha1_end((struct sha1_ctx *)chf->ctx, output);
     case CHF_ALG_SHA3_512:
-        sha3_end((struct sha3_ctx *)chf->ctx, digest);
+        sha3_end((struct sha3_ctx *)chf->ctx, output);
         return 0;
     default:
         ASSERT_NEVER_REACH("Invalid CHF algorithm");

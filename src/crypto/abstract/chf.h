@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -68,11 +68,11 @@ void chf_start(struct chf_ctx *chf);
  * It is a fatal error if a hash operation has not been started with
  * chf_start().
  */
-int chf_add(struct chf_ctx *chf, const byte_t *bytes, size_t numBytes);
+int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen);
 
 /*
  * Computes the message digest of the data that has been provided and writes
- * the result to the digest array. The amount of data written will be equal to
+ * the digest to the output array. The amount of data written will be equal to
  * chf_digest_bytes(), which is guaranteed not to exceed CHF_MAX_DIGEST_BYTES
  *
  * Returns 0 on success or a negative value (specifically
@@ -82,7 +82,7 @@ int chf_add(struct chf_ctx *chf, const byte_t *bytes, size_t numBytes);
  * It is a fatal error if a hash operation has not been started with
  * chf_start().
  */
-int chf_end(struct chf_ctx *chf, byte_t *digest);
+int chf_end(struct chf_ctx *chf, byte_t *output);
 
 /*
  * A shorthand for calling chf_start(), then a single chf_add(), then
@@ -90,8 +90,8 @@ int chf_end(struct chf_ctx *chf, byte_t *digest);
  * functions are called in sequence, you may use the same memory location for
  * the source bytes and the output digest.
  */
-int chf_single(struct chf_ctx *chf, const byte_t *bytes, size_t numBytes,
-               byte_t *digest);
+int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
+               byte_t *output);
 
 /*
  * Returns the size of the message digest output in bytes, which is guaranteed
