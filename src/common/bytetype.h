@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2023-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,6 @@
 #error Pisces is not compatible with non-octet-byte machines.
 #endif
 
-/* A short type name for a byte, to improve readability */
 typedef unsigned char byte_t;
 
 #endif

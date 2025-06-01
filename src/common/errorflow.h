@@ -25,12 +25,11 @@
 #endif
 
 /*
- * Prints the given variable-argument message, sets the int-type flag variable
- * to -1, and jumps to the specified target.
- *
- * If DEBUGGING is defined, the filename and line number are included the
- * output.
+ * - User-level errors (e.g., incorrect inputs): ERROR*
+ * - System-level errors (e.g., out of memory): FATAL* and GUARD*
+ * - Programming errors (e.g., should not reach): ASSERT*
  */
+
 #ifndef DEBUGGING
 #define ERROR(target, flag, ...)                                              \
     do {                                                                      \
@@ -53,12 +52,6 @@
     } while (0)
 #endif
 
-/*
- * Sets the int-type flag variable to -1, and jumps to the specified target.
- *
- * If DEBUGGING is defined, this macro also outputs a message with the
- * filename and line number.
- */
 #ifndef DEBUGGING
 #define ERROR_QUIET(target, flag)                                             \
     do {                                                                      \
@@ -75,13 +68,6 @@
     } while (0)
 #endif
 
-/*
- * Sets the int-type flag variable to the given error code, and jumps to the
- * specified target.
- *
- * If DEBUGGING is defined, this macro also outputs a message with the
- * filename, line number, and error code.
- */
 #ifndef DEBUGGING
 #define ERROR_CODE(target, flag, code)                                        \
     do {                                                                      \
@@ -99,13 +85,6 @@
     } while (0)
 #endif
 
-/*
- * Prints the given variable-argument message, and exits the program with a
- * failure code.
- *
- * If DEBUGGING is defined, the filename and line number are included in the
- * output.
- */
 #ifndef DEBUGGING
 #define FATAL_ERROR(...)                                                      \
     do {                                                                      \
@@ -126,14 +105,6 @@
     } while (0)
 #endif
 
-/*
- * Verifies that the given return from an allocation call, such as malloc() or
- * calloc(), is non-NULL. If not, this macro prints an error message and exits
- * the program with a failure code.
- *
- * If DEBUGGING is defined, the filename and line number are included in the
- * output.
- */
 #ifndef DEBUGGING
 #define GUARD_ALLOC(ptr)                                                      \
     do {                                                                      \
@@ -157,11 +128,6 @@
     } while (0)
 #endif
 
-/*
- * Asserts that the given condition is true. If not, this macro prints the
- * given variable-argument message, along with the filename, line number, and
- * condition that failed. Then, it aborts the program.
- */
 #define ASSERT(condition, ...)                                                \
     do {                                                                      \
         if (!(condition)) {                                                   \
@@ -174,11 +140,6 @@
         }                                                                     \
     } while (0)
 
-/*
- * Asserts that a line of code should not be reached. If it is reached, this
- * macro prints the given variable-argument message, along with the filename
- * and line number. Then, it aborts the program.
- */
 #define ASSERT_NEVER_REACH(...)                                               \
     do {                                                                      \
         fprintf(ERROR_OUTPUT,                                                 \

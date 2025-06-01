@@ -17,15 +17,11 @@
 #ifndef PISCES_COMMON_CONFIG_H_
 #define PISCES_COMMON_CONFIG_H_
 
-/*
- * Shared implementation version for pisces and pwgen.
- */
 #define IMPLEMENTATION_VERSION "5.2.4"
 
 /*
- * Maximum length of passwords in both pisces and pwgen. Note that both a
- * size_t and an int are guaranteed to hold values up to at least 32767, so
- * this constant can be compared safely to both those types.
+ * Guaranteed to be no greater than 32767, so it can be safely cast to any of:
+ * int, long, size_t (C99 standard, sections 5.2.4.2 and 7.18.3).
  */
 #define PASSWORD_LENGTH_MAX (1024)
 

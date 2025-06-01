@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,8 @@
 
 /*
  * Zero out the memory at the given location, in a manner that should not be
- * optimized out by the compiler. Note, the function can still be inlined.
+ * optimized out by the compiler. Despite concerns about compiler
+ * optimization, the function can still be inlined.
  *
  * For a detailed discussion about further optimizing this function, see
  * "Zero'ing memory, compiler optimizations and memset_s", written by
