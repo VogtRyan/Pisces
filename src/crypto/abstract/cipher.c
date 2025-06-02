@@ -27,8 +27,8 @@
 #include <string.h>
 
 /*
- * The context only supports AES with different key sizes, because that is the
- * only primitive used in this header.
+ * This abstract context contains a struct aes_cbc_ctx *, instead of a void *,
+ * because AES-CBC is the only primitive supported in this implementation.
  */
 struct cipher_ctx {
     struct aes_cbc_ctx *ctx;
@@ -47,15 +47,9 @@ struct cipher_ctx {
     int errorCode;
 };
 
-/*
- * Encrypts or decrypts the given block of data, updating any holdback in the
- * context when using padding with decryption. Returns the amount of data
- * placed into the output buffer.
- */
 static size_t process_block(struct cipher_ctx *cipher, const byte_t *block,
                             byte_t *output);
 
-/* Annotate a variable as unused, inside a function body */
 #define UNUSED(varname) (void)(varname)
 
 struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
@@ -189,15 +183,12 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputBytes)
     ASSERT(cipher->isRunning, "Cannot end operation on non-running cipher");
     cipher->isRunning = 0;
 
-    /* If an error has occurred, return 0 result bytes */
     if (outputBytes == NULL) {
         outputBytes = &fakeOutputBytes;
     }
     *outputBytes = 0;
 
-    /*
-     * Encrypt or decrypt a final block if necessary.
-     */
+    /* Encrypt or decrypt a final block if necessary */
     if (cipher->algPadded && cipher->direction == CIPHER_DIRECTION_ENCRYPT) {
         /*
          * Encrypting with padding is just: pad whatever (if anything) is in
@@ -228,9 +219,10 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputBytes)
     }
     else if (cipher->amntInput != 0) {
         /*
-         * No padding, but input left in the input buffer, is an error. Note:
-         * the output buffer is only used if there is padding, so in this case
-         * the output buffer is guaranteed to be empty.
+         * No padding is being used. Because the output buffer is only used
+         * when there is padding, it is guaranteed to be empty. But, we cannot
+         * process any data (a partial block) that might be left in the input
+         * buffer.
          */
         ERROR_CODE(isErr, errVal, CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
     }
