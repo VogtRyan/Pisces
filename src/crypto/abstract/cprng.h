@@ -21,23 +21,17 @@
 
 #include <stddef.h>
 
-/*
- * Opaque cryptographic pseudorandom number generator.
- */
 struct cprng;
 
 /*
- * Allocates a new psuedorandom number generator using the default algorithm,
- * as defined by the implementation. Must be freed with cprng_free_scrub().
- * Guaranteed to return non-NULL; it is a fatal error for the allocation of the
- * PRNG to fail.
+ * Allocates a new psuedorandom number generator. Must be freed with
+ * cprng_free_scrub(). Guaranteed to return non-NULL.
  */
 struct cprng *cprng_alloc_default(void);
 
 /*
- * Fills the given buffer with bytes from the pseudorandom number generator.
- * Any algorithm used by this abstraction will always succeed, though
- * implementations are free to block for a finite period of time.
+ * Fills the given buffer with random bytes. Guaranteed to succeed, but may
+ * block for a finite period of time.
  */
 void cprng_bytes(struct cprng *rng, byte_t *bytes, size_t numBytes);
 

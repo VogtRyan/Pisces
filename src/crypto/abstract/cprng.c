@@ -29,51 +29,29 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-/*
- * Set the default implementation of the random number generator used by
- * cprng_alloc_default(). The arc4random() family of functions, which is
- * the preferred source of random data, is assumed to be available unless
- * indicated at compile time.
- */
+typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm_t;
+
 #ifndef PISCES_NO_ARC4RANDOM
 #define CPRNG_DEFAULT_ALG (CPRNG_ALG_ARC4RANDOM)
 #else
 #define CPRNG_DEFAULT_ALG (CPRNG_ALG_DEVRANDOM)
 #endif
 
-/*
- * The device name to use if drawing random data from the /dev/ set of devices.
- * It is assumed that reads from the device will eventually succeed; it is a
- * fatal error for a read to fail.
- */
 #define CPRNG_DEVICE_NAME ("/dev/random")
 
-/*
- * This struct represents the different cryptographic pseudorandom number
- * generators that can be used.
- */
-typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm_t;
 struct cprng {
     cprng_algorithm_t type;
     int fd;
 };
 
-/*
- * Fills the buffer with random data read from random-soruce device in /dev/
- */
 static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
                                   size_t numBytes);
 
-/* Annotate a variable as unused, inside a function body */
 #define UNUSED(varname) (void)(varname)
 
 /*
  * Make arc4random_buf(void *, size_t) visible even when compiling against the
  * POSIX.1-2001 standard.
- *
- * The dead-code implementation of the function is to prevent warnings not from
- * the compiler, but from IDEs that view the extern declaration as missing an
- * implementation.
  */
 #ifdef _POSIX_C_SOURCE
 #if _POSIX_C_SOURCE != 200112L
@@ -84,6 +62,11 @@ extern void arc4random_buf(void *buf, size_t nbytes);
 #else
 static void arc4random_buf(void *buf, size_t nbytes)
 {
+    /*
+     * This dead-code implementation is to prevent warnings not from the
+     * compiler, but from IDEs that view the extern declaration as missing an
+     * implementation.
+     */
     UNUSED(buf);
     UNUSED(nbytes);
     ASSERT_NEVER_REACH("Not compiled with arc4random_buf() support");
