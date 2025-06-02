@@ -32,7 +32,7 @@
  * problems with user-specified input or output files).
  *
  * FATAL* and GUARD* are for system-level errors (e.g., out of memory, failure
- * to acquire a different requisite system resource not specified by the user).
+ * to acquire other requisite system resources not specified by the user).
  */
 
 #define ASSERT(condition, ...)                                                \
