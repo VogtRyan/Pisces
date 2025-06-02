@@ -47,7 +47,7 @@ struct cipher_ctx {
     int errorCode;
 };
 
-static size_t process_block(struct cipher_ctx *cipher, const byte_t *block,
+static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
                             byte_t *output);
 
 #define UNUSED(varname) (void)(varname)
@@ -116,40 +116,40 @@ void cipher_start(struct cipher_ctx *cipher)
     aes_cbc_set_iv(cipher->ctx, cipher->iv0);
 }
 
-void cipher_add(struct cipher_ctx *cipher, const byte_t *bytes,
-                size_t numBytes, byte_t *output, size_t *outputBytes)
+void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
+                size_t inputLen, byte_t *output, size_t *outputLen)
 {
     size_t toFillBlock, addToCipher;
-    size_t fakeOutputBytes, addedToOutput;
+    size_t fakeOutputLen, addedToOutput;
 
     ASSERT(cipher->isRunning, "Cannot add data to non-running cipher");
-    ASSERT(numBytes <= CIPHER_ADD_MAX_INPUT_SIZE,
+    ASSERT(inputLen <= CIPHER_ADD_MAX_INPUT_SIZE,
            "Cipher maximum single-input data size exceeded");
 
-    if (outputBytes == NULL) {
-        outputBytes = &fakeOutputBytes;
+    if (outputLen == NULL) {
+        outputLen = &fakeOutputLen;
     }
-    *outputBytes = 0;
+    *outputLen = 0;
 
     /* Process the input block-by-block */
-    while (numBytes > 0) {
-        if (cipher->amntInput == 0 && numBytes >= AES_CBC_BLOCK_SIZE) {
-            addedToOutput = process_block(cipher, bytes, output);
-            bytes += AES_CBC_BLOCK_SIZE;
-            numBytes -= AES_CBC_BLOCK_SIZE;
+    while (inputLen > 0) {
+        if (cipher->amntInput == 0 && inputLen >= AES_CBC_BLOCK_SIZE) {
+            addedToOutput = process_block(cipher, input, output);
+            input += AES_CBC_BLOCK_SIZE;
+            inputLen -= AES_CBC_BLOCK_SIZE;
         }
         else {
             toFillBlock = AES_CBC_BLOCK_SIZE - cipher->amntInput;
-            addToCipher = (toFillBlock < numBytes ? toFillBlock : numBytes);
-            memcpy(cipher->inputBlock + cipher->amntInput, bytes, addToCipher);
+            addToCipher = (toFillBlock < inputLen ? toFillBlock : inputLen);
+            memcpy(cipher->inputBlock + cipher->amntInput, input, addToCipher);
 
             /*
              * cipher->amntInput is bounded by the block size, so there is no
              * risk of overflow.
              */
             cipher->amntInput += addToCipher;
-            bytes += addToCipher;
-            numBytes -= addToCipher;
+            input += addToCipher;
+            inputLen -= addToCipher;
             if (cipher->amntInput == AES_CBC_BLOCK_SIZE) {
                 cipher->amntInput = 0;
                 addedToOutput =
@@ -162,31 +162,31 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *bytes,
 
         /*
          * The integer overflow should never trigger, given the bound
-         * of CIPHER_ADD_MAX_INPUT_SIZE on numBytes. Specifically, outputBytes
-         * will never exceed numBytes+b-1, where b is the block size of the
+         * of CIPHER_ADD_MAX_INPUT_SIZE on inputLen. Specifically, outputLen
+         * will never exceed inputLen+b-1, where b is the block size of the
          * cipher, because at least one byte would be required to fill any
          * partial block already in this context's buffer, and beyond that only
          * full blocks are processed.
          */
         output += addedToOutput;
-        *outputBytes += addedToOutput;
-        ASSERT(*outputBytes >= addedToOutput,
+        *outputLen += addedToOutput;
+        ASSERT(*outputLen >= addedToOutput,
                "Integer overflow in cipher input processing");
     }
 }
 
-int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputBytes)
+int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputLen)
 {
-    size_t fakeOutputBytes;
+    size_t fakeOutputLen;
     int errVal = 0;
 
     ASSERT(cipher->isRunning, "Cannot end operation on non-running cipher");
     cipher->isRunning = 0;
 
-    if (outputBytes == NULL) {
-        outputBytes = &fakeOutputBytes;
+    if (outputLen == NULL) {
+        outputLen = &fakeOutputLen;
     }
-    *outputBytes = 0;
+    *outputLen = 0;
 
     /* Encrypt or decrypt a final block if necessary */
     if (cipher->algPadded && cipher->direction == CIPHER_DIRECTION_ENCRYPT) {
@@ -197,7 +197,7 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputBytes)
         pkcs7_padding_add(cipher->inputBlock, cipher->amntInput,
                           AES_CBC_BLOCK_SIZE, cipher->inputBlock);
         aes_cbc_encrypt(cipher->ctx, cipher->inputBlock, output);
-        *outputBytes = AES_CBC_BLOCK_SIZE;
+        *outputLen = AES_CBC_BLOCK_SIZE;
     }
     else if (cipher->algPadded &&
              cipher->direction == CIPHER_DIRECTION_DECRYPT) {
@@ -213,7 +213,7 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputBytes)
                        CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
         }
         if (pkcs7_padding_remove(cipher->outputBlock, AES_CBC_BLOCK_SIZE,
-                                 output, outputBytes)) {
+                                 output, outputLen)) {
             ERROR_CODE(isErr, errVal, CIPHER_ERROR_INVALID_PAD_DATA);
         }
     }
@@ -229,7 +229,7 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputBytes)
 
 isErr:
     if (errVal) {
-        *outputBytes = 0;
+        *outputLen = 0;
     }
     cipher->errorCode = errVal;
     return errVal;
@@ -277,13 +277,13 @@ void cipher_free_scrub(struct cipher_ctx *cipher)
     }
 }
 
-static size_t process_block(struct cipher_ctx *cipher, const byte_t *block,
+static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
                             byte_t *output)
 {
     size_t ret;
 
     if (cipher->direction == CIPHER_DIRECTION_ENCRYPT) {
-        aes_cbc_encrypt(cipher->ctx, block, output);
+        aes_cbc_encrypt(cipher->ctx, input, output);
         ret = AES_CBC_BLOCK_SIZE;
     }
     else if (cipher->algPadded) {
@@ -295,10 +295,10 @@ static size_t process_block(struct cipher_ctx *cipher, const byte_t *block,
             cipher->hasOutput = 1;
             ret = 0;
         }
-        aes_cbc_decrypt(cipher->ctx, block, cipher->outputBlock);
+        aes_cbc_decrypt(cipher->ctx, input, cipher->outputBlock);
     }
     else {
-        aes_cbc_decrypt(cipher->ctx, block, output);
+        aes_cbc_decrypt(cipher->ctx, input, output);
         ret = AES_CBC_BLOCK_SIZE;
     }
 

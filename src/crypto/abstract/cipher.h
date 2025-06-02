@@ -85,21 +85,21 @@ void cipher_start(struct cipher_ctx *cipher);
 
 /*
  * Encrypts or decrypts the given data, and stores the number of bytes output
- * in outputBytes if it is non-NULL. The input can be at most
+ * in outputLen if it is non-NULL. The input can be at most
  * CIPHER_ADD_MAX_INPUT_SIZE bytes long.
  *
- * The number of output bytes is guaranteed to be between 0 and numBytes+b-1,
+ * The number of output bytes is guaranteed to be between 0 and inputLen+b-1,
  * inclusive, where b is the block size of the cipher (itself guaranteed to be
- * no larger than CIPHER_MAX_BLOCK_BYTES). The computation numBytes+b-1 is
- * guaranteed to fit in a size_t, assuming numBytes is at most
+ * no larger than CIPHER_MAX_BLOCK_BYTES). The computation inputLen+b-1 is
+ * guaranteed to fit in a size_t, assuming inputLen is at most
  * CIPHER_ADD_MAX_INPUT_SIZE.
  */
-void cipher_add(struct cipher_ctx *cipher, const byte_t *bytes,
-                size_t numBytes, byte_t *output, size_t *outputBytes);
+void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
+                size_t inputLen, byte_t *output, size_t *outputLen);
 
 /*
  * Finalizes the encryption or decryption operation, and stores the number of
- * bytes output in outputBytes if it is non-NULL.
+ * bytes output in outputLen if it is non-NULL.
  *
  * The number of output bytes is guaranteed to be between 0 and b, where b is
  * the block size of the cipher (itself guaranteed to be no larger than
@@ -109,7 +109,7 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *bytes,
  * (CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE, CIPHER_ERROR_NO_BLOCK_TO_DEPAD,
  * or CIPHER_ERROR_INVALID_PAD_DATA, from highest to lowest precedence).
  */
-int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputBytes);
+int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputLen);
 
 /*
  * Returns the block size of the cipher, which is guaranteed to be greater
