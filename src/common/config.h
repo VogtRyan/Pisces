@@ -18,11 +18,6 @@
 #define PISCES_COMMON_CONFIG_H_
 
 #define IMPLEMENTATION_VERSION "5.2.4"
-
-/*
- * Guaranteed to be no greater than 32767, so it can be safely cast to any of:
- * int, long, size_t (C99 standard, sections 5.2.4.2 and 7.18.3).
- */
 #define PASSWORD_LENGTH_MAX (1024)
 
 #endif
