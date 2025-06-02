@@ -59,9 +59,8 @@ int chf_end(struct chf_ctx *chf, byte_t *output);
 
 /*
  * Calls chf_start(), chf_add(), then chf_end() in sequence. Because the
- * underlying functions are called in sequence, you may use the same memory
- * location for the input bytes and the output digest. Returns 0 on success, <0
- * on error (CHF_ERROR_MESSAGE_TOO_LONG).
+ * underlying functions are called in sequence, the input and output buffers
+ * may overlap. Returns 0 on success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
  */
 int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
                byte_t *output);
