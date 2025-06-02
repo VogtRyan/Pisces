@@ -34,10 +34,7 @@ struct chf_ctx {
     size_t blockBytes;
 };
 
-/*
- * Calls the given operations on the underlying hash context. The chf->type
- * value must be set.
- */
+/* To make calls to the underlying hash context, chf->type must be set */
 static inline void chf_ctx_alloc(struct chf_ctx *chf);
 static inline void chf_ctx_start(struct chf_ctx *chf);
 static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
