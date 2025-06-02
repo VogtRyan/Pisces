@@ -25,9 +25,14 @@
 #endif
 
 /*
- * - Programming errors (e.g., should not reach): ASSERT*
- * - User-level errors (e.g., incorrect inputs): ERROR*
- * - System-level errors (e.g., out of memory): FATAL* and GUARD*
+ * ASSERT* are for programming errors (e.g., function parameters with illegal
+ * values, code that should not be reached).
+ *
+ * ERROR* are for user-level errors (e.g., problems with command-line options,
+ * problems with user-specified input or output files).
+ *
+ * FATAL* and GUARD* are for system-level errors (e.g., out of memory, failure
+ * to acquire a different requisite system resource not specified by the user).
  */
 
 #define ASSERT(condition, ...)                                                \
