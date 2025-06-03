@@ -46,7 +46,7 @@ void chf_start(struct chf_ctx *chf);
  * Adds the given input data to the stream of bytes being hashed. Returns 0 on
  * success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
  */
-int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen);
+int chf_add(struct chf_ctx *chf, const byte_t *input, size_t input_len);
 
 /*
  * Computes the message digest of the data that has been input. The size of
@@ -54,15 +54,15 @@ int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen);
  * exceed CHF_MAX_DIGEST_SIZE. Returns 0 on success, <0 on error
  * (CHF_ERROR_MESSAGE_TOO_LONG).
  */
-int chf_end(struct chf_ctx *chf, byte_t *output);
+int chf_end(struct chf_ctx *chf, byte_t *digest);
 
 /*
  * Calls chf_start(), chf_add(), then chf_end() in sequence. Because the
- * underlying functions are called in sequence, the input and output buffers
+ * underlying functions are called in sequence, the input and digest buffers
  * may overlap. Returns 0 on success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
  */
-int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
-               byte_t *output);
+int chf_single(struct chf_ctx *chf, const byte_t *input, size_t input_len,
+               byte_t *digest);
 
 /*
  * Returns the size of the hash algorithm's message digest output in bytes,

@@ -28,16 +28,16 @@
 struct chf_ctx {
     chf_algorithm_t type;
     void *ctx;
-    int isRunning;
-    int errorCode;
-    size_t digestBytes;
-    size_t blockBytes;
+    int running;
+    int errcode;
+    size_t digest_size;
+    size_t block_size;
 };
 
 static inline void chf_ctx_alloc(struct chf_ctx *chf);
 static inline void chf_ctx_start(struct chf_ctx *chf);
 static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
-                              size_t inputLen);
+                              size_t input_len);
 static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *output);
 static inline void chf_ctx_copy(struct chf_ctx *dst,
                                 const struct chf_ctx *src);
@@ -50,12 +50,12 @@ struct chf_ctx *chf_alloc(chf_algorithm_t alg)
 
     switch (alg) {
     case CHF_ALG_SHA1:
-        ret->digestBytes = SHA1_DIGEST_BYTES;
-        ret->blockBytes = SHA1_BLOCK_BYTES;
+        ret->digest_size = SHA1_DIGEST_BYTES;
+        ret->block_size = SHA1_BLOCK_BYTES;
         break;
     case CHF_ALG_SHA3_512:
-        ret->digestBytes = SHA3_512_DIGEST_BYTES;
-        ret->blockBytes = SHA3_512_BLOCK_BYTES;
+        ret->digest_size = SHA3_512_DIGEST_BYTES;
+        ret->block_size = SHA3_512_BLOCK_BYTES;
         break;
     default:
         ASSERT_NEVER_REACH("Invalid CHF algorithm");
@@ -68,57 +68,57 @@ struct chf_ctx *chf_alloc(chf_algorithm_t alg)
 
 void chf_start(struct chf_ctx *chf)
 {
-    chf->isRunning = 1;
-    chf->errorCode = 0;
+    chf->running = 1;
+    chf->errcode = 0;
     chf_ctx_start(chf);
 }
 
-int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen)
+int chf_add(struct chf_ctx *chf, const byte_t *input, size_t input_len)
 {
-    ASSERT(chf->isRunning, "CHF context is not running");
+    ASSERT(chf->running, "CHF context is not running");
 
-    if (chf->errorCode) {
-        return chf->errorCode;
+    if (chf->errcode) {
+        return chf->errcode;
     }
-    if (chf_ctx_add(chf, input, inputLen)) {
-        ERROR_SET(chf->errorCode, CHF_ERROR_MESSAGE_TOO_LONG);
+    if (chf_ctx_add(chf, input, input_len)) {
+        ERROR_SET(chf->errcode, CHF_ERROR_MESSAGE_TOO_LONG);
     }
 
-    return chf->errorCode;
+    return chf->errcode;
 }
 
-int chf_end(struct chf_ctx *chf, byte_t *output)
+int chf_end(struct chf_ctx *chf, byte_t *digest)
 {
-    ASSERT(chf->isRunning, "CHF context is not running");
+    ASSERT(chf->running, "CHF context is not running");
 
-    chf->isRunning = 0;
+    chf->running = 0;
 
-    if (chf->errorCode) {
-        return chf->errorCode;
+    if (chf->errcode) {
+        return chf->errcode;
     }
-    if (chf_ctx_end(chf, output)) {
-        ERROR_SET(chf->errorCode, CHF_ERROR_MESSAGE_TOO_LONG);
+    if (chf_ctx_end(chf, digest)) {
+        ERROR_SET(chf->errcode, CHF_ERROR_MESSAGE_TOO_LONG);
     }
 
-    return chf->errorCode;
+    return chf->errcode;
 }
 
-int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
-               byte_t *output)
+int chf_single(struct chf_ctx *chf, const byte_t *input, size_t input_len,
+               byte_t *digest)
 {
     chf_start(chf);
-    chf_add(chf, input, inputLen);
-    return chf_end(chf, output);
+    chf_add(chf, input, input_len);
+    return chf_end(chf, digest);
 }
 
 size_t chf_digest_size(const struct chf_ctx *chf)
 {
-    return chf->digestBytes;
+    return chf->digest_size;
 }
 
 size_t chf_block_size(const struct chf_ctx *chf)
 {
-    return chf->blockBytes;
+    return chf->block_size;
 }
 
 void chf_copy(struct chf_ctx *dst, const struct chf_ctx *src)
@@ -128,14 +128,14 @@ void chf_copy(struct chf_ctx *dst, const struct chf_ctx *src)
     }
     ASSERT(src->type == dst->type, "CHF copy with different algorithms");
 
-    dst->errorCode = src->errorCode;
-    dst->isRunning = src->isRunning;
+    dst->errcode = src->errcode;
+    dst->running = src->running;
     chf_ctx_copy(dst, src);
 }
 
 const char *chf_error(const struct chf_ctx *chf)
 {
-    switch (chf->errorCode) {
+    switch (chf->errcode) {
     case 0:
         return "No error in CHF context";
     case CHF_ERROR_MESSAGE_TOO_LONG:
@@ -183,13 +183,13 @@ static inline void chf_ctx_start(struct chf_ctx *chf)
 }
 
 static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
-                              size_t inputLen)
+                              size_t input_len)
 {
     switch (chf->type) {
     case CHF_ALG_SHA1:
-        return sha1_add((struct sha1_ctx *)chf->ctx, input, inputLen);
+        return sha1_add((struct sha1_ctx *)chf->ctx, input, input_len);
     case CHF_ALG_SHA3_512:
-        sha3_add((struct sha3_ctx *)chf->ctx, input, inputLen);
+        sha3_add((struct sha3_ctx *)chf->ctx, input, input_len);
         return 0;
     default:
         ASSERT_NEVER_REACH("Invalid CHF algorithm");
