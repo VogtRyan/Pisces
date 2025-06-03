@@ -22,13 +22,14 @@
 #include "crypto/primitives/sha1/sha1.h"
 #include "crypto/primitives/sha3/sha3.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 
 struct chf_ctx {
     chf_algorithm type;
     void *ctx;
-    int running;
+    bool running;
     int errcode;
     size_t digest_size;
     size_t block_size;
@@ -68,7 +69,7 @@ struct chf_ctx *chf_alloc(chf_algorithm alg)
 
 void chf_start(struct chf_ctx *chf)
 {
-    chf->running = 1;
+    chf->running = true;
     chf->errcode = 0;
     chf_ctx_start(chf);
 }
@@ -91,7 +92,7 @@ int chf_end(struct chf_ctx *chf, byte_t *digest)
 {
     ASSERT(chf->running, "CHF context is not running");
 
-    chf->running = 0;
+    chf->running = false;
 
     if (chf->errcode) {
         return chf->errcode;

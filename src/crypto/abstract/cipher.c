@@ -22,6 +22,7 @@
 #include "crypto/algorithms/pkcs7/pkcs7_padding.h"
 #include "crypto/primitives/aes/aes_cbc.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,17 +34,17 @@
 struct cipher_ctx {
     struct aes_cbc_ctx *ctx;
     size_t key_size;
-    int padded;
+    bool padded;
     cipher_direction direction;
     byte_t iv0[CIPHER_MAX_IV_SIZE];
     byte_t input_block[CIPHER_MAX_BLOCK_SIZE];
     size_t amnt_input;
     byte_t output_block[CIPHER_MAX_BLOCK_SIZE];
-    int has_output;
-    int direction_set;
-    int iv_set;
-    int key_set;
-    int running;
+    bool has_output;
+    bool direction_set;
+    bool iv_set;
+    bool key_set;
+    bool running;
     int errcode;
 };
 
@@ -63,14 +64,14 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm alg)
         break;
     case CIPHER_ALG_AES_128_CBC_PKCS7PAD:
         ret->key_size = AES_CBC_KEY_SIZE_128;
-        ret->padded = 1;
+        ret->padded = true;
         break;
     case CIPHER_ALG_AES_256_CBC_NOPAD:
         ret->key_size = AES_CBC_KEY_SIZE_256;
         break;
     case CIPHER_ALG_AES_256_CBC_PKCS7PAD:
         ret->key_size = AES_CBC_KEY_SIZE_256;
-        ret->padded = 1;
+        ret->padded = true;
         break;
     default:
         ASSERT_NEVER_REACH("Invalid cipher algorithm");
@@ -83,26 +84,26 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm alg)
 void cipher_set_direction(struct cipher_ctx *cipher,
                           cipher_direction direction)
 {
-    ASSERT(cipher->running == 0, "Cannot set direction on running cipher");
+    ASSERT(cipher->running == false, "Cannot set direction on running cipher");
     ASSERT(direction == CIPHER_DIRECTION_ENCRYPT ||
                direction == CIPHER_DIRECTION_DECRYPT,
            "Invalid cipher direction");
     cipher->direction = direction;
-    cipher->direction_set = 1;
+    cipher->direction_set = true;
 }
 
 void cipher_set_key(struct cipher_ctx *cipher, const byte_t *key)
 {
-    ASSERT(cipher->running == 0, "Cannot set key on running cipher");
+    ASSERT(cipher->running == false, "Cannot set key on running cipher");
     aes_cbc_set_key(cipher->ctx, key, cipher->key_size);
-    cipher->key_set = 1;
+    cipher->key_set = true;
 }
 
 void cipher_set_iv(struct cipher_ctx *cipher, const byte_t *iv)
 {
-    ASSERT(cipher->running == 0, "Cannot set IV on running cipher");
+    ASSERT(cipher->running == false, "Cannot set IV on running cipher");
     memcpy(cipher->iv0, iv, AES_CBC_IV_SIZE);
-    cipher->iv_set = 1;
+    cipher->iv_set = true;
 }
 
 void cipher_start(struct cipher_ctx *cipher)
@@ -111,7 +112,7 @@ void cipher_start(struct cipher_ctx *cipher)
     ASSERT(cipher->iv_set, "Cannot start cipher without IV");
     ASSERT(cipher->key_set, "Cannot start cipher without key");
 
-    cipher->running = 1;
+    cipher->running = true;
     cipher->errcode = 0;
     aes_cbc_set_iv(cipher->ctx, cipher->iv0);
 }
@@ -183,7 +184,7 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *output_len)
     int errval = 0;
 
     ASSERT(cipher->running, "Cannot end operation on non-running cipher");
-    cipher->running = 0;
+    cipher->running = false;
 
     if (output_len == NULL) {
         output_len = &fake_output_len;
@@ -210,7 +211,7 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *output_len)
             ERROR_CODE(done, errval,
                        CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
         }
-        else if (cipher->has_output == 0) {
+        else if (cipher->has_output == false) {
             ERROR_CODE(done, errval, CIPHER_ERROR_NO_BLOCK_TO_DEPAD);
         }
         if (pkcs7_padding_remove(cipher->output_block, AES_CBC_BLOCK_SIZE,
@@ -293,7 +294,7 @@ static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
             ret = AES_CBC_BLOCK_SIZE;
         }
         else {
-            cipher->has_output = 1;
+            cipher->has_output = true;
             ret = 0;
         }
         aes_cbc_decrypt(cipher->ctx, input, cipher->output_block);
