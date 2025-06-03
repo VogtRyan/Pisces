@@ -38,7 +38,7 @@ typedef enum {
     CIPHER_DIRECTION_DECRYPT
 } cipher_direction_t;
 
-#define CIPHER_ADD_MAX_INPUT_SIZE (SIZE_MAX - CIPHER_MAX_BLOCK_SIZE + 1)
+#define CIPHER_ADD_MAX_INPUT_LEN (SIZE_MAX - CIPHER_MAX_BLOCK_SIZE + 1)
 
 #define CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE (-1)
 #define CIPHER_ERROR_NO_BLOCK_TO_DEPAD             (-2)
@@ -86,13 +86,13 @@ void cipher_start(struct cipher_ctx *cipher);
 /*
  * Encrypts or decrypts the given data, and stores the number of bytes output
  * in outputLen if it is non-NULL. The input can be at most
- * CIPHER_ADD_MAX_INPUT_SIZE bytes long.
+ * CIPHER_ADD_MAX_INPUT_LEN bytes long.
  *
  * The number of output bytes is guaranteed to be between 0 and inputLen+b-1,
  * inclusive, where b is the block size of the cipher (itself guaranteed to be
  * no larger than CIPHER_MAX_BLOCK_SIZE). The computation inputLen+b-1 is
  * guaranteed to fit in a size_t, assuming inputLen is at most
- * CIPHER_ADD_MAX_INPUT_SIZE.
+ * CIPHER_ADD_MAX_INPUT_LEN.
  */
 void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
                 size_t inputLen, byte_t *output, size_t *outputLen);

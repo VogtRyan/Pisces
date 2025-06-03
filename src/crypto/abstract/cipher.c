@@ -123,8 +123,8 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
     size_t fakeOutputLen, addedToOutput;
 
     ASSERT(cipher->isRunning, "Cannot add data to non-running cipher");
-    ASSERT(inputLen <= CIPHER_ADD_MAX_INPUT_SIZE,
-           "Cipher maximum single-input data size exceeded");
+    ASSERT(inputLen <= CIPHER_ADD_MAX_INPUT_LEN,
+           "Cipher maximum single-input data length exceeded");
 
     if (outputLen == NULL) {
         outputLen = &fakeOutputLen;
@@ -162,7 +162,7 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
 
         /*
          * The integer overflow should never trigger, given the bound
-         * of CIPHER_ADD_MAX_INPUT_SIZE on inputLen. Specifically, outputLen
+         * of CIPHER_ADD_MAX_INPUT_LEN on inputLen. Specifically, outputLen
          * will never exceed inputLen+b-1, where b is the block size of the
          * cipher, because at least one byte would be required to fill any
          * partial block already in this context's buffer, and beyond that only
