@@ -38,21 +38,20 @@ struct chf_ctx;
 struct chf_ctx *chf_alloc(chf_algorithm_t alg);
 
 /*
- * Starts a new hash operation with the given context, clearing any input data
- * already processed.
+ * Starts a new hash operation, clearing any input data already processed.
  */
 void chf_start(struct chf_ctx *chf);
 
 /*
- * Adds the given input bytes to the stream of data being hashed. Returns 0 on
+ * Adds the given input data to the stream of bytes being hashed. Returns 0 on
  * success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
  */
 int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen);
 
 /*
- * Computes the message digest of the data that has been provided. The amount
- * of data written will be equal to chf_digest_bytes(), which is guaranteed
- * not to exceed CHF_MAX_DIGEST_BYTES. Returns 0 on success, <0 on error
+ * Computes the message digest of the data that has been input. The size of
+ * the digest will be equal to chf_digest_size(), which is guaranteed not to
+ * exceed CHF_MAX_DIGEST_BYTES. Returns 0 on success, <0 on error
  * (CHF_ERROR_MESSAGE_TOO_LONG).
  */
 int chf_end(struct chf_ctx *chf, byte_t *output);
@@ -66,25 +65,25 @@ int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
                byte_t *output);
 
 /*
- * Returns the size of the message digest output in bytes, which is guaranteed
- * to be greater than zero and no larger than CHF_MAX_DIGEST_BYTES.
+ * Returns the size of the hash algorithm's message digest output in bytes,
+ * guaranteed to be greater than zero and no larger than CHF_MAX_DIGEST_BYTES.
  */
 size_t chf_digest_size(const struct chf_ctx *chf);
 
 /*
- * Returns the block size of the cryptographic hash algorithm in bytes, which
- * is guaranteed to be greater than zero and no larger than
- * CHF_MAX_BLOCK_BYTES. Typically used only for building other cryptographic
- * algorithms on top of a cryptographic hash primitive.
+ * Returns the hash algorithm's block size in bytes, guaranteed to be greater
+ * than zero and no larger than CHF_MAX_BLOCK_BYTES. Typically used only for
+ * building other cryptographic algorithms on top of a cryptographic hash
+ * primitive.
  */
 size_t chf_block_size(const struct chf_ctx *chf);
 
 /*
  * Copies the current content of the src context into the dst context, which
- * must be running the same hash algorithm. This function is equivalent to
- * running the same sequence of operations (e.g., chf_start(), chf_add(), etc.)
- * on dst that have, so far, been run on src (but copying is typically much
- * cheaper computationally). Calling with src == dst is a no-op.
+ * must have been allocated by chf_alloc() for the same hash algorithm.
+ * Copying the context is equivalent to running the same sequence of
+ * operations (e.g., chf_start(), chf_add(), etc.) on dst that have been run
+ * so far on src. Calling with src == dst is a no-op.
  */
 void chf_copy(struct chf_ctx *dst, const struct chf_ctx *src);
 
@@ -95,7 +94,7 @@ void chf_copy(struct chf_ctx *dst, const struct chf_ctx *src);
 const char *chf_error(const struct chf_ctx *chf);
 
 /*
- * Frees a context allocated with chf_alloc(), and securely scrubs all memory
+ * Frees a context allocated with chf_alloc() and securely scrubs all memory
  * allocated for the context. Calling with NULL is a no-op.
  */
 void chf_free_scrub(struct chf_ctx *chf);
