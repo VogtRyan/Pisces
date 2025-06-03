@@ -22,9 +22,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CIPHER_MAX_BLOCK_BYTES (16)
-#define CIPHER_MAX_IV_BYTES    (16)
-#define CIPHER_MAX_KEY_BYTES   (32)
+#define CIPHER_MAX_BLOCK_SIZE (16)
+#define CIPHER_MAX_IV_SIZE    (16)
+#define CIPHER_MAX_KEY_SIZE   (32)
 
 typedef enum {
     CIPHER_ALG_AES_128_CBC_NOPAD,
@@ -38,7 +38,7 @@ typedef enum {
     CIPHER_DIRECTION_DECRYPT
 } cipher_direction_t;
 
-#define CIPHER_ADD_MAX_INPUT_SIZE (SIZE_MAX - CIPHER_MAX_BLOCK_BYTES + 1)
+#define CIPHER_ADD_MAX_INPUT_SIZE (SIZE_MAX - CIPHER_MAX_BLOCK_SIZE + 1)
 
 #define CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE (-1)
 #define CIPHER_ERROR_NO_BLOCK_TO_DEPAD             (-2)
@@ -62,14 +62,14 @@ void cipher_set_direction(struct cipher_ctx *cipher,
 /*
  * Sets the encryption key, and must be called prior to starting a cipher
  * operation. The key must be exactly cipher_key_size() bytes, which is
- * guaranteed to be no larger than CIPHER_MAX_KEY_BYTES.
+ * guaranteed to be no larger than CIPHER_MAX_KEY_SIZE.
  */
 void cipher_set_key(struct cipher_ctx *cipher, const byte_t *key);
 
 /*
  * Sets the initialization vector, and must be called prior to starting a
  * cipher operation. The IV must be exactly cipher_iv_size() bytes, which is
- * guaranteed to be no larger than CIPHER_MAX_IV_BYTES.
+ * guaranteed to be no larger than CIPHER_MAX_IV_SIZE.
  *
  * This IV will be used for all newly started cipher operations. That is,
  * starting a new cipher operation will always reset the context's IV to this
@@ -90,7 +90,7 @@ void cipher_start(struct cipher_ctx *cipher);
  *
  * The number of output bytes is guaranteed to be between 0 and inputLen+b-1,
  * inclusive, where b is the block size of the cipher (itself guaranteed to be
- * no larger than CIPHER_MAX_BLOCK_BYTES). The computation inputLen+b-1 is
+ * no larger than CIPHER_MAX_BLOCK_SIZE). The computation inputLen+b-1 is
  * guaranteed to fit in a size_t, assuming inputLen is at most
  * CIPHER_ADD_MAX_INPUT_SIZE.
  */
@@ -103,7 +103,7 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
  *
  * The number of output bytes is guaranteed to be between 0 and b, where b is
  * the block size of the cipher (itself guaranteed to be no larger than
- * CIPHER_MAX_BLOCK_BYTES).
+ * CIPHER_MAX_BLOCK_SIZE).
  *
  * Returns 0 on success, <0 on error
  * (CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE, CIPHER_ERROR_NO_BLOCK_TO_DEPAD,
@@ -113,19 +113,19 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputLen);
 
 /*
  * Returns the block size of the cipher, which is guaranteed to be greater
- * than zero and no larger than CIPHER_MAX_BLOCK_BYTES.
+ * than zero and no larger than CIPHER_MAX_BLOCK_SIZE.
  */
 size_t cipher_block_size(const struct cipher_ctx *cipher);
 
 /*
  * Returns the size of the initialization vector for the cipher, which is
- * guaranteed to be greater than zero and no larger than CIPHER_MAX_IV_BYTES.
+ * guaranteed to be greater than zero and no larger than CIPHER_MAX_IV_SIZE.
  */
 size_t cipher_iv_size(const struct cipher_ctx *cipher);
 
 /*
  * Returns the key size of the cipher, which is guaranteed to be greater than
- * zero and no larger than CIPHER_MAX_KEY_BYTES.
+ * zero and no larger than CIPHER_MAX_KEY_SIZE.
  */
 size_t cipher_key_size(const struct cipher_ctx *cipher);
 

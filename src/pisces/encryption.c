@@ -67,20 +67,20 @@
  * random data that would have to be added to make the random data plus the
  * hash a multiple of the block size).
  */
-#if CHF_MAX_DIGEST_SIZE > CIPHER_MAX_BLOCK_BYTES
-#if CHF_MAX_DIGEST_SIZE > CIPHER_MAX_KEY_BYTES
+#if CHF_MAX_DIGEST_SIZE > CIPHER_MAX_BLOCK_SIZE
+#if CHF_MAX_DIGEST_SIZE > CIPHER_MAX_KEY_SIZE
 #define BIGGEST_OF_THREE (CHF_MAX_DIGEST_SIZE)
 #else
-#define BIGGEST_OF_THREE (CIPHER_MAX_KEY_BYTES)
+#define BIGGEST_OF_THREE (CIPHER_MAX_KEY_SIZE)
 #endif
 #else
-#if CIPHER_MAX_BLOCK_BYTES > CIPHER_MAX_KEY_BYTES
-#define BIGGEST_OF_THREE (CIPHER_MAX_BLOCK_BYTES)
+#if CIPHER_MAX_BLOCK_SIZE > CIPHER_MAX_KEY_SIZE
+#define BIGGEST_OF_THREE (CIPHER_MAX_BLOCK_SIZE)
 #else
-#define BIGGEST_OF_THREE (CIPHER_MAX_KEY_BYTES)
+#define BIGGEST_OF_THREE (CIPHER_MAX_KEY_SIZE)
 #endif
 #endif
-#define PISCES_MAX_RANDOM_SIZE (BIGGEST_OF_THREE + CIPHER_MAX_BLOCK_BYTES - 1)
+#define PISCES_MAX_RANDOM_SIZE (BIGGEST_OF_THREE + CIPHER_MAX_BLOCK_SIZE - 1)
 
 /*
  * An upper bound on the size of the imprint.  The imprint is the random data
@@ -172,10 +172,10 @@ int encrypt_file(const char *inputFile, const char *outputFile,
                  const char *password, size_t passwordLen)
 {
     struct cprng *rng = NULL;
-    byte_t key[CIPHER_MAX_KEY_BYTES];
-    byte_t salt[CIPHER_MAX_KEY_BYTES];
-    byte_t imprintIV[CIPHER_MAX_BLOCK_BYTES];
-    byte_t bodyIV[CIPHER_MAX_BLOCK_BYTES];
+    byte_t key[CIPHER_MAX_KEY_SIZE];
+    byte_t salt[CIPHER_MAX_KEY_SIZE];
+    byte_t imprintIV[CIPHER_MAX_BLOCK_SIZE];
+    byte_t bodyIV[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
     int errVal = 0;
@@ -217,17 +217,17 @@ isErr:
         close(out);
     }
     cprng_free_scrub(rng);
-    scrub_memory(key, CIPHER_MAX_KEY_BYTES);
+    scrub_memory(key, CIPHER_MAX_KEY_SIZE);
     return errVal;
 }
 
 int decrypt_file(const char *inputFile, const char *outputFile,
                  const char *password, size_t passwordLen)
 {
-    byte_t key[CIPHER_MAX_KEY_BYTES];
-    byte_t salt[CIPHER_MAX_KEY_BYTES];
-    byte_t imprintIV[CIPHER_MAX_BLOCK_BYTES];
-    byte_t bodyIV[CIPHER_MAX_BLOCK_BYTES];
+    byte_t key[CIPHER_MAX_KEY_SIZE];
+    byte_t salt[CIPHER_MAX_KEY_SIZE];
+    byte_t imprintIV[CIPHER_MAX_BLOCK_SIZE];
+    byte_t bodyIV[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
     int errVal = 0;
@@ -272,7 +272,7 @@ isErr:
     if (out != -1) {
         close(out);
     }
-    scrub_memory(key, CIPHER_MAX_KEY_BYTES);
+    scrub_memory(key, CIPHER_MAX_KEY_SIZE);
     return errVal;
 }
 
@@ -469,7 +469,7 @@ static int encrypt_body(int in, int out, const byte_t *key,
     struct cipher_ctx *cipher = NULL;
     byte_t buffer[BYTES_AT_ONCE];
     byte_t hash[CHF_MAX_DIGEST_SIZE];
-    byte_t eBuf[BYTES_AT_ONCE + CHF_MAX_DIGEST_SIZE + CIPHER_MAX_BLOCK_BYTES];
+    byte_t eBuf[BYTES_AT_ONCE + CHF_MAX_DIGEST_SIZE + CIPHER_MAX_BLOCK_SIZE];
     size_t hashLen, bytesRead, bytesEnc;
     int errVal = 0;
 
@@ -541,8 +541,8 @@ static int decrypt_body(int in, int out, const byte_t *key,
     struct cipher_ctx *cipher = NULL;
     struct holdbuf *hb = NULL;
     byte_t buffer[BYTES_AT_ONCE];
-    byte_t dBuf[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_BYTES];
-    byte_t retFromHB[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_BYTES];
+    byte_t dBuf[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
+    byte_t retFromHB[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
     byte_t storedHash[CHF_MAX_DIGEST_SIZE];
     byte_t computedHash[CHF_MAX_DIGEST_SIZE];
     size_t hashLen, bytesRead, bytesDec, bytesReturned;
@@ -619,8 +619,8 @@ isErr:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
     holdbuf_free_scrub(hb);
-    scrub_memory(dBuf, BYTES_AT_ONCE + CIPHER_MAX_BLOCK_BYTES);
-    scrub_memory(retFromHB, BYTES_AT_ONCE + CIPHER_MAX_BLOCK_BYTES);
+    scrub_memory(dBuf, BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
+    scrub_memory(retFromHB, BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
     scrub_memory(storedHash, CHF_MAX_DIGEST_SIZE);
     scrub_memory(computedHash, CHF_MAX_DIGEST_SIZE);
     return errVal;

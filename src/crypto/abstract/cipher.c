@@ -35,10 +35,10 @@ struct cipher_ctx {
     size_t keyBytes;
     int algPadded;
     cipher_direction_t direction;
-    byte_t iv0[CIPHER_MAX_IV_BYTES];
-    byte_t inputBlock[CIPHER_MAX_BLOCK_BYTES];
+    byte_t iv0[CIPHER_MAX_IV_SIZE];
+    byte_t inputBlock[CIPHER_MAX_BLOCK_SIZE];
     size_t amntInput;
-    byte_t outputBlock[CIPHER_MAX_BLOCK_BYTES];
+    byte_t outputBlock[CIPHER_MAX_BLOCK_SIZE];
     int hasOutput;
     int wasDirectionSet;
     int wasIVSet;
