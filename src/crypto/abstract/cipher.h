@@ -53,22 +53,22 @@ struct cipher_ctx;
 struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg);
 
 /*
- * Sets whether the context encrypts or decrypts, and must be called prior to
+ * Sets whether the context encrypts or decrypts. Must be called prior to
  * starting a cipher operation.
  */
 void cipher_set_direction(struct cipher_ctx *cipher,
                           cipher_direction_t direction);
 
 /*
- * Sets the encryption key, and must be called prior to starting a cipher
+ * Sets the encryption key. Must be called prior to starting a cipher
  * operation. The key must be exactly cipher_key_size() bytes, which is
  * guaranteed to be no larger than CIPHER_MAX_KEY_SIZE.
  */
 void cipher_set_key(struct cipher_ctx *cipher, const byte_t *key);
 
 /*
- * Sets the initialization vector, and must be called prior to starting a
- * cipher operation. The IV must be exactly cipher_iv_size() bytes, which is
+ * Sets the initialization vector. Must be called prior to starting a cipher
+ * operation. The IV must be exactly cipher_iv_size() bytes, which is
  * guaranteed to be no larger than CIPHER_MAX_IV_SIZE.
  *
  * This IV will be used for all newly started cipher operations. That is,
