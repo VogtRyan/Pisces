@@ -32,19 +32,19 @@
  */
 struct cipher_ctx {
     struct aes_cbc_ctx *ctx;
-    size_t keyBytes;
-    int algPadded;
+    size_t key_size;
+    int padded;
     cipher_direction_t direction;
     byte_t iv0[CIPHER_MAX_IV_SIZE];
-    byte_t inputBlock[CIPHER_MAX_BLOCK_SIZE];
-    size_t amntInput;
-    byte_t outputBlock[CIPHER_MAX_BLOCK_SIZE];
-    int hasOutput;
-    int wasDirectionSet;
-    int wasIVSet;
-    int wasKeySet;
-    int isRunning;
-    int errorCode;
+    byte_t input_block[CIPHER_MAX_BLOCK_SIZE];
+    size_t amnt_input;
+    byte_t output_block[CIPHER_MAX_BLOCK_SIZE];
+    int has_output;
+    int direction_set;
+    int iv_set;
+    int key_set;
+    int running;
+    int errcode;
 };
 
 static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
@@ -59,18 +59,18 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
 
     switch (alg) {
     case CIPHER_ALG_AES_128_CBC_NOPAD:
-        ret->keyBytes = AES_CBC_KEY_SIZE_128;
+        ret->key_size = AES_CBC_KEY_SIZE_128;
         break;
     case CIPHER_ALG_AES_128_CBC_PKCS7PAD:
-        ret->keyBytes = AES_CBC_KEY_SIZE_128;
-        ret->algPadded = 1;
+        ret->key_size = AES_CBC_KEY_SIZE_128;
+        ret->padded = 1;
         break;
     case CIPHER_ALG_AES_256_CBC_NOPAD:
-        ret->keyBytes = AES_CBC_KEY_SIZE_256;
+        ret->key_size = AES_CBC_KEY_SIZE_256;
         break;
     case CIPHER_ALG_AES_256_CBC_PKCS7PAD:
-        ret->keyBytes = AES_CBC_KEY_SIZE_256;
-        ret->algPadded = 1;
+        ret->key_size = AES_CBC_KEY_SIZE_256;
+        ret->padded = 1;
         break;
     default:
         ASSERT_NEVER_REACH("Invalid cipher algorithm");
@@ -83,156 +83,157 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
 void cipher_set_direction(struct cipher_ctx *cipher,
                           cipher_direction_t direction)
 {
-    ASSERT(cipher->isRunning == 0, "Cannot set direction on running cipher");
+    ASSERT(cipher->running == 0, "Cannot set direction on running cipher");
     ASSERT(direction == CIPHER_DIRECTION_ENCRYPT ||
                direction == CIPHER_DIRECTION_DECRYPT,
            "Invalid cipher direction");
     cipher->direction = direction;
-    cipher->wasDirectionSet = 1;
+    cipher->direction_set = 1;
 }
 
 void cipher_set_key(struct cipher_ctx *cipher, const byte_t *key)
 {
-    ASSERT(cipher->isRunning == 0, "Cannot set key on running cipher");
-    aes_cbc_set_key(cipher->ctx, key, cipher->keyBytes);
-    cipher->wasKeySet = 1;
+    ASSERT(cipher->running == 0, "Cannot set key on running cipher");
+    aes_cbc_set_key(cipher->ctx, key, cipher->key_size);
+    cipher->key_set = 1;
 }
 
 void cipher_set_iv(struct cipher_ctx *cipher, const byte_t *iv)
 {
-    ASSERT(cipher->isRunning == 0, "Cannot set IV on running cipher");
+    ASSERT(cipher->running == 0, "Cannot set IV on running cipher");
     memcpy(cipher->iv0, iv, AES_CBC_IV_SIZE);
-    cipher->wasIVSet = 1;
+    cipher->iv_set = 1;
 }
 
 void cipher_start(struct cipher_ctx *cipher)
 {
-    ASSERT(cipher->wasDirectionSet, "Cannot start cipher without direction");
-    ASSERT(cipher->wasIVSet, "Cannot start cipher without IV");
-    ASSERT(cipher->wasKeySet, "Cannot start cipher without key");
+    ASSERT(cipher->direction_set, "Cannot start cipher without direction");
+    ASSERT(cipher->iv_set, "Cannot start cipher without IV");
+    ASSERT(cipher->key_set, "Cannot start cipher without key");
 
-    cipher->isRunning = 1;
-    cipher->errorCode = 0;
+    cipher->running = 1;
+    cipher->errcode = 0;
     aes_cbc_set_iv(cipher->ctx, cipher->iv0);
 }
 
 void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
-                size_t inputLen, byte_t *output, size_t *outputLen)
+                size_t input_len, byte_t *output, size_t *output_len)
 {
-    size_t toFillBlock, addToCipher;
-    size_t fakeOutputLen, addedToOutput;
+    size_t to_fill_block, add_to_cipher;
+    size_t fake_output_len, added_to_output;
 
-    ASSERT(cipher->isRunning, "Cannot add data to non-running cipher");
-    ASSERT(inputLen <= CIPHER_ADD_MAX_INPUT_LEN,
+    ASSERT(cipher->running, "Cannot add data to non-running cipher");
+    ASSERT(input_len <= CIPHER_ADD_MAX_INPUT_LEN,
            "Cipher maximum single-input data length exceeded");
 
-    if (outputLen == NULL) {
-        outputLen = &fakeOutputLen;
+    if (output_len == NULL) {
+        output_len = &fake_output_len;
     }
-    *outputLen = 0;
+    *output_len = 0;
 
     /* Process the input block-by-block */
-    while (inputLen > 0) {
-        if (cipher->amntInput == 0 && inputLen >= AES_CBC_BLOCK_SIZE) {
-            addedToOutput = process_block(cipher, input, output);
+    while (input_len > 0) {
+        if (cipher->amnt_input == 0 && input_len >= AES_CBC_BLOCK_SIZE) {
+            added_to_output = process_block(cipher, input, output);
             input += AES_CBC_BLOCK_SIZE;
-            inputLen -= AES_CBC_BLOCK_SIZE;
+            input_len -= AES_CBC_BLOCK_SIZE;
         }
         else {
-            toFillBlock = AES_CBC_BLOCK_SIZE - cipher->amntInput;
-            addToCipher = (toFillBlock < inputLen ? toFillBlock : inputLen);
-            memcpy(cipher->inputBlock + cipher->amntInput, input, addToCipher);
+            to_fill_block = AES_CBC_BLOCK_SIZE - cipher->amnt_input;
+            add_to_cipher =
+                (to_fill_block < input_len ? to_fill_block : input_len);
+            memcpy(cipher->input_block + cipher->amnt_input, input,
+                   add_to_cipher);
 
             /*
-             * cipher->amntInput is bounded by the block size, so there is no
+             * cipher->amnt_input is bounded by the block size, so there is no
              * risk of overflow.
              */
-            cipher->amntInput += addToCipher;
-            input += addToCipher;
-            inputLen -= addToCipher;
-            if (cipher->amntInput == AES_CBC_BLOCK_SIZE) {
-                cipher->amntInput = 0;
-                addedToOutput =
-                    process_block(cipher, cipher->inputBlock, output);
+            cipher->amnt_input += add_to_cipher;
+            input += add_to_cipher;
+            input_len -= add_to_cipher;
+            if (cipher->amnt_input == AES_CBC_BLOCK_SIZE) {
+                cipher->amnt_input = 0;
+                added_to_output =
+                    process_block(cipher, cipher->input_block, output);
             }
             else {
-                addedToOutput = 0;
+                added_to_output = 0;
             }
         }
 
         /*
          * The integer overflow should never trigger, given the bound
-         * of CIPHER_ADD_MAX_INPUT_LEN on inputLen. Specifically, outputLen
-         * will never exceed inputLen+b-1, where b is the block size of the
+         * of CIPHER_ADD_MAX_INPUT_LEN on input_len. Specifically, output_len
+         * will never exceed input_len+b-1, where b is the block size of the
          * cipher, because at least one byte would be required to fill any
          * partial block already in this context's buffer, and beyond that only
          * full blocks are processed.
          */
-        output += addedToOutput;
-        *outputLen += addedToOutput;
-        ASSERT(*outputLen >= addedToOutput,
+        output += added_to_output;
+        *output_len += added_to_output;
+        ASSERT(*output_len >= added_to_output,
                "Integer overflow in cipher input processing");
     }
 }
 
-int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputLen)
+int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *output_len)
 {
-    size_t fakeOutputLen;
-    int errVal = 0;
+    size_t fake_output_len;
+    int errval = 0;
 
-    ASSERT(cipher->isRunning, "Cannot end operation on non-running cipher");
-    cipher->isRunning = 0;
+    ASSERT(cipher->running, "Cannot end operation on non-running cipher");
+    cipher->running = 0;
 
-    if (outputLen == NULL) {
-        outputLen = &fakeOutputLen;
+    if (output_len == NULL) {
+        output_len = &fake_output_len;
     }
-    *outputLen = 0;
+    *output_len = 0;
 
     /* Encrypt or decrypt a final block if necessary */
-    if (cipher->algPadded && cipher->direction == CIPHER_DIRECTION_ENCRYPT) {
+    if (cipher->padded && cipher->direction == CIPHER_DIRECTION_ENCRYPT) {
         /*
          * Encrypting with padding is just: pad whatever (if anything) is in
          * the input buffer and encrypt it.
          */
-        pkcs7_padding_add(cipher->inputBlock, cipher->amntInput,
-                          AES_CBC_BLOCK_SIZE, cipher->inputBlock);
-        aes_cbc_encrypt(cipher->ctx, cipher->inputBlock, output);
-        *outputLen = AES_CBC_BLOCK_SIZE;
+        pkcs7_padding_add(cipher->input_block, cipher->amnt_input,
+                          AES_CBC_BLOCK_SIZE, cipher->input_block);
+        aes_cbc_encrypt(cipher->ctx, cipher->input_block, output);
+        *output_len = AES_CBC_BLOCK_SIZE;
     }
-    else if (cipher->algPadded &&
-             cipher->direction == CIPHER_DIRECTION_DECRYPT) {
+    else if (cipher->padded && cipher->direction == CIPHER_DIRECTION_DECRYPT) {
         /*
          * Decryption with padding requires a complete decrypted block in the
          * output buffer, but nothing left to process in the input buffer.
          */
-        if (cipher->amntInput != 0) {
-            ERROR_CODE(isErr, errVal,
+        if (cipher->amnt_input != 0) {
+            ERROR_CODE(done, errval,
                        CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
         }
-        else if (cipher->hasOutput == 0) {
-            ERROR_CODE(isErr, errVal, CIPHER_ERROR_NO_BLOCK_TO_DEPAD);
+        else if (cipher->has_output == 0) {
+            ERROR_CODE(done, errval, CIPHER_ERROR_NO_BLOCK_TO_DEPAD);
         }
-        if (pkcs7_padding_remove(cipher->outputBlock, AES_CBC_BLOCK_SIZE,
-                                 output, outputLen)) {
-            ERROR_CODE(isErr, errVal, CIPHER_ERROR_INVALID_PAD_DATA);
+        if (pkcs7_padding_remove(cipher->output_block, AES_CBC_BLOCK_SIZE,
+                                 output, output_len)) {
+            ERROR_CODE(done, errval, CIPHER_ERROR_INVALID_PAD_DATA);
         }
     }
-    else if (cipher->amntInput != 0) {
+    else if (cipher->amnt_input != 0) {
         /*
          * No padding is being used. Because the output buffer is only used
          * when there is padding, it is guaranteed to be empty. But, we cannot
          * process any data (a partial block) that might be left in the input
          * buffer.
          */
-        ERROR_CODE(isErr, errVal, CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
+        ERROR_CODE(done, errval, CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
     }
 
-isErr:
-    if (errVal) {
-        *outputLen = 0;
+done:
+    if (errval) {
+        *output_len = 0;
     }
-    cipher->errorCode = errVal;
-    return errVal;
+    cipher->errcode = errval;
+    return errval;
 }
 
 size_t cipher_block_size(const struct cipher_ctx *cipher)
@@ -249,12 +250,12 @@ size_t cipher_iv_size(const struct cipher_ctx *cipher)
 
 size_t cipher_key_size(const struct cipher_ctx *cipher)
 {
-    return cipher->keyBytes;
+    return cipher->key_size;
 }
 
 const char *cipher_error(const struct cipher_ctx *cipher)
 {
-    switch (cipher->errorCode) {
+    switch (cipher->errcode) {
     case 0:
         return "No error in cipher context";
     case CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE:
@@ -286,16 +287,16 @@ static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
         aes_cbc_encrypt(cipher->ctx, input, output);
         ret = AES_CBC_BLOCK_SIZE;
     }
-    else if (cipher->algPadded) {
-        if (cipher->hasOutput) {
-            memcpy(output, cipher->outputBlock, AES_CBC_BLOCK_SIZE);
+    else if (cipher->padded) {
+        if (cipher->has_output) {
+            memcpy(output, cipher->output_block, AES_CBC_BLOCK_SIZE);
             ret = AES_CBC_BLOCK_SIZE;
         }
         else {
-            cipher->hasOutput = 1;
+            cipher->has_output = 1;
             ret = 0;
         }
-        aes_cbc_decrypt(cipher->ctx, input, cipher->outputBlock);
+        aes_cbc_decrypt(cipher->ctx, input, cipher->output_block);
     }
     else {
         aes_cbc_decrypt(cipher->ctx, input, output);
