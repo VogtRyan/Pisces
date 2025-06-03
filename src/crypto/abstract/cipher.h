@@ -115,26 +115,26 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
  * - CIPHER_ERROR_NO_BLOCK_TO_DEPAD, for decryption with padded ciphers, when
  *   there is no last block to depad; and,
  *
- * - CIPHER_ERROR_INVALID_PAD_DATA, for decryption with padded ciphers, where
+ * - CIPHER_ERROR_INVALID_PAD_DATA, for decryption with padded ciphers, when
  *   the last block during decryption is corrupt.
  */
 int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputLen);
 
 /*
- * Returns the block size of the cipher, which is guaranteed to be greater
- * than zero and no larger than CIPHER_MAX_BLOCK_SIZE.
+ * Returns the block size of the cipher, guaranteed to be greater than zero
+ * and no larger than CIPHER_MAX_BLOCK_SIZE.
  */
 size_t cipher_block_size(const struct cipher_ctx *cipher);
 
 /*
- * Returns the size of the initialization vector for the cipher, which is
- * guaranteed to be greater than zero and no larger than CIPHER_MAX_IV_SIZE.
+ * Returns the size of the initialization vector for the cipher, guaranteed to
+ * be greater than zero and no larger than CIPHER_MAX_IV_SIZE.
  */
 size_t cipher_iv_size(const struct cipher_ctx *cipher);
 
 /*
- * Returns the key size of the cipher, which is guaranteed to be greater than
- * zero and no larger than CIPHER_MAX_KEY_SIZE.
+ * Returns the key size of the cipher, guaranteed to be greater than zero and
+ * no larger than CIPHER_MAX_KEY_SIZE.
  */
 size_t cipher_key_size(const struct cipher_ctx *cipher);
 
@@ -145,7 +145,7 @@ size_t cipher_key_size(const struct cipher_ctx *cipher);
 const char *cipher_error(const struct cipher_ctx *cipher);
 
 /*
- * Frees a cipher context allocated with cipher_alloc(), and securely scrubs
+ * Frees a cipher context allocated with cipher_alloc() and securely scrubs
  * all memory allocated for the context. Calling with NULL is a no-op.
  */
 void cipher_free_scrub(struct cipher_ctx *cipher);
