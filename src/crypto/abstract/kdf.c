@@ -26,9 +26,9 @@
 #include <stdlib.h>
 
 struct kdf {
-    unsigned int iterationCount;
-    chf_algorithm_t chfAlg;
-    int errorCode;
+    unsigned int iteration_count;
+    chf_algorithm_t chf_alg;
+    int errcode;
 };
 
 struct kdf *kdf_alloc(kdf_algorithm_t alg)
@@ -38,16 +38,16 @@ struct kdf *kdf_alloc(kdf_algorithm_t alg)
 
     switch (alg) {
     case KDF_ALG_PBKDF2_HMAC_SHA3_512_16384:
-        ret->iterationCount = 16384;
-        ret->chfAlg = CHF_ALG_SHA3_512;
+        ret->iteration_count = 16384;
+        ret->chf_alg = CHF_ALG_SHA3_512;
         break;
     case KDF_ALG_PBKDF2_HMAC_SHA1_4096:
-        ret->iterationCount = 4096;
-        ret->chfAlg = CHF_ALG_SHA1;
+        ret->iteration_count = 4096;
+        ret->chf_alg = CHF_ALG_SHA1;
         break;
     case KDF_ALG_PBKDF2_HMAC_SHA1_1024:
-        ret->iterationCount = 1024;
-        ret->chfAlg = CHF_ALG_SHA1;
+        ret->iteration_count = 1024;
+        ret->chf_alg = CHF_ALG_SHA1;
         break;
     default:
         ASSERT_NEVER_REACH("Invalid KDF algorithm");
@@ -56,36 +56,37 @@ struct kdf *kdf_alloc(kdf_algorithm_t alg)
     return ret;
 }
 
-int kdf_derive(struct kdf *fn, byte_t *output, size_t outputLen,
-               const char *password, size_t passwordLen, const byte_t *salt,
-               size_t saltLen)
+int kdf_derive(struct kdf *fn, byte_t *derived_key, size_t derived_key_len,
+               const char *password, size_t password_len, const byte_t *salt,
+               size_t salt_len)
 {
-    int pbkdf2Ret = pbkdf2_hmac(output, outputLen, password, passwordLen, salt,
-                                saltLen, fn->iterationCount, fn->chfAlg);
+    int pbkdf2Ret =
+        pbkdf2_hmac(derived_key, derived_key_len, password, password_len, salt,
+                    salt_len, fn->iteration_count, fn->chf_alg);
 
     switch (pbkdf2Ret) {
     case 0:
-        fn->errorCode = 0;
+        fn->errcode = 0;
         break;
     case PBKDF2_ERROR_DERIVED_KEY_TOO_LONG:
-        fn->errorCode = KDF_ERROR_DERIVED_KEY_TOO_LONG;
+        fn->errcode = KDF_ERROR_DERIVED_KEY_TOO_LONG;
         break;
     case PBKDF2_ERROR_PASSWORD_TOO_LONG:
-        fn->errorCode = KDF_ERROR_PASSWORD_TOO_LONG;
+        fn->errcode = KDF_ERROR_PASSWORD_TOO_LONG;
         break;
     case PBKDF2_ERROR_SALT_TOO_LONG:
-        fn->errorCode = KDF_ERROR_SALT_TOO_LONG;
+        fn->errcode = KDF_ERROR_SALT_TOO_LONG;
         break;
     default:
         ASSERT_NEVER_REACH("Unknown PBKDF2 error return");
     }
 
-    return fn->errorCode;
+    return fn->errcode;
 }
 
 const char *kdf_error(const struct kdf *fn)
 {
-    switch (fn->errorCode) {
+    switch (fn->errcode) {
     case 0:
         return "No error with KDF";
     case KDF_ERROR_DERIVED_KEY_TOO_LONG:
