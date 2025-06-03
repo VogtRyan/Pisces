@@ -34,7 +34,7 @@ struct cipher_ctx {
     struct aes_cbc_ctx *ctx;
     size_t key_size;
     int padded;
-    cipher_direction_t direction;
+    cipher_direction direction;
     byte_t iv0[CIPHER_MAX_IV_SIZE];
     byte_t input_block[CIPHER_MAX_BLOCK_SIZE];
     size_t amnt_input;
@@ -52,7 +52,7 @@ static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
 
 #define UNUSED(varname) (void)(varname)
 
-struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
+struct cipher_ctx *cipher_alloc(cipher_algorithm alg)
 {
     struct cipher_ctx *ret = calloc(1, sizeof(struct cipher_ctx));
     GUARD_ALLOC(ret);
@@ -81,7 +81,7 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg)
 }
 
 void cipher_set_direction(struct cipher_ctx *cipher,
-                          cipher_direction_t direction)
+                          cipher_direction direction)
 {
     ASSERT(cipher->running == 0, "Cannot set direction on running cipher");
     ASSERT(direction == CIPHER_DIRECTION_ENCRYPT ||

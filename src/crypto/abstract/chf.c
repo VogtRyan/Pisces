@@ -26,7 +26,7 @@
 #include <stdlib.h>
 
 struct chf_ctx {
-    chf_algorithm_t type;
+    chf_algorithm type;
     void *ctx;
     int running;
     int errcode;
@@ -43,7 +43,7 @@ static inline void chf_ctx_copy(struct chf_ctx *dst,
                                 const struct chf_ctx *src);
 static inline void chf_ctx_free_scrub(struct chf_ctx *chf);
 
-struct chf_ctx *chf_alloc(chf_algorithm_t alg)
+struct chf_ctx *chf_alloc(chf_algorithm alg)
 {
     struct chf_ctx *ret = (struct chf_ctx *)calloc(1, sizeof(struct chf_ctx));
     GUARD_ALLOC(ret);

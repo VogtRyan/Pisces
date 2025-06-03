@@ -24,7 +24,7 @@
 #define CHF_MAX_DIGEST_SIZE (64)
 #define CHF_MAX_BLOCK_SIZE  (144)
 
-typedef enum { CHF_ALG_SHA1, CHF_ALG_SHA3_512 } chf_algorithm_t;
+typedef enum { CHF_ALG_SHA1, CHF_ALG_SHA3_512 } chf_algorithm;
 
 #define CHF_ERROR_MESSAGE_TOO_LONG (-1)
 
@@ -35,7 +35,7 @@ struct chf_ctx;
  * automatically start a new hash operation. Must be freed with
  * chf_free_scrub(). Guaranteed to return non-NULL.
  */
-struct chf_ctx *chf_alloc(chf_algorithm_t alg);
+struct chf_ctx *chf_alloc(chf_algorithm alg);
 
 /*
  * Starts a new hash operation, clearing any input data already processed.

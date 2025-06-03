@@ -32,7 +32,7 @@ TEST_PREAMBLE("PBKDF2");
  * algorithm.
  */
 struct pbkdf2_test {
-    chf_algorithm_t hashAlg;
+    chf_algorithm hashAlg;
     unsigned int iterationCount;
     const char *password;
     const char *salt;
@@ -48,7 +48,7 @@ static void run_pbkdf2_test(const struct pbkdf2_test *test);
 /*
  * Runs a PBKDF2 test that has been parsed from its hexadecimal string format.
  */
-static void run_parsed_pbkdf2_test(chf_algorithm_t hashAlg,
+static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
                                    unsigned int iterationCount,
                                    const byte_t *password, size_t passwordLen,
                                    const byte_t *salt, size_t saltLen,
@@ -421,7 +421,7 @@ static void run_pbkdf2_test(const struct pbkdf2_test *test)
     free(derivedKey);
 }
 
-static void run_parsed_pbkdf2_test(chf_algorithm_t hashAlg,
+static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
                                    unsigned int iterationCount,
                                    const byte_t *password, size_t passwordLen,
                                    const byte_t *salt, size_t saltLen,

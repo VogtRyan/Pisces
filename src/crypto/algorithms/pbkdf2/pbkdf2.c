@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,7 +42,7 @@
  */
 static int init_hmac_trio(const char *password, size_t passwordLen,
                           const byte_t *salt, size_t saltLen,
-                          chf_algorithm_t alg, struct hmac_ctx **prf,
+                          chf_algorithm alg, struct hmac_ctx **prf,
                           struct hmac_ctx **pwdOnly,
                           struct hmac_ctx **pwdAndSalt);
 
@@ -64,7 +64,7 @@ static void free_hmac_trio(struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
 
 int pbkdf2_hmac(byte_t *derivedKey, size_t derivedKeyLen, const char *password,
                 size_t passwordLen, const byte_t *salt, size_t saltLen,
-                unsigned int iterationCount, chf_algorithm_t alg)
+                unsigned int iterationCount, chf_algorithm alg)
 {
     struct hmac_ctx *prf = NULL;
     struct hmac_ctx *pwdOnly = NULL;
@@ -173,7 +173,7 @@ isErr:
 
 static int init_hmac_trio(const char *password, size_t passwordLen,
                           const byte_t *salt, size_t saltLen,
-                          chf_algorithm_t alg, struct hmac_ctx **prf,
+                          chf_algorithm alg, struct hmac_ctx **prf,
                           struct hmac_ctx **pwdOnly,
                           struct hmac_ctx **pwdAndSalt)
 {

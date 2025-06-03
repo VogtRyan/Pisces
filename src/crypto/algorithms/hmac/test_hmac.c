@@ -32,7 +32,7 @@ TEST_PREAMBLE("HMAC");
  * algorithm.
  */
 struct hmac_test {
-    chf_algorithm_t hashAlg;
+    chf_algorithm hashAlg;
     const char *key;
     const char *msg;
     const char *output;
@@ -49,7 +49,7 @@ static void run_hmac_test(const struct hmac_test *test);
  * The outputLen must be less than or equal to the digest length of the of the
  * hash algorithm.
  */
-static void run_parsed_hmac_test(chf_algorithm_t hashAlg, const byte_t *key,
+static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte_t *key,
                                  size_t keyLen, const byte_t *msg,
                                  size_t msgLen, const byte_t *output,
                                  size_t outputLen);
@@ -389,7 +389,7 @@ static void run_hmac_test(const struct hmac_test *test)
     free(output);
 }
 
-static void run_parsed_hmac_test(chf_algorithm_t hashAlg, const byte_t *key,
+static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte_t *key,
                                  size_t keyLen, const byte_t *msg,
                                  size_t msgLen, const byte_t *output,
                                  size_t outputLen)

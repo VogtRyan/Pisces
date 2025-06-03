@@ -25,7 +25,7 @@ typedef enum {
     KDF_ALG_PBKDF2_HMAC_SHA3_512_16384,
     KDF_ALG_PBKDF2_HMAC_SHA1_4096,
     KDF_ALG_PBKDF2_HMAC_SHA1_1024
-} kdf_algorithm_t;
+} kdf_algorithm;
 
 #define KDF_ERROR_PASSWORD_TOO_LONG    (-1)
 #define KDF_ERROR_SALT_TOO_LONG        (-2)
@@ -37,7 +37,7 @@ struct kdf;
  * Allocates a new cryptographic key derivation function. Must be freed with
  * kdf_free_scrub(). Guaranteed to return non-NULL.
  */
-struct kdf *kdf_alloc(kdf_algorithm_t alg);
+struct kdf *kdf_alloc(kdf_algorithm alg);
 
 /*
  * Runs the key derivation function, filling the derived_key array with the

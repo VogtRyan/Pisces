@@ -31,12 +31,12 @@ typedef enum {
     CIPHER_ALG_AES_128_CBC_PKCS7PAD,
     CIPHER_ALG_AES_256_CBC_NOPAD,
     CIPHER_ALG_AES_256_CBC_PKCS7PAD
-} cipher_algorithm_t;
+} cipher_algorithm;
 
 typedef enum {
     CIPHER_DIRECTION_ENCRYPT,
     CIPHER_DIRECTION_DECRYPT
-} cipher_direction_t;
+} cipher_direction;
 
 #define CIPHER_ADD_MAX_INPUT_LEN (SIZE_MAX - CIPHER_MAX_BLOCK_SIZE + 1)
 
@@ -50,14 +50,14 @@ struct cipher_ctx;
  * Allocates a new context for a cipher operation. Must be freed with
  * cipher_free_scrub(). Guaranteed to return non-NULL.
  */
-struct cipher_ctx *cipher_alloc(cipher_algorithm_t alg);
+struct cipher_ctx *cipher_alloc(cipher_algorithm alg);
 
 /*
  * Sets whether the context encrypts or decrypts. Must be called prior to
  * starting a cipher operation.
  */
 void cipher_set_direction(struct cipher_ctx *cipher,
-                          cipher_direction_t direction);
+                          cipher_direction direction);
 
 /*
  * Sets the encryption key. Must be called prior to starting a cipher

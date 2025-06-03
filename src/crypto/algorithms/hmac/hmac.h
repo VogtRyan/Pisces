@@ -51,7 +51,7 @@ struct hmac_ctx;
  * allocation to fail, or for alg to be a value other than a supported
  * algorithm.
  */
-struct hmac_ctx *hmac_alloc(chf_algorithm_t alg);
+struct hmac_ctx *hmac_alloc(chf_algorithm alg);
 
 /*
  * Starts a new HMAC operation with the given context. The size of the key is

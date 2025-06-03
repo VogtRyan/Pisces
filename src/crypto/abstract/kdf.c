@@ -27,11 +27,11 @@
 
 struct kdf {
     unsigned int iteration_count;
-    chf_algorithm_t chf_alg;
+    chf_algorithm chf_alg;
     int errcode;
 };
 
-struct kdf *kdf_alloc(kdf_algorithm_t alg)
+struct kdf *kdf_alloc(kdf_algorithm alg)
 {
     struct kdf *ret = (struct kdf *)calloc(1, sizeof(struct kdf));
     GUARD_ALLOC(ret);

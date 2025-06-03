@@ -40,7 +40,7 @@ struct hmac_ctx {
     byte_t digestSizedBuffer[CHF_MAX_DIGEST_SIZE];
 };
 
-struct hmac_ctx *hmac_alloc(chf_algorithm_t alg)
+struct hmac_ctx *hmac_alloc(chf_algorithm alg)
 {
     struct hmac_ctx *ret =
         (struct hmac_ctx *)calloc(1, sizeof(struct hmac_ctx));
