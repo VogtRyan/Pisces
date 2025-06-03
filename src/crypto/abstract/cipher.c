@@ -205,12 +205,12 @@ int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputLen)
          * Decryption with padding requires a complete decrypted block in the
          * output buffer, but nothing left to process in the input buffer.
          */
-        if (cipher->hasOutput == 0) {
-            ERROR_CODE(isErr, errVal, CIPHER_ERROR_NO_BLOCK_TO_DEPAD);
-        }
-        else if (cipher->amntInput != 0) {
+        if (cipher->amntInput != 0) {
             ERROR_CODE(isErr, errVal,
                        CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
+        }
+        else if (cipher->hasOutput == 0) {
+            ERROR_CODE(isErr, errVal, CIPHER_ERROR_NO_BLOCK_TO_DEPAD);
         }
         if (pkcs7_padding_remove(cipher->outputBlock, AES_CBC_BLOCK_SIZE,
                                  output, outputLen)) {

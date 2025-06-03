@@ -105,9 +105,18 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
  * the block size of the cipher (itself guaranteed to be no larger than
  * CIPHER_MAX_BLOCK_SIZE).
  *
- * Returns 0 on success, <0 on error
- * (CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE, CIPHER_ERROR_NO_BLOCK_TO_DEPAD,
- * or CIPHER_ERROR_INVALID_PAD_DATA, from highest to lowest precedence).
+ * Returns 0 on success, <0 on error. In order of precedence from highest to
+ * lowest, possible error returns are:
+ *
+ * - CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE, for encryption with unpadded
+ *   ciphers or decryption with any cipher, when the total input length is not
+ *   a multiple of block size;
+ *
+ * - CIPHER_ERROR_NO_BLOCK_TO_DEPAD, for decryption with padded ciphers, when
+ *   there is no last block to depad; and,
+ *
+ * - CIPHER_ERROR_INVALID_PAD_DATA, for decryption with padded ciphers, where
+ *   the last block during decryption is corrupt.
  */
 int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *outputLen);
 
