@@ -36,8 +36,8 @@ struct hmac_ctx {
      * perform computations on key material. Allocating them inside the context
      * causes hmac_free_scrub() to scrub them.
      */
-    byte_t blockSizedBuffer[CHF_MAX_BLOCK_BYTES];
-    byte_t digestSizedBuffer[CHF_MAX_DIGEST_BYTES];
+    byte_t blockSizedBuffer[CHF_MAX_BLOCK_SIZE];
+    byte_t digestSizedBuffer[CHF_MAX_DIGEST_SIZE];
 };
 
 struct hmac_ctx *hmac_alloc(chf_algorithm_t alg)

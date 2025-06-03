@@ -21,8 +21,8 @@
 
 #include <stddef.h>
 
-#define CHF_MAX_DIGEST_BYTES (64)
-#define CHF_MAX_BLOCK_BYTES  (144)
+#define CHF_MAX_DIGEST_SIZE (64)
+#define CHF_MAX_BLOCK_SIZE  (144)
 
 typedef enum { CHF_ALG_SHA1, CHF_ALG_SHA3_512 } chf_algorithm_t;
 
@@ -51,7 +51,7 @@ int chf_add(struct chf_ctx *chf, const byte_t *input, size_t inputLen);
 /*
  * Computes the message digest of the data that has been input. The size of
  * the digest will be equal to chf_digest_size(), which is guaranteed not to
- * exceed CHF_MAX_DIGEST_BYTES. Returns 0 on success, <0 on error
+ * exceed CHF_MAX_DIGEST_SIZE. Returns 0 on success, <0 on error
  * (CHF_ERROR_MESSAGE_TOO_LONG).
  */
 int chf_end(struct chf_ctx *chf, byte_t *output);
@@ -66,13 +66,13 @@ int chf_single(struct chf_ctx *chf, const byte_t *input, size_t inputLen,
 
 /*
  * Returns the size of the hash algorithm's message digest output in bytes,
- * guaranteed to be greater than zero and no larger than CHF_MAX_DIGEST_BYTES.
+ * guaranteed to be greater than zero and no larger than CHF_MAX_DIGEST_SIZE.
  */
 size_t chf_digest_size(const struct chf_ctx *chf);
 
 /*
  * Returns the hash algorithm's block size in bytes, guaranteed to be greater
- * than zero and no larger than CHF_MAX_BLOCK_BYTES. Typically used only for
+ * than zero and no larger than CHF_MAX_BLOCK_SIZE. Typically used only for
  * building other cryptographic algorithms on top of a cryptographic hash
  * primitive.
  */

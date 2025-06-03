@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,7 +27,7 @@
  * an HMAC operation is the same as the output size of the underlying hash
  * function.
  */
-#define HMAC_MAX_DIGEST_BYTES (CHF_MAX_DIGEST_BYTES)
+#define HMAC_MAX_DIGEST_BYTES (CHF_MAX_DIGEST_SIZE)
 
 /*
  * The error codes that can be returned by hmac_start(), hmac_add(), and
