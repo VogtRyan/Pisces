@@ -56,13 +56,12 @@ struct kdf *kdf_alloc(kdf_algorithm_t alg)
     return ret;
 }
 
-int kdf_derive(struct kdf *fn, byte_t *derivedKey, size_t derivedKeyLen,
+int kdf_derive(struct kdf *fn, byte_t *output, size_t outputLen,
                const char *password, size_t passwordLen, const byte_t *salt,
                size_t saltLen)
 {
-    int pbkdf2Ret =
-        pbkdf2_hmac(derivedKey, derivedKeyLen, password, passwordLen, salt,
-                    saltLen, fn->iterationCount, fn->chfAlg);
+    int pbkdf2Ret = pbkdf2_hmac(output, outputLen, password, passwordLen, salt,
+                                saltLen, fn->iterationCount, fn->chfAlg);
 
     switch (pbkdf2Ret) {
     case 0:
