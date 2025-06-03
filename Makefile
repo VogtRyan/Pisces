@@ -22,6 +22,10 @@ PREFIX         = /usr/local
 INSTALL_BIN    = ${PREFIX}/bin
 INSTALL_MAN    = ${PREFIX}/man/man1
 
+# Standards:
+# - C99
+# - POSIX.1-2001, with the exception of optional support for the arc4random
+#   family of functions
 CFLAGS.COMMON = -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200112L
 
 CFLAGS.BUILD.release = -O2
