@@ -33,7 +33,7 @@ struct cprng *cprng_alloc_default(void);
  * Fills the given buffer with random bytes. Guaranteed to succeed, but may
  * block for a finite period of time.
  */
-void cprng_bytes(struct cprng *rng, byte_t *bytes, size_t numBytes);
+void cprng_bytes(struct cprng *rng, byte_t *output, size_t outputLen);
 
 /*
  * Frees a psuedorandom number generator allocated with cprng_alloc_default(),

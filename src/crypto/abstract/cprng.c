@@ -44,8 +44,8 @@ struct cprng {
     int fd;
 };
 
-static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
-                                  size_t numBytes);
+static void cprng_bytes_devrandom(struct cprng *rng, byte_t *output,
+                                  size_t outputLen);
 
 #define UNUSED(varname) (void)(varname)
 
@@ -85,16 +85,16 @@ struct cprng *cprng_alloc_default(void)
     return ret;
 }
 
-void cprng_bytes(struct cprng *rng, byte_t *bytes, size_t numBytes)
+void cprng_bytes(struct cprng *rng, byte_t *output, size_t outputLen)
 {
-    ASSERT(numBytes <= SSIZE_MAX, "Amount of data to read is too large");
+    ASSERT(outputLen <= SSIZE_MAX, "Amount of data to read is too large");
 
     switch (rng->type) {
     case CPRNG_ALG_ARC4RANDOM:
-        arc4random_buf(bytes, numBytes);
+        arc4random_buf(output, outputLen);
         break;
     case CPRNG_ALG_DEVRANDOM:
-        cprng_bytes_devrandom(rng, bytes, numBytes);
+        cprng_bytes_devrandom(rng, output, outputLen);
         break;
     default:
         ASSERT_NEVER_REACH("Invalid CPRNG algorithm");
@@ -112,8 +112,8 @@ void cprng_free_scrub(struct cprng *rng)
     }
 }
 
-static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
-                                  size_t numBytes)
+static void cprng_bytes_devrandom(struct cprng *rng, byte_t *output,
+                                  size_t outputLen)
 {
     ssize_t res;
 
@@ -124,15 +124,15 @@ static void cprng_bytes_devrandom(struct cprng *rng, byte_t *bytes,
         }
     }
 
-    while (numBytes > 0) {
-        res = read(rng->fd, bytes, numBytes);
+    while (outputLen > 0) {
+        res = read(rng->fd, output, outputLen);
         if (res == 0) {
             FATAL_ERROR("Read from %s returned no data", CPRNG_DEVICE_NAME);
         }
         if (res < 0) {
             FATAL_ERROR("Read from %s failed", CPRNG_DEVICE_NAME);
         }
-        bytes += res;
-        numBytes -= (size_t)res;
+        output += res;
+        outputLen -= (size_t)res;
     }
 }
