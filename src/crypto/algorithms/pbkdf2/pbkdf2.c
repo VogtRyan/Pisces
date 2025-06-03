@@ -41,9 +41,8 @@
  * password error taking precedence.
  */
 static int init_hmac_trio(const char *password, size_t passwordLen,
-                          const byte_t *salt, size_t saltLen,
-                          chf_algorithm alg, struct hmac_ctx **prf,
-                          struct hmac_ctx **pwdOnly,
+                          const byte *salt, size_t saltLen, chf_algorithm alg,
+                          struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
                           struct hmac_ctx **pwdAndSalt);
 
 /*
@@ -62,15 +61,15 @@ static int would_overflow_counter_before_completion(size_t derivedKeyLen,
 static void free_hmac_trio(struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
                            struct hmac_ctx **pwdAndSalt);
 
-int pbkdf2_hmac(byte_t *derivedKey, size_t derivedKeyLen, const char *password,
-                size_t passwordLen, const byte_t *salt, size_t saltLen,
+int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
+                size_t passwordLen, const byte *salt, size_t saltLen,
                 unsigned int iterationCount, chf_algorithm alg)
 {
     struct hmac_ctx *prf = NULL;
     struct hmac_ctx *pwdOnly = NULL;
     struct hmac_ctx *pwdAndSalt = NULL;
-    byte_t U[HMAC_MAX_DIGEST_BYTES];
-    byte_t iMSOF[4];
+    byte U[HMAC_MAX_DIGEST_BYTES];
+    byte iMSOF[4];
     size_t octetsFromT, onOctet, hLen;
     unsigned int uMinusOne;
     uint32_t i;
@@ -172,9 +171,8 @@ isErr:
 }
 
 static int init_hmac_trio(const char *password, size_t passwordLen,
-                          const byte_t *salt, size_t saltLen,
-                          chf_algorithm alg, struct hmac_ctx **prf,
-                          struct hmac_ctx **pwdOnly,
+                          const byte *salt, size_t saltLen, chf_algorithm alg,
+                          struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
                           struct hmac_ctx **pwdAndSalt)
 {
     int errVal = 0;
@@ -187,7 +185,7 @@ static int init_hmac_trio(const char *password, size_t passwordLen,
      * Precompute two partial HMACs: an initialized HMAC that has processed no
      * data (just the password), and the same but that has processed the salt.
      */
-    if (hmac_start(*prf, (const byte_t *)password, passwordLen)) {
+    if (hmac_start(*prf, (const byte *)password, passwordLen)) {
         ERROR_CODE(isErr, errVal, PBKDF2_ERROR_PASSWORD_TOO_LONG);
     }
     hmac_copy(*pwdOnly, *prf);

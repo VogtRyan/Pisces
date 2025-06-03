@@ -168,12 +168,12 @@ double bits_security_usq_simple_enforced(size_t num)
 
 static void get_usq_simple_cprng(char *result, size_t num, struct cprng *rng)
 {
-    byte_t *randArray = NULL;
+    byte *randArray = NULL;
     size_t remaining, toGenerate, i;
 
     /* Allocate a temporary array to store raw random bytes */
     remaining = num;
-    randArray = (byte_t *)malloc(num);
+    randArray = (byte *)malloc(num);
     GUARD_ALLOC(randArray);
 
     /*

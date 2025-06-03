@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2013-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -68,13 +68,13 @@ void sha3_512_start(struct sha3_ctx *ctx);
 /*
  * Adds the given data to the input stream processed by the SHA-3 context.
  */
-void sha3_add(struct sha3_ctx *ctx, const byte_t *bytes, size_t numBytes);
+void sha3_add(struct sha3_ctx *ctx, const byte *bytes, size_t numBytes);
 
 /*
  * Computes the SHA-3 hash of the message. The output of this function is
  * undefined if one of the sha3_*_start() functions has not been called.
  */
-void sha3_end(struct sha3_ctx *ctx, byte_t *digest);
+void sha3_end(struct sha3_ctx *ctx, byte *digest);
 
 /*
  * Copies the current state of the src context into the dst context. Behaviour

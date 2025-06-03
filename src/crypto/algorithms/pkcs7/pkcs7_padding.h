@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2023-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,8 +38,8 @@
  *
  * It is a fatal error for the block size or input size to be out of range.
  */
-void pkcs7_padding_add(const byte_t *input, size_t inputSize, size_t blockSize,
-                       byte_t *output);
+void pkcs7_padding_add(const byte *input, size_t inputSize, size_t blockSize,
+                       byte *output);
 
 /*
  * Remove the PKCS7 padding, as defined in RFC 5652 section 6.3, from a final
@@ -57,7 +57,7 @@ void pkcs7_padding_add(const byte_t *input, size_t inputSize, size_t blockSize,
  *
  * It is a fatal error for the block size to be out of range.
  */
-int pkcs7_padding_remove(const byte_t *input, size_t blockSize, byte_t *output,
+int pkcs7_padding_remove(const byte *input, size_t blockSize, byte *output,
                          size_t *outputSize);
 
 #endif

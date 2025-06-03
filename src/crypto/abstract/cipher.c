@@ -36,10 +36,10 @@ struct cipher_ctx {
     size_t key_size;
     bool padded;
     cipher_direction direction;
-    byte_t iv0[CIPHER_MAX_IV_SIZE];
-    byte_t input_block[CIPHER_MAX_BLOCK_SIZE];
+    byte iv0[CIPHER_MAX_IV_SIZE];
+    byte input_block[CIPHER_MAX_BLOCK_SIZE];
     size_t amnt_input;
-    byte_t output_block[CIPHER_MAX_BLOCK_SIZE];
+    byte output_block[CIPHER_MAX_BLOCK_SIZE];
     bool has_output;
     bool direction_set;
     bool iv_set;
@@ -48,8 +48,8 @@ struct cipher_ctx {
     int errcode;
 };
 
-static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
-                            byte_t *output);
+static size_t process_block(struct cipher_ctx *cipher, const byte *input,
+                            byte *output);
 
 #define UNUSED(varname) (void)(varname)
 
@@ -92,14 +92,14 @@ void cipher_set_direction(struct cipher_ctx *cipher,
     cipher->direction_set = true;
 }
 
-void cipher_set_key(struct cipher_ctx *cipher, const byte_t *key)
+void cipher_set_key(struct cipher_ctx *cipher, const byte *key)
 {
     ASSERT(cipher->running == false, "Cannot set key on running cipher");
     aes_cbc_set_key(cipher->ctx, key, cipher->key_size);
     cipher->key_set = true;
 }
 
-void cipher_set_iv(struct cipher_ctx *cipher, const byte_t *iv)
+void cipher_set_iv(struct cipher_ctx *cipher, const byte *iv)
 {
     ASSERT(cipher->running == false, "Cannot set IV on running cipher");
     memcpy(cipher->iv0, iv, AES_CBC_IV_SIZE);
@@ -117,8 +117,8 @@ void cipher_start(struct cipher_ctx *cipher)
     aes_cbc_set_iv(cipher->ctx, cipher->iv0);
 }
 
-void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
-                size_t input_len, byte_t *output, size_t *output_len)
+void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
+                byte *output, size_t *output_len)
 {
     size_t to_fill_block, add_to_cipher;
     size_t fake_output_len, added_to_output;
@@ -178,7 +178,7 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
     }
 }
 
-int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *output_len)
+int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
 {
     size_t fake_output_len;
     int errval = 0;
@@ -279,8 +279,8 @@ void cipher_free_scrub(struct cipher_ctx *cipher)
     }
 }
 
-static size_t process_block(struct cipher_ctx *cipher, const byte_t *input,
-                            byte_t *output)
+static size_t process_block(struct cipher_ctx *cipher, const byte *input,
+                            byte *output)
 {
     size_t ret;
 

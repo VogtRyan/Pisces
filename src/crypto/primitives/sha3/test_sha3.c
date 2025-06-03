@@ -54,8 +54,8 @@ static void run_sha3_plain_test(const struct sha3_plain_test *test);
  * Runs a SHA-3 single-output test which has been parsed from its hexadecimal
  * string format.
  */
-static void run_parsed_sha3_plain_test(const byte_t *msg, size_t msgLen,
-                                       const byte_t *digest, size_t digestLen);
+static void run_parsed_sha3_plain_test(const byte *msg, size_t msgLen,
+                                       const byte *digest, size_t digestLen);
 
 /*
  * Adds the provided message to the currently running SHA-3 context. If the
@@ -63,7 +63,7 @@ static void run_parsed_sha3_plain_test(const byte_t *msg, size_t msgLen,
  * three pieces (to test the functionality of adding partial blocks to the
  * context).
  */
-static void add_single_message(struct sha3_ctx *ctx, const byte_t *msg,
+static void add_single_message(struct sha3_ctx *ctx, const byte *msg,
                                size_t msgLen, size_t digestLen);
 
 /*
@@ -77,17 +77,17 @@ static void run_sha3_monte_test(const struct sha3_monte_test *test);
  * hexadecimal string format. The value of digestLen must be the number of
  * bytes in both the seed and the output.
  */
-static void run_parsed_sha3_monte_test(const byte_t *seed,
-                                       const byte_t *output, size_t digestLen);
+static void run_parsed_sha3_monte_test(const byte *seed, const byte *output,
+                                       size_t digestLen);
 
 /*
  * Converts strings of hexadecimal characters to arrays of bytes, and ensures
  * that the number of digest bytes converted is a valid SHA-3 digest size. The
  * caller is responsible for freeing the allocated byte arrays.
  */
-static void parse_hex_to_bytes(const char *msgHex, byte_t **msgBytes,
+static void parse_hex_to_bytes(const char *msgHex, byte **msgBytes,
                                size_t *msgLen, const char *digestHex,
-                               byte_t **digestBytes, size_t *digestLen);
+                               byte **digestBytes, size_t *digestLen);
 
 /*
  * Starts the SHA-3 context running an operation that outputs the given number
@@ -391,7 +391,7 @@ int main(void)
 
 static void run_sha3_plain_test(const struct sha3_plain_test *test)
 {
-    byte_t *msg, *digest;
+    byte *msg, *digest;
     size_t msgLen, digestLen;
 
     parse_hex_to_bytes(test->msg, &msg, &msgLen, test->digest, &digest,
@@ -402,11 +402,11 @@ static void run_sha3_plain_test(const struct sha3_plain_test *test)
     free(digest);
 }
 
-static void run_parsed_sha3_plain_test(const byte_t *msg, size_t msgLen,
-                                       const byte_t *digest, size_t digestLen)
+static void run_parsed_sha3_plain_test(const byte *msg, size_t msgLen,
+                                       const byte *digest, size_t digestLen)
 {
     struct sha3_ctx *ctx;
-    byte_t actual[SHA3_DIGEST_BYTES_MAX];
+    byte actual[SHA3_DIGEST_BYTES_MAX];
 
     ctx = sha3_alloc();
     memset(actual, 0, digestLen);
@@ -419,7 +419,7 @@ static void run_parsed_sha3_plain_test(const byte_t *msg, size_t msgLen,
     sha3_free_scrub(ctx);
 }
 
-static void add_single_message(struct sha3_ctx *ctx, const byte_t *msg,
+static void add_single_message(struct sha3_ctx *ctx, const byte *msg,
                                size_t msgLen, size_t digestLen)
 {
     size_t blockBytes = block_bytes(digestLen);
@@ -438,7 +438,7 @@ static void add_single_message(struct sha3_ctx *ctx, const byte_t *msg,
 
 static void run_sha3_monte_test(const struct sha3_monte_test *test)
 {
-    byte_t *seed, *output;
+    byte *seed, *output;
     size_t seedLen, digestLen;
 
     parse_hex_to_bytes(test->seed, &seed, &seedLen, test->output, &output,
@@ -452,13 +452,13 @@ static void run_sha3_monte_test(const struct sha3_monte_test *test)
     free(output);
 }
 
-static void run_parsed_sha3_monte_test(const byte_t *seed,
-                                       const byte_t *output, size_t digestLen)
+static void run_parsed_sha3_monte_test(const byte *seed, const byte *output,
+                                       size_t digestLen)
 {
     const int NIST_MONTE_COMBINED_LOOP_SIZE = 100000;
     struct sha3_ctx *ctx;
-    const byte_t *input;
-    byte_t actual[SHA3_DIGEST_BYTES_MAX];
+    const byte *input;
+    byte actual[SHA3_DIGEST_BYTES_MAX];
     int k;
 
     ctx = sha3_alloc();
@@ -494,9 +494,9 @@ static void run_parsed_sha3_monte_test(const byte_t *seed,
     sha3_free_scrub(ctx);
 }
 
-static void parse_hex_to_bytes(const char *msgHex, byte_t **msgBytes,
+static void parse_hex_to_bytes(const char *msgHex, byte **msgBytes,
                                size_t *msgLen, const char *digestHex,
-                               byte_t **digestBytes, size_t *digestLen)
+                               byte **digestBytes, size_t *digestLen)
 {
     hex_to_bytes(msgHex, msgBytes, msgLen);
     hex_to_bytes(digestHex, digestBytes, digestLen);

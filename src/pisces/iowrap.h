@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -40,20 +40,20 @@ int open_output_file(const char *outputFile);
  * Loops on attempts, allowing for safe reading from pipes. Returns 0 on
  * success, -1 on error.
  */
-int read_exactly(int fd, byte_t *buf, size_t nBytes);
+int read_exactly(int fd, byte *buf, size_t nBytes);
 
 /*
  * Reads up to the given number of bytes from the given file descriptor. Loops
  * on attempts, allowing for safe reading from pipes. Return 0 on success and
  * set numRead to be the number of bytes read, or return -1 on error.
  */
-int read_up_to(int fd, byte_t *buf, size_t nBytes, size_t *numRead);
+int read_up_to(int fd, byte *buf, size_t nBytes, size_t *numRead);
 
 /*
  * Writes exactly the given number of bytes to the given file descriptor. Loops
  * on attempts, allowing for safe writing to pipes. Return 0 on success, -1 on
  * error.
  */
-int write_exactly(int fd, const byte_t *buf, size_t nBytes);
+int write_exactly(int fd, const byte *buf, size_t nBytes);
 
 #endif

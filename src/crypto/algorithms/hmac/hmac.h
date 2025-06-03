@@ -59,7 +59,7 @@ struct hmac_ctx *hmac_alloc(chf_algorithm alg);
  * HMAC_ERROR_KEY_TOO_LONG) if the provided key is too long for the underlying
  * cryptographic hash function to process.
  */
-int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen);
+int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t keyLen);
 
 /*
  * Updates the HMAC context with the given bytes. Returns 0 on success, or a
@@ -72,7 +72,7 @@ int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen);
  * It is a fatal error if an HMAC operation has not been started with
  * hmac_start().
  */
-int hmac_add(struct hmac_ctx *hmac, const byte_t *bytes, size_t numBytes);
+int hmac_add(struct hmac_ctx *hmac, const byte *bytes, size_t numBytes);
 
 /*
  * Computes the HMAC of the key and data that have been provided and writes the
@@ -88,7 +88,7 @@ int hmac_add(struct hmac_ctx *hmac, const byte_t *bytes, size_t numBytes);
  * It is a fatal error if an HMAC operation has not been started with
  * hmac_start().
  */
-int hmac_end(struct hmac_ctx *hmac, byte_t *digest);
+int hmac_end(struct hmac_ctx *hmac, byte *digest);
 
 /*
  * A shorthand for calling hmac_start(), then a single hmac_add(), then
@@ -96,8 +96,8 @@ int hmac_end(struct hmac_ctx *hmac, byte_t *digest);
  * functions are called in sequence, you may use the same memory location for
  * the source bytes and the output digest.
  */
-int hmac_single(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen,
-                const byte_t *bytes, size_t numBytes, byte_t *digest);
+int hmac_single(struct hmac_ctx *hmac, const byte *key, size_t keyLen,
+                const byte *bytes, size_t numBytes, byte *digest);
 
 /*
  * Returns the size of the HMAC output in bytes, which is guaranteed to be

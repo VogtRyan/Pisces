@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -44,13 +44,13 @@
  *
  *     *((uint32_t *)location) = value;
  */
-static inline void put_big_end_32(byte_t *location, uint32_t value)
+static inline void put_big_end_32(byte *location, uint32_t value)
 {
     /* clang-format off */
-    location[0] = (byte_t)((value >> 24) & 0xFF);
-    location[1] = (byte_t)((value >> 16) & 0xFF);
-    location[2] = (byte_t)((value >>  8) & 0xFF);
-    location[3] = (byte_t)((value      ) & 0xFF);
+    location[0] = (byte)((value >> 24) & 0xFF);
+    location[1] = (byte)((value >> 16) & 0xFF);
+    location[2] = (byte)((value >>  8) & 0xFF);
+    location[3] = (byte)((value      ) & 0xFF);
     /* clang-format on */
 }
 
@@ -60,17 +60,17 @@ static inline void put_big_end_32(byte_t *location, uint32_t value)
  *
  *     *((uint64_t *)location) = value;
  */
-static inline void put_big_end_64(byte_t *location, uint64_t value)
+static inline void put_big_end_64(byte *location, uint64_t value)
 {
     /* clang-format off */
-    location[0] = (byte_t)((value >> 56) & 0xFF);
-    location[1] = (byte_t)((value >> 48) & 0xFF);
-    location[2] = (byte_t)((value >> 40) & 0xFF);
-    location[3] = (byte_t)((value >> 32) & 0xFF);
-    location[4] = (byte_t)((value >> 24) & 0xFF);
-    location[5] = (byte_t)((value >> 16) & 0xFF);
-    location[6] = (byte_t)((value >>  8) & 0xFF);
-    location[7] = (byte_t)((value      ) & 0xFF);
+    location[0] = (byte)((value >> 56) & 0xFF);
+    location[1] = (byte)((value >> 48) & 0xFF);
+    location[2] = (byte)((value >> 40) & 0xFF);
+    location[3] = (byte)((value >> 32) & 0xFF);
+    location[4] = (byte)((value >> 24) & 0xFF);
+    location[5] = (byte)((value >> 16) & 0xFF);
+    location[6] = (byte)((value >>  8) & 0xFF);
+    location[7] = (byte)((value      ) & 0xFF);
     /* clang-format on */
 }
 
@@ -80,13 +80,13 @@ static inline void put_big_end_64(byte_t *location, uint64_t value)
  *
  *     *((uint32_t *)location) = value;
  */
-static inline void put_little_end_32(byte_t *location, uint32_t value)
+static inline void put_little_end_32(byte *location, uint32_t value)
 {
     /* clang-format off */
-    location[0] = (byte_t)((value      ) & 0xFF);
-    location[1] = (byte_t)((value >>  8) & 0xFF);
-    location[2] = (byte_t)((value >> 16) & 0xFF);
-    location[3] = (byte_t)((value >> 24) & 0xFF);
+    location[0] = (byte)((value      ) & 0xFF);
+    location[1] = (byte)((value >>  8) & 0xFF);
+    location[2] = (byte)((value >> 16) & 0xFF);
+    location[3] = (byte)((value >> 24) & 0xFF);
     /* clang-format on */
 }
 
@@ -96,17 +96,17 @@ static inline void put_little_end_32(byte_t *location, uint32_t value)
  *
  *     *((uint64_t *)location) = value;
  */
-static inline void put_little_end_64(byte_t *location, uint64_t value)
+static inline void put_little_end_64(byte *location, uint64_t value)
 {
     /* clang-format off */
-    location[0] = (byte_t)((value      ) & 0xFF);
-    location[1] = (byte_t)((value >>  8) & 0xFF);
-    location[2] = (byte_t)((value >> 16) & 0xFF);
-    location[3] = (byte_t)((value >> 24) & 0xFF);
-    location[4] = (byte_t)((value >> 32) & 0xFF);
-    location[5] = (byte_t)((value >> 40) & 0xFF);
-    location[6] = (byte_t)((value >> 48) & 0xFF);
-    location[7] = (byte_t)((value >> 56) & 0xFF);
+    location[0] = (byte)((value      ) & 0xFF);
+    location[1] = (byte)((value >>  8) & 0xFF);
+    location[2] = (byte)((value >> 16) & 0xFF);
+    location[3] = (byte)((value >> 24) & 0xFF);
+    location[4] = (byte)((value >> 32) & 0xFF);
+    location[5] = (byte)((value >> 40) & 0xFF);
+    location[6] = (byte)((value >> 48) & 0xFF);
+    location[7] = (byte)((value >> 56) & 0xFF);
     /* clang-format on */
 }
 
@@ -117,7 +117,7 @@ static inline void put_little_end_64(byte_t *location, uint64_t value)
  *
  *     return *((uint32_t *)location);
  */
-static inline uint32_t get_big_end_32(const byte_t *location)
+static inline uint32_t get_big_end_32(const byte *location)
 {
     /* clang-format off */
     return (((uint32_t)(location[0])) << 24) |
@@ -134,7 +134,7 @@ static inline uint32_t get_big_end_32(const byte_t *location)
  *
  *     return *((uint64_t *)location);
  */
-static inline uint64_t get_big_end_64(const byte_t *location)
+static inline uint64_t get_big_end_64(const byte *location)
 {
     /* clang-format off */
     return (((uint64_t)(location[0])) << 56) |
@@ -155,7 +155,7 @@ static inline uint64_t get_big_end_64(const byte_t *location)
  *
  *     return *((uint32_t *)location);
  */
-static inline uint32_t get_little_end_32(const byte_t *location)
+static inline uint32_t get_little_end_32(const byte *location)
 {
     /* clang-format off */
     return (((uint32_t)(location[0]))      ) |
@@ -172,7 +172,7 @@ static inline uint32_t get_little_end_32(const byte_t *location)
  *
  *     return *((uint64_t *)location);
  */
-static inline uint64_t get_little_end_64(const byte_t *location)
+static inline uint64_t get_little_end_64(const byte *location)
 {
     /* clang-format off */
     return (((uint64_t)(location[0]))      ) |

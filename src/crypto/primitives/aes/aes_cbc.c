@@ -27,7 +27,7 @@
 
 struct aes_cbc_ctx {
     struct aes_ecb_ctx *ecbCtx;
-    byte_t iv[AES_CBC_IV_SIZE];
+    byte iv[AES_CBC_IV_SIZE];
 };
 
 struct aes_cbc_ctx *aes_cbc_alloc(void)
@@ -39,8 +39,7 @@ struct aes_cbc_ctx *aes_cbc_alloc(void)
     return ret;
 }
 
-void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte_t *key,
-                     size_t keyBytes)
+void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte *key, size_t keyBytes)
 {
     switch (keyBytes) {
     case AES_CBC_KEY_SIZE_128:
@@ -57,13 +56,12 @@ void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte_t *key,
     }
 }
 
-void aes_cbc_set_iv(struct aes_cbc_ctx *ctx, const byte_t *iv)
+void aes_cbc_set_iv(struct aes_cbc_ctx *ctx, const byte *iv)
 {
     memcpy(ctx->iv, iv, AES_CBC_IV_SIZE);
 }
 
-void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte_t *block,
-                     byte_t *output)
+void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output)
 {
     /*
      * Ciphertext = E(plaintext ^ IV)
@@ -79,8 +77,7 @@ void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte_t *block,
     memcpy(ctx->iv, output, AES_CBC_BLOCK_SIZE);
 }
 
-void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte_t *block,
-                     byte_t *output)
+void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output)
 {
     /*
      * Plaintext = D(ciphertext) ^ IV

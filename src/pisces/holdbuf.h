@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,15 +45,15 @@ struct holdbuf *holdbuf_alloc(size_t stopSize);
  * be placed in output, with outputBytes being set to the amount given back. It
  * is guaranteed that no more than numBytes will be written to output.
  */
-void holdbuf_give(struct holdbuf *hb, const byte_t *bytes, size_t numBytes,
-                  byte_t *output, size_t *outputBytes);
+void holdbuf_give(struct holdbuf *hb, const byte *bytes, size_t numBytes,
+                  byte *output, size_t *outputBytes);
 
 /*
  * Empties the reamining stopSize bytes into the given output buffer. Returns 0
  * on success, or HOLDBUF_ERROR_INSUFFICIENT_DATA if there are not enough bytes
  * in the buffer.
  */
-int holdbuf_end(struct holdbuf *hb, byte_t *output);
+int holdbuf_end(struct holdbuf *hb, byte *output);
 
 /*
  * Frees a holdback buffer allocated with holdbuf_alloc(), and securely scrubs

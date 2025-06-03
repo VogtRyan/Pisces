@@ -96,22 +96,21 @@
  * uses pisces_get_version(). Returns 0 on success, -1 on error (and prints
  * error messages).
  */
-static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
-                        byte_t *bodyIV, struct cprng *rng);
+static int write_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV,
+                        struct cprng *rng);
 
 /*
  * Reads in the Pisces identification header, sets the version of Pisces being
  * used to match the version in the file, then reads the salt and two IVs.
  * Returns 0 on success, -1 on error (and prints error messages).
  */
-static int read_header(int fd, byte_t *salt, byte_t *imprintIV,
-                       byte_t *bodyIV);
+static int read_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV);
 
 /*
  * Writes the key-verification imprint to the file, using the provided key and
  * imprint IV. Returns 0 on success, -1 on error (and prints error messages).
  */
-static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV,
+static int write_imprint(int fd, const byte *key, const byte *imprintIV,
                          struct cprng *rng);
 
 /*
@@ -120,37 +119,35 @@ static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV,
  * the provided key and IV. Returns 0 on success, -1 on error (and prints error
  * messages).
  */
-static int read_imprint(int fd, const byte_t *key, const byte_t *imprintIV);
+static int read_imprint(int fd, const byte *key, const byte *imprintIV);
 
 /*
  * Encrypts the input contents to the output file descriptor, using the
  * provided key and IV. Returns 0 on success, -1 on error (and prints error
  * messages).
  */
-static int encrypt_body(int in, int out, const byte_t *key,
-                        const byte_t *bodyIV);
+static int encrypt_body(int in, int out, const byte *key, const byte *bodyIV);
 
 /*
  * Decrypts the input contents to the output file descriptor, using the
  * provided key and IV. Returns 0 on success, -1 on error (and prints error
  * messages).
  */
-static int decrypt_body(int in, int out, const byte_t *key,
-                        const byte_t *bodyIV);
+static int decrypt_body(int in, int out, const byte *key, const byte *bodyIV);
 
 /*
  * Generates two random IVs of the provided length, and stores them into the
  * provided arrays. Guarantees that the two IVs will be distinct.
  */
-static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
+static void generate_distinct_ivs(byte *ivA, byte *ivB, size_t ivLen,
                                   struct cprng *rng);
 
 /*
  * Converts the given password and salt into a key to be used with a
  * cryptographic primitive.
  */
-static int password_to_key(byte_t *derivedKey, const char *password,
-                           size_t passwordLen, const byte_t *salt);
+static int password_to_key(byte *derivedKey, const char *password,
+                           size_t passwordLen, const byte *salt);
 
 /*
  * Computes both the total size of the key-verification imprint, as well as the
@@ -172,10 +169,10 @@ int encrypt_file(const char *inputFile, const char *outputFile,
                  const char *password, size_t passwordLen)
 {
     struct cprng *rng = NULL;
-    byte_t key[CIPHER_MAX_KEY_SIZE];
-    byte_t salt[CIPHER_MAX_KEY_SIZE];
-    byte_t imprintIV[CIPHER_MAX_BLOCK_SIZE];
-    byte_t bodyIV[CIPHER_MAX_BLOCK_SIZE];
+    byte key[CIPHER_MAX_KEY_SIZE];
+    byte salt[CIPHER_MAX_KEY_SIZE];
+    byte imprintIV[CIPHER_MAX_BLOCK_SIZE];
+    byte bodyIV[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
     int errVal = 0;
@@ -224,10 +221,10 @@ isErr:
 int decrypt_file(const char *inputFile, const char *outputFile,
                  const char *password, size_t passwordLen)
 {
-    byte_t key[CIPHER_MAX_KEY_SIZE];
-    byte_t salt[CIPHER_MAX_KEY_SIZE];
-    byte_t imprintIV[CIPHER_MAX_BLOCK_SIZE];
-    byte_t bodyIV[CIPHER_MAX_BLOCK_SIZE];
+    byte key[CIPHER_MAX_KEY_SIZE];
+    byte salt[CIPHER_MAX_KEY_SIZE];
+    byte imprintIV[CIPHER_MAX_BLOCK_SIZE];
+    byte bodyIV[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
     int errVal = 0;
@@ -276,17 +273,17 @@ isErr:
     return errVal;
 }
 
-static int write_header(int fd, byte_t *salt, byte_t *imprintIV,
-                        byte_t *bodyIV, struct cprng *rng)
+static int write_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV,
+                        struct cprng *rng)
 {
     struct cipher_ctx *cipher = NULL;
-    byte_t versionByte;
+    byte versionByte;
     size_t keyAndSaltLen, ivLen;
     int errVal = 0;
 
     /* Write the magic Pisces identifier and the version number */
-    versionByte = (byte_t)pisces_get_version();
-    if (write_exactly(fd, (byte_t *)PISCES_HEADER, PISCES_HEADER_LEN)) {
+    versionByte = (byte)pisces_get_version();
+    if (write_exactly(fd, (byte *)PISCES_HEADER, PISCES_HEADER_LEN)) {
         ERROR(isErr, errVal, "Could not write header to output");
     }
     if (write_exactly(fd, &versionByte, 1)) {
@@ -316,11 +313,11 @@ isErr:
     return errVal;
 }
 
-static int read_header(int fd, byte_t *salt, byte_t *imprintIV, byte_t *bodyIV)
+static int read_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV)
 {
     struct cipher_ctx *cipher = NULL;
-    byte_t header[PISCES_HEADER_LEN];
-    byte_t versionByte;
+    byte header[PISCES_HEADER_LEN];
+    byte versionByte;
     size_t keyAndSaltLen, ivLen;
     int errVal = 0;
 
@@ -360,14 +357,14 @@ isErr:
     return errVal;
 }
 
-static int write_imprint(int fd, const byte_t *key, const byte_t *imprintIV,
+static int write_imprint(int fd, const byte *key, const byte *imprintIV,
                          struct cprng *rng)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
-    byte_t randomData[PISCES_MAX_RANDOM_SIZE];
-    byte_t randomHash[CHF_MAX_DIGEST_SIZE];
-    byte_t encryptedImprint[PISCES_MAX_IMPRINT_SIZE];
+    byte randomData[PISCES_MAX_RANDOM_SIZE];
+    byte randomHash[CHF_MAX_DIGEST_SIZE];
+    byte encryptedImprint[PISCES_MAX_IMPRINT_SIZE];
     size_t randomLen, hashLen, totalLen;
     size_t encOutA, encOutB;
     int errVal = 0;
@@ -411,13 +408,13 @@ isErr:
     return errVal;
 }
 
-static int read_imprint(int fd, const byte_t *key, const byte_t *imprintIV)
+static int read_imprint(int fd, const byte *key, const byte *imprintIV)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
-    byte_t encryptedImprint[PISCES_MAX_IMPRINT_SIZE];
-    byte_t decryptedImprint[PISCES_MAX_IMPRINT_SIZE];
-    byte_t computedHash[CHF_MAX_DIGEST_SIZE];
+    byte encryptedImprint[PISCES_MAX_IMPRINT_SIZE];
+    byte decryptedImprint[PISCES_MAX_IMPRINT_SIZE];
+    byte computedHash[CHF_MAX_DIGEST_SIZE];
     size_t randomLen, hashLen, totalLen;
     size_t decOut;
     int errVal = 0;
@@ -462,14 +459,13 @@ isErr:
     return errVal;
 }
 
-static int encrypt_body(int in, int out, const byte_t *key,
-                        const byte_t *bodyIV)
+static int encrypt_body(int in, int out, const byte *key, const byte *bodyIV)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
-    byte_t buffer[BYTES_AT_ONCE];
-    byte_t hash[CHF_MAX_DIGEST_SIZE];
-    byte_t eBuf[BYTES_AT_ONCE + CHF_MAX_DIGEST_SIZE + CIPHER_MAX_BLOCK_SIZE];
+    byte buffer[BYTES_AT_ONCE];
+    byte hash[CHF_MAX_DIGEST_SIZE];
+    byte eBuf[BYTES_AT_ONCE + CHF_MAX_DIGEST_SIZE + CIPHER_MAX_BLOCK_SIZE];
     size_t hashLen, bytesRead, bytesEnc;
     int errVal = 0;
 
@@ -534,17 +530,16 @@ isErr:
     return errVal;
 }
 
-static int decrypt_body(int in, int out, const byte_t *key,
-                        const byte_t *bodyIV)
+static int decrypt_body(int in, int out, const byte *key, const byte *bodyIV)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
     struct holdbuf *hb = NULL;
-    byte_t buffer[BYTES_AT_ONCE];
-    byte_t dBuf[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
-    byte_t retFromHB[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
-    byte_t storedHash[CHF_MAX_DIGEST_SIZE];
-    byte_t computedHash[CHF_MAX_DIGEST_SIZE];
+    byte buffer[BYTES_AT_ONCE];
+    byte dBuf[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
+    byte retFromHB[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
+    byte storedHash[CHF_MAX_DIGEST_SIZE];
+    byte computedHash[CHF_MAX_DIGEST_SIZE];
     size_t hashLen, bytesRead, bytesDec, bytesReturned;
     int errVal = 0;
 
@@ -626,7 +621,7 @@ isErr:
     return errVal;
 }
 
-static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
+static void generate_distinct_ivs(byte *ivA, byte *ivB, size_t ivLen,
                                   struct cprng *rng)
 {
     cprng_bytes(rng, ivA, ivLen);
@@ -650,8 +645,8 @@ static void generate_distinct_ivs(byte_t *ivA, byte_t *ivB, size_t ivLen,
     }
 }
 
-static int password_to_key(byte_t *derivedKey, const char *password,
-                           size_t passwordLen, const byte_t *salt)
+static int password_to_key(byte *derivedKey, const char *password,
+                           size_t passwordLen, const byte *salt)
 {
     struct cipher_ctx *cipher = NULL;
     struct kdf *fn = NULL;

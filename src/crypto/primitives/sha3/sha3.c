@@ -28,7 +28,7 @@
 
 struct sha3_ctx {
     uint64_t state[25];
-    byte_t leftover[SHA3_BLOCK_BYTES_MAX];
+    byte leftover[SHA3_BLOCK_BYTES_MAX];
     size_t amntLeftover;
     size_t rate;
     size_t outputSize;
@@ -38,7 +38,7 @@ struct sha3_ctx {
  * Compute the Keccak-f function on the given data, as defined in FIPS 202.
  * Note that the keccak_f() function is algorithmically generated.
  */
-static void keccak_f(struct sha3_ctx *ctx, const byte_t *newData);
+static void keccak_f(struct sha3_ctx *ctx, const byte *newData);
 
 struct sha3_ctx *sha3_alloc(void)
 {
@@ -76,7 +76,7 @@ void sha3_512_start(struct sha3_ctx *ctx)
     ctx->outputSize = SHA3_512_DIGEST_BYTES;
 }
 
-void sha3_add(struct sha3_ctx *ctx, const byte_t *bytes, size_t numBytes)
+void sha3_add(struct sha3_ctx *ctx, const byte *bytes, size_t numBytes)
 {
     size_t toCopy, onByte;
 
@@ -109,10 +109,10 @@ void sha3_add(struct sha3_ctx *ctx, const byte_t *bytes, size_t numBytes)
     }
 }
 
-void sha3_end(struct sha3_ctx *ctx, byte_t *digest)
+void sha3_end(struct sha3_ctx *ctx, byte *digest)
 {
     size_t bytesNeeded, toCopy, i;
-    byte_t output[8];
+    byte output[8];
 
     /*
      * Padding at the end of the message. The original Keccak specification set
@@ -154,7 +154,7 @@ void sha3_free_scrub(struct sha3_ctx *ctx)
     }
 }
 
-static void keccak_f(struct sha3_ctx *ctx, const byte_t *newData)
+static void keccak_f(struct sha3_ctx *ctx, const byte *newData)
 {
     uint64_t *A;
     uint64_t B[25];

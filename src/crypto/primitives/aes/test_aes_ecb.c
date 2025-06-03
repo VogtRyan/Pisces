@@ -32,7 +32,7 @@ TEST_PREAMBLE("AES-ECB");
  */
 #define TEST_DIRECTION_ENCRYPT (0)
 #define TEST_DIRECTION_DECRYPT (1)
-typedef void (*aes_ecb_fptr)(struct aes_ecb_ctx *, const byte_t *, byte_t *);
+typedef void (*aes_ecb_fptr)(struct aes_ecb_ctx *, const byte *, byte *);
 
 /*
  * Parameters for a single- or multi-block AES-ECB test, including plaintext
@@ -67,18 +67,17 @@ static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test);
  * from its hexadecimal string format. The key length must be a valid AES key
  * length.
  */
-static void run_parsed_aes_ecb_plain_test(const byte_t *key, size_t keySize,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_ecb_plain_test(const byte *key, size_t keySize,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           size_t numBlocks);
 
 /*
  * Runs an AES-ECB encryption or decryption operation over one or more blocks
  * of input.
  */
-static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte_t *input,
-                                byte_t *output, size_t numBlocks,
-                                int direction);
+static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte *input,
+                                byte *output, size_t numBlocks, int direction);
 
 /*
  * Runs a single AES-ECB NIST AESAVS MCT - ECB case, which includes a single
@@ -92,9 +91,9 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test);
  * from its hexadecimal string format. The key length must be a valid AES key
  * length.
  */
-static void run_parsed_aes_ecb_monte_test(const byte_t *key, size_t keySize,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_ecb_monte_test(const byte *key, size_t keySize,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           int direction);
 
 /*
@@ -103,28 +102,27 @@ static void run_parsed_aes_ecb_monte_test(const byte_t *key, size_t keySize,
  * (2 * AES_ECB_BLOCK_SIZE) bytes in length.
  */
 static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
-                                      const byte_t *inBlockIZero,
-                                      byte_t *lastTwoOutBlocksI,
+                                      const byte *inBlockIZero,
+                                      byte *lastTwoOutBlocksI,
                                       aes_ecb_fptr operation);
 
 /*
  * Modifies the contents of the keyI array, per the NIST AESAVS MCT algorithm,
  * based on the last two output blocks of the inner loop.
  */
-static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
-                                           const byte_t *lastTwoOutBlocksI);
+static void nist_monte_ecb_compute_new_key(byte *keyI, size_t keySize,
+                                           const byte *lastTwoOutBlocksI);
 
 /*
  * Converts strings of hexadecimal characters to arrays of bytes, and ensures
  * that the number of key bytes converted is a valid AES key size. The caller
  * is responsible for freeing the allocated byte arrays.
  */
-static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+static void parse_hex_to_bytes(const char *keyHex, byte **keyBytes,
                                size_t *keySize, const char *plaintextHex,
-                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               byte **plaintextBytes, size_t *plaintextLen,
                                const char *ciphertextHex,
-                               byte_t **ciphertextBytes,
-                               size_t *ciphertextLen);
+                               byte **ciphertextBytes, size_t *ciphertextLen);
 
 /*
  * All of the plain single- or multi-block encryption and decryption AES-ECB
@@ -318,7 +316,7 @@ int main(void)
 
 static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test)
 {
-    byte_t *key, *plaintext, *ciphertext;
+    byte *key, *plaintext, *ciphertext;
     size_t keySize, plaintextLen, ciphertextLen;
 
     parse_hex_to_bytes(test->key, &key, &keySize, test->plaintext, &plaintext,
@@ -337,18 +335,18 @@ static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test)
     free(ciphertext);
 }
 
-static void run_parsed_aes_ecb_plain_test(const byte_t *key, size_t keySize,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_ecb_plain_test(const byte *key, size_t keySize,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           size_t numBlocks)
 {
     struct aes_ecb_ctx *ctx;
-    byte_t *actual;
+    byte *actual;
     size_t textLen;
 
     ctx = aes_ecb_alloc();
     textLen = numBlocks * AES_ECB_BLOCK_SIZE;
-    actual = (byte_t *)calloc(textLen, 1);
+    actual = (byte *)calloc(textLen, 1);
     GUARD_ALLOC(actual);
 
     aes_ecb_set_key(ctx, key, keySize);
@@ -365,9 +363,8 @@ static void run_parsed_aes_ecb_plain_test(const byte_t *key, size_t keySize,
     aes_ecb_free_scrub(ctx);
 }
 
-static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte_t *input,
-                                byte_t *output, size_t numBlocks,
-                                int direction)
+static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte *input,
+                                byte *output, size_t numBlocks, int direction)
 {
     size_t onBlock;
     aes_ecb_fptr operation;
@@ -387,7 +384,7 @@ static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte_t *input,
 
 static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
 {
-    byte_t *key, *plaintext, *ciphertext;
+    byte *key, *plaintext, *ciphertext;
     size_t keySize, plaintextLen, ciphertextLen;
 
     parse_hex_to_bytes(test->key, &key, &keySize, test->plaintext, &plaintext,
@@ -404,17 +401,17 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
     free(ciphertext);
 }
 
-static void run_parsed_aes_ecb_monte_test(const byte_t *key, size_t keySize,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_ecb_monte_test(const byte *key, size_t keySize,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           int direction)
 {
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
     struct aes_ecb_ctx *ctx;
-    byte_t keyI[AES_ECB_KEY_SIZE_MAX];
-    byte_t inBlockIZero[AES_ECB_BLOCK_SIZE];
-    byte_t lastTwoOutBlocksI[2 * AES_ECB_BLOCK_SIZE];
-    const byte_t *expected;
+    byte keyI[AES_ECB_KEY_SIZE_MAX];
+    byte inBlockIZero[AES_ECB_BLOCK_SIZE];
+    byte lastTwoOutBlocksI[2 * AES_ECB_BLOCK_SIZE];
+    const byte *expected;
     aes_ecb_fptr operation;
     int i;
 
@@ -482,8 +479,8 @@ static void run_parsed_aes_ecb_monte_test(const byte_t *key, size_t keySize,
 }
 
 static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
-                                      const byte_t *inBlockIZero,
-                                      byte_t *lastTwoOutBlocksI,
+                                      const byte *inBlockIZero,
+                                      byte *lastTwoOutBlocksI,
                                       aes_ecb_fptr operation)
 {
     const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
@@ -501,8 +498,8 @@ static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
     operation(ctx, lastTwoOutBlocksI, lastTwoOutBlocksI + AES_ECB_BLOCK_SIZE);
 }
 
-static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
-                                           const byte_t *lastTwoOutBlocksI)
+static void nist_monte_ecb_compute_new_key(byte *keyI, size_t keySize,
+                                           const byte *lastTwoOutBlocksI)
 {
     /*
      * if ( keySize = 128 ):
@@ -521,11 +518,11 @@ static void nist_monte_ecb_compute_new_key(byte_t *keyI, size_t keySize,
     }
 }
 
-static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+static void parse_hex_to_bytes(const char *keyHex, byte **keyBytes,
                                size_t *keySize, const char *plaintextHex,
-                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               byte **plaintextBytes, size_t *plaintextLen,
                                const char *ciphertextHex,
-                               byte_t **ciphertextBytes, size_t *ciphertextLen)
+                               byte **ciphertextBytes, size_t *ciphertextLen)
 {
     hex_to_bytes(keyHex, keyBytes, keySize);
     hex_to_bytes(plaintextHex, plaintextBytes, plaintextLen);

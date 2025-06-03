@@ -48,9 +48,9 @@ size_t bits_security_hex(size_t num)
 
 static void get_hex_chars(char *result, size_t num, char tenChar)
 {
-    byte_t *randArray = NULL;
+    byte *randArray = NULL;
     struct cprng *rng = NULL;
-    byte_t current;
+    byte current;
     size_t rawSize;
     int moveRaw, i;
 
@@ -59,7 +59,7 @@ static void get_hex_chars(char *result, size_t num, char tenChar)
     if (num & 0x1) {
         rawSize++;
     }
-    randArray = (byte_t *)malloc(rawSize);
+    randArray = (byte *)malloc(rawSize);
     GUARD_ALLOC(randArray);
 
     /*
@@ -70,8 +70,8 @@ static void get_hex_chars(char *result, size_t num, char tenChar)
     cprng_bytes(rng, randArray, rawSize);
     moveRaw = i = 0;
     while (num > 0) {
-        current = (byte_t)(randArray[i] & 0x0F);
-        if (current <= (byte_t)9) {
+        current = (byte)(randArray[i] & 0x0F);
+        if (current <= (byte)9) {
             *result = '0' + (char)current;
         }
         else {

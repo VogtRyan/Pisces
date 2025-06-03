@@ -44,7 +44,7 @@ struct cprng {
     int fd;
 };
 
-static void cprng_bytes_devrandom(struct cprng *rng, byte_t *output,
+static void cprng_bytes_devrandom(struct cprng *rng, byte *output,
                                   size_t output_len);
 
 #define UNUSED(varname) (void)(varname)
@@ -85,7 +85,7 @@ struct cprng *cprng_alloc_default(void)
     return ret;
 }
 
-void cprng_bytes(struct cprng *rng, byte_t *output, size_t output_len)
+void cprng_bytes(struct cprng *rng, byte *output, size_t output_len)
 {
     ASSERT(output_len <= SSIZE_MAX, "Amount of data to read is too large");
 
@@ -112,7 +112,7 @@ void cprng_free_scrub(struct cprng *rng)
     }
 }
 
-static void cprng_bytes_devrandom(struct cprng *rng, byte_t *output,
+static void cprng_bytes_devrandom(struct cprng *rng, byte *output,
                                   size_t output_len)
 {
     ssize_t res;

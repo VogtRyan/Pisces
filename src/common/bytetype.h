@@ -24,6 +24,10 @@
 #error Pisces is not compatible with non-octet-byte machines.
 #endif
 
-typedef unsigned char byte_t;
+/*
+ * For clarity, use the byte type for bytes of raw data. Reserve uint8_t for
+ * mathematical operations using 8-bit numbers.
+ */
+typedef unsigned char byte;
 
 #endif

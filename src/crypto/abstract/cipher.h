@@ -64,7 +64,7 @@ void cipher_set_direction(struct cipher_ctx *cipher,
  * operation. The key must be exactly cipher_key_size() bytes, which is
  * guaranteed to be no larger than CIPHER_MAX_KEY_SIZE.
  */
-void cipher_set_key(struct cipher_ctx *cipher, const byte_t *key);
+void cipher_set_key(struct cipher_ctx *cipher, const byte *key);
 
 /*
  * Sets the initialization vector. Must be called prior to starting a cipher
@@ -75,7 +75,7 @@ void cipher_set_key(struct cipher_ctx *cipher, const byte_t *key);
  * starting a new cipher operation will always reset the context's IV to this
  * value.
  */
-void cipher_set_iv(struct cipher_ctx *cipher, const byte_t *iv);
+void cipher_set_iv(struct cipher_ctx *cipher, const byte *iv);
 
 /*
  * Starts a new cipher operation using the parameters set with
@@ -94,8 +94,8 @@ void cipher_start(struct cipher_ctx *cipher);
  * guaranteed to fit in a size_t, assuming input_len is at most
  * CIPHER_ADD_MAX_INPUT_LEN.
  */
-void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
-                size_t input_len, byte_t *output, size_t *output_len);
+void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
+                byte *output, size_t *output_len);
 
 /*
  * Finalizes the encryption or decryption operation, and stores the number of
@@ -118,7 +118,7 @@ void cipher_add(struct cipher_ctx *cipher, const byte_t *input,
  * - CIPHER_ERROR_INVALID_PAD_DATA, for decryption with padded ciphers, when
  *   the last block during decryption is corrupt.
  */
-int cipher_end(struct cipher_ctx *cipher, byte_t *output, size_t *output_len);
+int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len);
 
 /*
  * Returns the block size of the cipher, guaranteed to be greater than zero

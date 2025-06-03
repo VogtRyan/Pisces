@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2023-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,14 +58,14 @@ struct aes_cbc_ctx *aes_cbc_alloc(void);
  * the context. It is a fatal error if keyBytes is not one of
  * AES_CBC_KEY_SIZE_128, AES_CBC_KEY_SIZE_192, or AES_CBC_KEY_SIZE_256.
  */
-void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte_t *key,
+void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte *key,
                      size_t keyBytes);
 
 /*
  * Sets the initialization vector that will be used for the next block
  * operation (encryption or decryption).
  */
-void aes_cbc_set_iv(struct aes_cbc_ctx *ctx, const byte_t *iv);
+void aes_cbc_set_iv(struct aes_cbc_ctx *ctx, const byte *iv);
 
 /*
  * Encrypts or decrypts a single block of data using the given context and
@@ -77,10 +77,8 @@ void aes_cbc_set_iv(struct aes_cbc_ctx *ctx, const byte_t *iv);
  * The output of these functions is undefined if either of aes_cbc_set_key() or
  * aes_cbc_set_iv() has not been called.
  */
-void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte_t *block,
-                     byte_t *output);
-void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte_t *block,
-                     byte_t *output);
+void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output);
+void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output);
 
 /*
  * Frees an AES context allocated with aes_cbc_alloc(), and securely scrubs all

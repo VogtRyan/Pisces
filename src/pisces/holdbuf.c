@@ -24,7 +24,7 @@
 #include <string.h>
 
 struct holdbuf {
-    byte_t *buf;
+    byte *buf;
     size_t stopSize;
     size_t inBuf;
 };
@@ -41,8 +41,8 @@ struct holdbuf *holdbuf_alloc(size_t stopSize)
     return ret;
 }
 
-void holdbuf_give(struct holdbuf *hb, const byte_t *bytes, size_t numBytes,
-                  byte_t *output, size_t *outputBytes)
+void holdbuf_give(struct holdbuf *hb, const byte *bytes, size_t numBytes,
+                  byte *output, size_t *outputBytes)
 {
     size_t toFill, fromBuf, fromInput;
 
@@ -84,7 +84,7 @@ void holdbuf_give(struct holdbuf *hb, const byte_t *bytes, size_t numBytes,
     hb->inBuf += numBytes;
 }
 
-int holdbuf_end(struct holdbuf *hb, byte_t *output)
+int holdbuf_end(struct holdbuf *hb, byte *output)
 {
     int errVal = 0;
 

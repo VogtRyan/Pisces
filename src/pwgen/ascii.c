@@ -26,13 +26,13 @@
 
 void get_ascii(char *result, size_t num)
 {
-    byte_t *randArray = NULL;
+    byte *randArray = NULL;
     struct cprng *rng = NULL;
     size_t remaining, toGenerate, i;
 
     /* Allocate a temporary array to store raw random bytes */
     remaining = num;
-    randArray = (byte_t *)malloc(num);
+    randArray = (byte *)malloc(num);
     GUARD_ALLOC(randArray);
     rng = cprng_alloc_default();
 
@@ -67,13 +67,13 @@ double bits_security_ascii(size_t num)
 
 void get_alpha_num(char *result, size_t num)
 {
-    byte_t *randArray = NULL;
+    byte *randArray = NULL;
     struct cprng *rng = NULL;
     size_t remaining, toGenerate, i;
 
     /* Allocate a temporary array to store raw random bytes */
     remaining = num;
-    randArray = (byte_t *)malloc(num);
+    randArray = (byte *)malloc(num);
     GUARD_ALLOC(randArray);
     rng = cprng_alloc_default();
 
@@ -119,7 +119,7 @@ double bits_security_alpha_num(size_t num)
 
 void get_numeric(char *result, size_t num)
 {
-    byte_t *randArray;
+    byte *randArray;
     struct cprng *rng;
     size_t rawSize, rawSizeMax, i;
 
@@ -131,7 +131,7 @@ void get_numeric(char *result, size_t num)
     if (num & 0x1) {
         rawSizeMax++;
     }
-    randArray = (byte_t *)malloc(rawSizeMax);
+    randArray = (byte *)malloc(rawSizeMax);
     GUARD_ALLOC(randArray);
     rng = cprng_alloc_default();
 

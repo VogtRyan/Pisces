@@ -62,7 +62,7 @@ static void generate_keccak_f(void)
 
     /* Function header and variables */
     printf("static void keccak_f(struct sha3_ctx *ctx, "
-           "const byte_t *newData)\n{\n");
+           "const byte *newData)\n{\n");
     printf("    uint64_t *A;\n");
     printf("    uint64_t B[25];\n");
     printf("    uint64_t C[5];\n");

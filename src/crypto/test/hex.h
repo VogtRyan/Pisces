@@ -36,6 +36,6 @@
  * caller will be responsible for freeing it. The size of the allocated array
  * will be stored in *numBytes.
  */
-void hex_to_bytes(const char *hex, byte_t **bytes, size_t *numBytes);
+void hex_to_bytes(const char *hex, byte **bytes, size_t *numBytes);
 
 #endif

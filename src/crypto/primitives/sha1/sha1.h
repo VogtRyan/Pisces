@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -56,7 +56,7 @@ void sha1_start(struct sha1_ctx *ctx);
  * Returns 0 on success or -1 if the message size has exceeded the maximum
  * SHA-1 message length.
  */
-int sha1_add(struct sha1_ctx *ctx, const byte_t *bytes, size_t numBytes);
+int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t numBytes);
 
 /*
  * Computes the SHA-1 hash of the message. Guaranteed to succeed if the maximum
@@ -64,7 +64,7 @@ int sha1_add(struct sha1_ctx *ctx, const byte_t *bytes, size_t numBytes);
  * message size has exceeded the maximum SHA-1 message length. The output of
  * this function is undefined if sha1_start() has not been called.
  */
-int sha1_end(struct sha1_ctx *ctx, byte_t *digest);
+int sha1_end(struct sha1_ctx *ctx, byte *digest);
 
 /*
  * Copies the current state of the src context into the dst context. Behaviour

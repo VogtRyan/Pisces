@@ -56,8 +56,8 @@ struct kdf *kdf_alloc(kdf_algorithm alg)
     return ret;
 }
 
-int kdf_derive(struct kdf *fn, byte_t *derived_key, size_t derived_key_len,
-               const char *password, size_t password_len, const byte_t *salt,
+int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
+               const char *password, size_t password_len, const byte *salt,
                size_t salt_len)
 {
     int pbkdf2Ret =

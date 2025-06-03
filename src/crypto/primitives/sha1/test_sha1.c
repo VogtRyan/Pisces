@@ -56,9 +56,8 @@ static void run_sha1_plain_test(const struct sha1_plain_test *test);
  * Runs a SHA-1 single-output test which has been parsed from its hexadecimal
  * string format. The digest length must match the length of a SHA-1 digest.
  */
-static void run_parsed_sha1_plain_test(const byte_t *msg, size_t msgLen,
-                                       size_t msgRepeats,
-                                       const byte_t *digest);
+static void run_parsed_sha1_plain_test(const byte *msg, size_t msgLen,
+                                       size_t msgRepeats, const byte *digest);
 
 /*
  * Adds the provided message to the currently running SHA-1 context. If the
@@ -66,7 +65,7 @@ static void run_parsed_sha1_plain_test(const byte_t *msg, size_t msgLen,
  * three pieces (to test the functionality of adding partial blocks to the
  * context).
  */
-static void add_single_message(struct sha1_ctx *ctx, const byte_t *msg,
+static void add_single_message(struct sha1_ctx *ctx, const byte *msg,
                                size_t msgLen);
 
 /*
@@ -80,16 +79,14 @@ static void run_sha1_monte_test(const struct sha1_monte_test *test);
  * hexadecimal string format. Both the seed and the output must match the
  * length of a SHA-1 digest.
  */
-static void run_parsed_sha1_monte_test(const byte_t *seed,
-                                       const byte_t *output);
+static void run_parsed_sha1_monte_test(const byte *seed, const byte *output);
 
 /*
  * Runs the inner loop of the SHA-1 NIST SHAVS MCT algorithm, hashing a single
  * input seed sequentially and storing the result in the output array.
  */
-static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx,
-                                       const byte_t *seedJ,
-                                       byte_t *lastDigestJ);
+static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx, const byte *seedJ,
+                                       byte *lastDigestJ);
 
 /*
  * All of the single-output SHA-1 tests to run.
@@ -224,7 +221,7 @@ int main(void)
 
 static void run_sha1_plain_test(const struct sha1_plain_test *test)
 {
-    byte_t *msg, *digest;
+    byte *msg, *digest;
     size_t msgLen, digestLen;
 
     hex_to_bytes(test->msg, &msg, &msgLen);
@@ -237,11 +234,11 @@ static void run_sha1_plain_test(const struct sha1_plain_test *test)
     free(digest);
 }
 
-static void run_parsed_sha1_plain_test(const byte_t *msg, size_t msgLen,
-                                       size_t msgRepeats, const byte_t *digest)
+static void run_parsed_sha1_plain_test(const byte *msg, size_t msgLen,
+                                       size_t msgRepeats, const byte *digest)
 {
     struct sha1_ctx *ctx;
-    byte_t actual[SHA1_DIGEST_BYTES];
+    byte actual[SHA1_DIGEST_BYTES];
     size_t onRepeat;
 
     ctx = sha1_alloc();
@@ -257,7 +254,7 @@ static void run_parsed_sha1_plain_test(const byte_t *msg, size_t msgLen,
     sha1_free_scrub(ctx);
 }
 
-static void add_single_message(struct sha1_ctx *ctx, const byte_t *msg,
+static void add_single_message(struct sha1_ctx *ctx, const byte *msg,
                                size_t msgLen)
 {
     const size_t QUARTER_BLOCK_SIZE = SHA1_BLOCK_BYTES / 4;
@@ -276,7 +273,7 @@ static void add_single_message(struct sha1_ctx *ctx, const byte_t *msg,
 
 static void run_sha1_monte_test(const struct sha1_monte_test *test)
 {
-    byte_t *seed, *output;
+    byte *seed, *output;
     size_t seedLen, outputLen;
 
     hex_to_bytes(test->seed, &seed, &seedLen);
@@ -290,13 +287,12 @@ static void run_sha1_monte_test(const struct sha1_monte_test *test)
     free(output);
 }
 
-static void run_parsed_sha1_monte_test(const byte_t *seed,
-                                       const byte_t *output)
+static void run_parsed_sha1_monte_test(const byte *seed, const byte *output)
 {
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
     struct sha1_ctx *ctx;
-    const byte_t *seedJ;
-    byte_t lastDigestJ[SHA1_DIGEST_BYTES];
+    const byte *seedJ;
+    byte lastDigestJ[SHA1_DIGEST_BYTES];
     int j;
 
     ctx = sha1_alloc();
@@ -336,12 +332,11 @@ static void run_parsed_sha1_monte_test(const byte_t *seed,
     sha1_free_scrub(ctx);
 }
 
-static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx,
-                                       const byte_t *seedJ,
-                                       byte_t *lastDigestJ)
+static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx, const byte *seedJ,
+                                       byte *lastDigestJ)
 {
     const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
-    byte_t intermediates[2][SHA1_DIGEST_BYTES];
+    byte intermediates[2][SHA1_DIGEST_BYTES];
     int i;
 
     /*

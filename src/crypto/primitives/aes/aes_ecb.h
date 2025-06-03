@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2024 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2011-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,7 +53,7 @@ struct aes_ecb_ctx *aes_ecb_alloc(void);
  * the context. It is a fatal error if keyBytes is not one of
  * AES_ECB_KEY_SIZE_128, AES_ECB_KEY_SIZE_192, or AES_ECB_KEY_SIZE_256.
  */
-void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte_t *key,
+void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key,
                      size_t keyBytes);
 
 /*
@@ -65,10 +65,8 @@ void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte_t *key,
  * that in other AES cipher modes, the input and output buffers might not be
  * allowed to overlap.
  */
-void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
-                     byte_t *output);
-void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
-                     byte_t *output);
+void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output);
+void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output);
 
 /*
  * Frees an AES context allocated with aes_ecb_alloc(), and securely scrubs all

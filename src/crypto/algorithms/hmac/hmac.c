@@ -36,8 +36,8 @@ struct hmac_ctx {
      * perform computations on key material. Allocating them inside the context
      * causes hmac_free_scrub() to scrub them.
      */
-    byte_t blockSizedBuffer[CHF_MAX_BLOCK_SIZE];
-    byte_t digestSizedBuffer[CHF_MAX_DIGEST_SIZE];
+    byte blockSizedBuffer[CHF_MAX_BLOCK_SIZE];
+    byte digestSizedBuffer[CHF_MAX_DIGEST_SIZE];
 };
 
 struct hmac_ctx *hmac_alloc(chf_algorithm alg)
@@ -66,10 +66,10 @@ struct hmac_ctx *hmac_alloc(chf_algorithm alg)
     return ret;
 }
 
-int hmac_start(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen)
+int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t keyLen)
 {
-    byte_t *keyHash = hmac->digestSizedBuffer;
-    byte_t *pad = hmac->blockSizedBuffer;
+    byte *keyHash = hmac->digestSizedBuffer;
+    byte *pad = hmac->blockSizedBuffer;
     size_t blockSize, i;
     int chfRes;
     int errVal = 0;
@@ -123,7 +123,7 @@ isErr:
     return errVal;
 }
 
-int hmac_add(struct hmac_ctx *hmac, const byte_t *bytes, size_t numBytes)
+int hmac_add(struct hmac_ctx *hmac, const byte *bytes, size_t numBytes)
 {
     int errVal = 0;
 
@@ -141,9 +141,9 @@ isErr:
     return errVal;
 }
 
-int hmac_end(struct hmac_ctx *hmac, byte_t *digest)
+int hmac_end(struct hmac_ctx *hmac, byte *digest)
 {
-    byte_t *innerDigest = hmac->digestSizedBuffer;
+    byte *innerDigest = hmac->digestSizedBuffer;
     size_t digestSize;
     int chfRes;
     int errVal = 0;
@@ -182,8 +182,8 @@ isErr:
     return errVal;
 }
 
-int hmac_single(struct hmac_ctx *hmac, const byte_t *key, size_t keyLen,
-                const byte_t *bytes, size_t numBytes, byte_t *digest)
+int hmac_single(struct hmac_ctx *hmac, const byte *key, size_t keyLen,
+                const byte *bytes, size_t numBytes, byte *digest)
 {
     hmac_start(hmac, key, keyLen);
     hmac_add(hmac, bytes, numBytes);

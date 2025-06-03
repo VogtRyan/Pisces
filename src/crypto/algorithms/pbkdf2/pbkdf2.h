@@ -52,8 +52,8 @@
  * It is a fatal error for the iterationCount to be zero, or for alg to be an
  * unsupported cryptographic hash function algorithm.
  */
-int pbkdf2_hmac(byte_t *derivedKey, size_t derivedKeyLen, const char *password,
-                size_t passwordLen, const byte_t *salt, size_t saltLen,
+int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
+                size_t passwordLen, const byte *salt, size_t saltLen,
                 unsigned int iterationCount, chf_algorithm alg);
 
 #endif

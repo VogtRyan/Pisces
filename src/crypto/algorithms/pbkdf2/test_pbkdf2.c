@@ -50,9 +50,9 @@ static void run_pbkdf2_test(const struct pbkdf2_test *test);
  */
 static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
                                    unsigned int iterationCount,
-                                   const byte_t *password, size_t passwordLen,
-                                   const byte_t *salt, size_t saltLen,
-                                   const byte_t *derivedKey,
+                                   const byte *password, size_t passwordLen,
+                                   const byte *salt, size_t saltLen,
+                                   const byte *derivedKey,
                                    size_t derivedKeyLen);
 
 /*
@@ -405,7 +405,7 @@ int main(void)
 
 static void run_pbkdf2_test(const struct pbkdf2_test *test)
 {
-    byte_t *password, *salt, *derivedKey;
+    byte *password, *salt, *derivedKey;
     size_t passwordLen, saltLen, derivedKeyLen;
 
     hex_to_bytes(test->password, &password, &passwordLen);
@@ -423,12 +423,12 @@ static void run_pbkdf2_test(const struct pbkdf2_test *test)
 
 static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
                                    unsigned int iterationCount,
-                                   const byte_t *password, size_t passwordLen,
-                                   const byte_t *salt, size_t saltLen,
-                                   const byte_t *derivedKey,
+                                   const byte *password, size_t passwordLen,
+                                   const byte *salt, size_t saltLen,
+                                   const byte *derivedKey,
                                    size_t derivedKeyLen)
 {
-    byte_t *actual;
+    byte *actual;
     actual = calloc(1, derivedKeyLen);
     GUARD_ALLOC(actual);
 

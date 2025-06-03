@@ -32,7 +32,7 @@
 struct sha1_ctx {
     uint32_t h[5];
     uint64_t bytesProcessed;
-    byte_t block[SHA1_BLOCK_BYTES];
+    byte block[SHA1_BLOCK_BYTES];
     uint8_t bytesInBlock;
     int bytesExceeded;
 };
@@ -42,7 +42,7 @@ struct sha1_ctx {
  * of bytes processed, including the given block, does not exceed the maximum
  * message length of SHA-1.
  */
-static void sha1_process_block(struct sha1_ctx *ctx, const byte_t *block);
+static void sha1_process_block(struct sha1_ctx *ctx, const byte *block);
 
 /*
  * Adds the given number of bytes to the context's count of bytes processed.
@@ -79,7 +79,7 @@ void sha1_start(struct sha1_ctx *ctx)
     ctx->bytesExceeded = 0;
 }
 
-int sha1_add(struct sha1_ctx *ctx, const byte_t *bytes, size_t numBytes)
+int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t numBytes)
 {
     size_t toFillBlock, addToCtx;
 
@@ -112,9 +112,9 @@ int sha1_add(struct sha1_ctx *ctx, const byte_t *bytes, size_t numBytes)
     return 0;
 }
 
-int sha1_end(struct sha1_ctx *ctx, byte_t *digest)
+int sha1_end(struct sha1_ctx *ctx, byte *digest)
 {
-    byte_t toAppend[SHA1_BLOCK_BYTES + 8];
+    byte toAppend[SHA1_BLOCK_BYTES + 8];
     uint64_t totalBits;
     size_t numToAppend;
     int i;
@@ -135,7 +135,7 @@ int sha1_end(struct sha1_ctx *ctx, byte_t *digest)
     else {
         numToAppend = SHA1_BLOCK_BYTES - (ctx->bytesInBlock - 56);
     }
-    toAppend[0] = (byte_t)(0x80);
+    toAppend[0] = (byte)(0x80);
     memset(toAppend + 1, 0, numToAppend - 1);
 
     /*
@@ -166,7 +166,7 @@ void sha1_free_scrub(struct sha1_ctx *ctx)
     }
 }
 
-static void sha1_process_block(struct sha1_ctx *ctx, const byte_t *block)
+static void sha1_process_block(struct sha1_ctx *ctx, const byte *block)
 {
     uint32_t a = ctx->h[0];
     uint32_t b = ctx->h[1];

@@ -32,9 +32,9 @@
  */
 static inline void scrub_memory(void *location, size_t num_bytes)
 {
-    volatile byte_t *p = location;
+    volatile byte *p = location;
     while (num_bytes--) {
-        *p = (byte_t)0;
+        *p = (byte)0;
         p++;
     }
 }

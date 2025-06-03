@@ -37,9 +37,9 @@ struct chf_ctx {
 
 static inline void chf_ctx_alloc(struct chf_ctx *chf);
 static inline void chf_ctx_start(struct chf_ctx *chf);
-static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
+static inline int chf_ctx_add(struct chf_ctx *chf, const byte *input,
                               size_t input_len);
-static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *output);
+static inline int chf_ctx_end(struct chf_ctx *chf, byte *output);
 static inline void chf_ctx_copy(struct chf_ctx *dst,
                                 const struct chf_ctx *src);
 static inline void chf_ctx_free_scrub(struct chf_ctx *chf);
@@ -74,7 +74,7 @@ void chf_start(struct chf_ctx *chf)
     chf_ctx_start(chf);
 }
 
-int chf_add(struct chf_ctx *chf, const byte_t *input, size_t input_len)
+int chf_add(struct chf_ctx *chf, const byte *input, size_t input_len)
 {
     ASSERT(chf->running, "CHF context is not running");
 
@@ -88,7 +88,7 @@ int chf_add(struct chf_ctx *chf, const byte_t *input, size_t input_len)
     return chf->errcode;
 }
 
-int chf_end(struct chf_ctx *chf, byte_t *digest)
+int chf_end(struct chf_ctx *chf, byte *digest)
 {
     ASSERT(chf->running, "CHF context is not running");
 
@@ -104,8 +104,8 @@ int chf_end(struct chf_ctx *chf, byte_t *digest)
     return chf->errcode;
 }
 
-int chf_single(struct chf_ctx *chf, const byte_t *input, size_t input_len,
-               byte_t *digest)
+int chf_single(struct chf_ctx *chf, const byte *input, size_t input_len,
+               byte *digest)
 {
     chf_start(chf);
     chf_add(chf, input, input_len);
@@ -183,7 +183,7 @@ static inline void chf_ctx_start(struct chf_ctx *chf)
     }
 }
 
-static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
+static inline int chf_ctx_add(struct chf_ctx *chf, const byte *input,
                               size_t input_len)
 {
     switch (chf->type) {
@@ -197,7 +197,7 @@ static inline int chf_ctx_add(struct chf_ctx *chf, const byte_t *input,
     }
 }
 
-static inline int chf_ctx_end(struct chf_ctx *chf, byte_t *output)
+static inline int chf_ctx_end(struct chf_ctx *chf, byte *output)
 {
     switch (chf->type) {
     case CHF_ALG_SHA1:

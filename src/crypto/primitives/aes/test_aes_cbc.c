@@ -32,7 +32,7 @@ TEST_PREAMBLE("AES-CBC");
  */
 #define TEST_DIRECTION_ENCRYPT (0)
 #define TEST_DIRECTION_DECRYPT (1)
-typedef void (*aes_cbc_fptr)(struct aes_cbc_ctx *, const byte_t *, byte_t *);
+typedef void (*aes_cbc_fptr)(struct aes_cbc_ctx *, const byte *, byte *);
 
 /*
  * Parameters for a single- or multi-block AES-CBC test, including plaintext
@@ -69,19 +69,19 @@ static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test);
  * from its hexadecimal string format. The key length must be a valid AES key
  * length.
  */
-static void run_parsed_aes_cbc_plain_test(const byte_t *key, size_t keySize,
-                                          const byte_t *iv,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_cbc_plain_test(const byte *key, size_t keySize,
+                                          const byte *iv,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           size_t numBlocks);
 
 /*
  * Runs an AES-CBC encryption or decryption operation over one or more blocks
  * of input.
  */
-static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte_t *input,
-                                const byte_t *iv, byte_t *output,
-                                size_t numBlocks, int direction);
+static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte *input,
+                                const byte *iv, byte *output, size_t numBlocks,
+                                int direction);
 
 /*
  * Runs a single AES-CBC NIST AESAVS MCT - CBC case, which includes a single
@@ -95,10 +95,10 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test);
  * from its hexadecimal string format. The key length must be a valid AES key
  * length.
  */
-static void run_parsed_aes_cbc_monte_test(const byte_t *key, size_t keySize,
-                                          const byte_t *iv,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_cbc_monte_test(const byte *key, size_t keySize,
+                                          const byte *iv,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           int direction);
 
 /*
@@ -107,17 +107,16 @@ static void run_parsed_aes_cbc_monte_test(const byte_t *key, size_t keySize,
  * (2 * AES_CBC_BLOCK_SIZE) bytes in length.
  */
 static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
-                                      const byte_t *inBlockIZero,
-                                      const byte_t *ivI,
-                                      byte_t *lastTwoOutBlocksI,
+                                      const byte *inBlockIZero,
+                                      const byte *ivI, byte *lastTwoOutBlocksI,
                                       aes_cbc_fptr operation);
 
 /*
  * Modifies the contents of the keyI array, per the NIST AESAVS MCT algorithm,
  * based on the last two output blocks of the inner loop.
  */
-static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
-                                           const byte_t *lastTwoOutBlocksI);
+static void nist_monte_cbc_compute_new_key(byte *keyI, size_t keySize,
+                                           const byte *lastTwoOutBlocksI);
 
 /*
  * Converts strings of hexadecimal characters to arrays of bytes, and ensures
@@ -125,13 +124,12 @@ static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
  * IV is the correct AES-CBC IV size. The caller is responsible for freeing the
  * allocated byte arrays.
  */
-static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+static void parse_hex_to_bytes(const char *keyHex, byte **keyBytes,
                                size_t *keySize, const char *ivHex,
-                               byte_t **ivBytes, const char *plaintextHex,
-                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               byte **ivBytes, const char *plaintextHex,
+                               byte **plaintextBytes, size_t *plaintextLen,
                                const char *ciphertextHex,
-                               byte_t **ciphertextBytes,
-                               size_t *ciphertextLen);
+                               byte **ciphertextBytes, size_t *ciphertextLen);
 
 /*
  * All of the plain single- or multi-block encryption and decryption AES-CBC
@@ -327,7 +325,7 @@ int main(void)
 
 static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test)
 {
-    byte_t *key, *iv, *plaintext, *ciphertext;
+    byte *key, *iv, *plaintext, *ciphertext;
     size_t keySize, plaintextLen, ciphertextLen;
 
     parse_hex_to_bytes(test->key, &key, &keySize, test->iv, &iv,
@@ -347,19 +345,19 @@ static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test)
     free(ciphertext);
 }
 
-static void run_parsed_aes_cbc_plain_test(const byte_t *key, size_t keySize,
-                                          const byte_t *iv,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_cbc_plain_test(const byte *key, size_t keySize,
+                                          const byte *iv,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           size_t numBlocks)
 {
     struct aes_cbc_ctx *ctx;
-    byte_t *actual;
+    byte *actual;
     size_t textLen;
 
     ctx = aes_cbc_alloc();
     textLen = numBlocks * AES_CBC_BLOCK_SIZE;
-    actual = (byte_t *)calloc(textLen, 1);
+    actual = (byte *)calloc(textLen, 1);
     GUARD_ALLOC(actual);
 
     aes_cbc_set_key(ctx, key, keySize);
@@ -376,9 +374,9 @@ static void run_parsed_aes_cbc_plain_test(const byte_t *key, size_t keySize,
     aes_cbc_free_scrub(ctx);
 }
 
-static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte_t *input,
-                                const byte_t *iv, byte_t *output,
-                                size_t numBlocks, int direction)
+static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte *input,
+                                const byte *iv, byte *output, size_t numBlocks,
+                                int direction)
 {
     size_t onBlock;
     aes_cbc_fptr operation;
@@ -399,7 +397,7 @@ static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte_t *input,
 
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
 {
-    byte_t *key, *iv, *plaintext, *ciphertext;
+    byte *key, *iv, *plaintext, *ciphertext;
     size_t keySize, plaintextLen, ciphertextLen;
 
     parse_hex_to_bytes(test->key, &key, &keySize, test->iv, &iv,
@@ -417,19 +415,19 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
     free(ciphertext);
 }
 
-static void run_parsed_aes_cbc_monte_test(const byte_t *key, size_t keySize,
-                                          const byte_t *iv,
-                                          const byte_t *plaintext,
-                                          const byte_t *ciphertext,
+static void run_parsed_aes_cbc_monte_test(const byte *key, size_t keySize,
+                                          const byte *iv,
+                                          const byte *plaintext,
+                                          const byte *ciphertext,
                                           int direction)
 {
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
     struct aes_cbc_ctx *ctx;
-    byte_t keyI[AES_CBC_KEY_SIZE_MAX];
-    byte_t inBlockIZero[AES_CBC_BLOCK_SIZE];
-    byte_t ivI[AES_CBC_IV_SIZE];
-    byte_t lastTwoOutBlocksI[2 * AES_CBC_BLOCK_SIZE];
-    const byte_t *expected;
+    byte keyI[AES_CBC_KEY_SIZE_MAX];
+    byte inBlockIZero[AES_CBC_BLOCK_SIZE];
+    byte ivI[AES_CBC_IV_SIZE];
+    byte lastTwoOutBlocksI[2 * AES_CBC_BLOCK_SIZE];
+    const byte *expected;
     aes_cbc_fptr operation;
     int i;
 
@@ -502,13 +500,12 @@ static void run_parsed_aes_cbc_monte_test(const byte_t *key, size_t keySize,
 }
 
 static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
-                                      const byte_t *inBlockIZero,
-                                      const byte_t *ivI,
-                                      byte_t *lastTwoOutBlocksI,
+                                      const byte *inBlockIZero,
+                                      const byte *ivI, byte *lastTwoOutBlocksI,
                                       aes_cbc_fptr operation)
 {
     const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
-    byte_t intermediate[AES_CBC_BLOCK_SIZE];
+    byte intermediate[AES_CBC_BLOCK_SIZE];
     int j;
 
     /*
@@ -538,8 +535,8 @@ static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
     }
 }
 
-static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
-                                           const byte_t *lastTwoOutBlocksI)
+static void nist_monte_cbc_compute_new_key(byte *keyI, size_t keySize,
+                                           const byte *lastTwoOutBlocksI)
 {
     /*
      * if ( keySize = 128 ):
@@ -558,12 +555,12 @@ static void nist_monte_cbc_compute_new_key(byte_t *keyI, size_t keySize,
     }
 }
 
-static void parse_hex_to_bytes(const char *keyHex, byte_t **keyBytes,
+static void parse_hex_to_bytes(const char *keyHex, byte **keyBytes,
                                size_t *keySize, const char *ivHex,
-                               byte_t **ivBytes, const char *plaintextHex,
-                               byte_t **plaintextBytes, size_t *plaintextLen,
+                               byte **ivBytes, const char *plaintextHex,
+                               byte **plaintextBytes, size_t *plaintextLen,
                                const char *ciphertextHex,
-                               byte_t **ciphertextBytes, size_t *ciphertextLen)
+                               byte **ciphertextBytes, size_t *ciphertextLen)
 {
     size_t ivSize;
 

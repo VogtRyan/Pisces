@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,8 +22,8 @@
 #include <stddef.h>
 #include <string.h>
 
-void pkcs7_padding_add(const byte_t *input, size_t inputSize, size_t blockSize,
-                       byte_t *output)
+void pkcs7_padding_add(const byte *input, size_t inputSize, size_t blockSize,
+                       byte *output)
 {
     size_t padValue, i;
 
@@ -49,11 +49,11 @@ void pkcs7_padding_add(const byte_t *input, size_t inputSize, size_t blockSize,
     memmove(output, input, inputSize);
     padValue = blockSize - inputSize;
     for (i = inputSize; i < blockSize; i++) {
-        output[i] = (byte_t)padValue;
+        output[i] = (byte)padValue;
     }
 }
 
-int pkcs7_padding_remove(const byte_t *input, size_t blockSize, byte_t *output,
+int pkcs7_padding_remove(const byte *input, size_t blockSize, byte *output,
                          size_t *outputSize)
 {
     size_t padValue, i;
@@ -80,7 +80,7 @@ int pkcs7_padding_remove(const byte_t *input, size_t blockSize, byte_t *output,
      * If any byte in the pad differs, the padding is malformed.
      */
     for (i = blockSize - padValue; i < blockSize - 1; i++) {
-        if (input[i] != (byte_t)padValue) {
+        if (input[i] != (byte)padValue) {
             return PKCS7_PADDING_ERROR_INVALID_PAD_DATA;
         }
     }

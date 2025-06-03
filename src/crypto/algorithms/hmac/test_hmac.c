@@ -49,10 +49,9 @@ static void run_hmac_test(const struct hmac_test *test);
  * The outputLen must be less than or equal to the digest length of the of the
  * hash algorithm.
  */
-static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte_t *key,
-                                 size_t keyLen, const byte_t *msg,
-                                 size_t msgLen, const byte_t *output,
-                                 size_t outputLen);
+static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte *key,
+                                 size_t keyLen, const byte *msg, size_t msgLen,
+                                 const byte *output, size_t outputLen);
 
 /*
  * HMAC test vectors from official sources: FIPS documents or NIST examples.
@@ -374,7 +373,7 @@ int main(void)
 
 static void run_hmac_test(const struct hmac_test *test)
 {
-    byte_t *key, *msg, *output;
+    byte *key, *msg, *output;
     size_t keyLen, msgLen, outputLen;
 
     hex_to_bytes(test->key, &key, &keyLen);
@@ -389,13 +388,12 @@ static void run_hmac_test(const struct hmac_test *test)
     free(output);
 }
 
-static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte_t *key,
-                                 size_t keyLen, const byte_t *msg,
-                                 size_t msgLen, const byte_t *output,
-                                 size_t outputLen)
+static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte *key,
+                                 size_t keyLen, const byte *msg, size_t msgLen,
+                                 const byte *output, size_t outputLen)
 {
     struct hmac_ctx *ctx;
-    byte_t actual[HMAC_MAX_DIGEST_BYTES];
+    byte actual[HMAC_MAX_DIGEST_BYTES];
 
     ctx = hmac_alloc(hashAlg);
     ASSERT(outputLen <= hmac_digest_size(ctx),

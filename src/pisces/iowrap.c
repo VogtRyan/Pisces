@@ -71,7 +71,7 @@ isErr:
     return outFile;
 }
 
-int read_exactly(int fd, byte_t *buf, size_t nBytes)
+int read_exactly(int fd, byte *buf, size_t nBytes)
 {
     size_t numRead = 0;
     int errVal = 0;
@@ -87,7 +87,7 @@ isErr:
     return errVal;
 }
 
-int read_up_to(int fd, byte_t *buf, size_t nBytes, size_t *numRead)
+int read_up_to(int fd, byte *buf, size_t nBytes, size_t *numRead)
 {
     ssize_t res;
     int errVal = 0;
@@ -110,7 +110,7 @@ isErr:
     return errVal;
 }
 
-int write_exactly(int fd, const byte_t *buf, size_t nBytes)
+int write_exactly(int fd, const byte *buf, size_t nBytes)
 {
     ssize_t res;
     int errVal = 0;

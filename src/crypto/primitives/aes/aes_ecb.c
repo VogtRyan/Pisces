@@ -715,8 +715,7 @@ struct aes_ecb_ctx *aes_ecb_alloc(void)
     return ret;
 }
 
-void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte_t *key,
-                     size_t keyBytes)
+void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key, size_t keyBytes)
 {
     size_t nk;
     size_t i, rksToGen;
@@ -786,8 +785,7 @@ void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte_t *key,
     }
 }
 
-void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
-                     byte_t *output)
+void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output)
 {
     uint32_t col0, col1, col2, col3;
     uint32_t tmp0, tmp1, tmp2;
@@ -826,8 +824,7 @@ void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
     /* clang-format on */
 }
 
-void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte_t *block,
-                     byte_t *output)
+void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output)
 {
     uint32_t col0, col1, col2, col3;
     uint32_t tmp0, tmp1, tmp2;
