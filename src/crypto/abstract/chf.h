@@ -38,7 +38,7 @@ struct chf_ctx;
 struct chf_ctx *chf_alloc(chf_algorithm alg);
 
 /*
- * Starts a new hash operation, clearing any input data already processed.
+ * Starts a new hash operation, clearing any message data already processed.
  */
 void chf_start(struct chf_ctx *chf);
 
@@ -60,7 +60,7 @@ int chf_end(struct chf_ctx *chf, byte *digest);
  * functions are called in sequence, the buffers may overlap. Returns the same
  * value as chf_end().
  */
-int chf_single(struct chf_ctx *chf, const byte *input, size_t input_len,
+int chf_single(struct chf_ctx *chf, const byte *msg, size_t msg_len,
                byte *digest);
 
 /*
