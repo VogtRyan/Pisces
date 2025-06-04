@@ -125,20 +125,16 @@ done:
 
 int hmac_add(struct hmac_ctx *hmac, const byte *msg, size_t msg_len)
 {
-    int errval = 0;
-
     ASSERT(hmac->running, "HMAC context is not running");
     if (hmac->errcode) {
         return hmac->errcode;
     }
 
     if (chf_add(hmac->inner_ctx, msg, msg_len)) {
-        ERROR_CODE(done, errval, HMAC_ERROR_MESSAGE_TOO_LONG);
+        ERROR_SET(hmac->errcode, HMAC_ERROR_MESSAGE_TOO_LONG);
     }
 
-done:
-    hmac->errcode = errval;
-    return errval;
+    return hmac->errcode;
 }
 
 int hmac_end(struct hmac_ctx *hmac, byte *digest)
