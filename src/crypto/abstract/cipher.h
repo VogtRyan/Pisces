@@ -116,24 +116,24 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
  *   there is no last block to depad; and,
  *
  * - CIPHER_ERROR_INVALID_PAD_DATA, for decryption with padded ciphers, when
- *   the last block during decryption is corrupt.
+ *   the last block's padding bytes are corrupt.
  */
 int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len);
 
 /*
- * Returns the block size of the cipher, guaranteed to be greater than zero
+ * Returns the block size of the cipher. Guaranteed to be greater than zero
  * and no larger than CIPHER_MAX_BLOCK_SIZE.
  */
 size_t cipher_block_size(const struct cipher_ctx *cipher);
 
 /*
- * Returns the size of the initialization vector for the cipher, guaranteed to
+ * Returns the size of the initialization vector for the cipher. Guaranteed to
  * be greater than zero and no larger than CIPHER_MAX_IV_SIZE.
  */
 size_t cipher_iv_size(const struct cipher_ctx *cipher);
 
 /*
- * Returns the key size of the cipher, guaranteed to be greater than zero and
+ * Returns the key size of the cipher. Guaranteed to be greater than zero and
  * no larger than CIPHER_MAX_KEY_SIZE.
  */
 size_t cipher_key_size(const struct cipher_ctx *cipher);
