@@ -36,17 +36,17 @@ struct hmac_ctx;
 struct hmac_ctx *hmac_alloc(chf_algorithm alg);
 
 /*
- * Starts a new HMAC operation, clearing any input data already processed.
+ * Starts a new HMAC operation, clearing any message data already processed.
  * Returns 0 on success, <0 on error (HMAC_ERROR_KEY_TOO_LONG).
  */
-int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t keyLen);
+int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t key_len);
 
 /*
- * Appends the given input data to the message being authenticated. Returns 0
- * on success, <0 on error (in order of precedence from highest to lowest:
+ * Appends the given bytes to the message being authenticated. Returns 0 on
+ * success, <0 on error (in order of precedence from highest to lowest:
  * HMAC_ERROR_KEY_TOO_LONG, HMAC_ERROR_MESSAGE_TOO_LONG).
  */
-int hmac_add(struct hmac_ctx *hmac, const byte *bytes, size_t numBytes);
+int hmac_add(struct hmac_ctx *hmac, const byte *msg, size_t msg_len);
 
 /*
  * Computes the HMAC digest of the message. The size of the HMAC will be equal
@@ -62,8 +62,8 @@ int hmac_end(struct hmac_ctx *hmac, byte *digest);
  * functions are called in sequence, the buffers may overlap. Returns the same
  * value as hmac_end().
  */
-int hmac_single(struct hmac_ctx *hmac, const byte *key, size_t keyLen,
-                const byte *bytes, size_t numBytes, byte *digest);
+int hmac_single(struct hmac_ctx *hmac, const byte *key, size_t key_len,
+                const byte *msg, size_t msg_len, byte *digest);
 
 /*
  * Returns the size of the HMAC digest in bytes. Guaranteed to be greater than
