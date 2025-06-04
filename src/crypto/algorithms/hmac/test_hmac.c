@@ -27,10 +27,6 @@
 
 TEST_PREAMBLE("HMAC");
 
-/*
- * Parameters for testing the output of a single invocation of the HMAC
- * algorithm.
- */
 struct hmac_test {
     chf_algorithm hashAlg;
     const char *key;
@@ -38,24 +34,12 @@ struct hmac_test {
     const char *output;
 };
 
-/*
- * Runs an HMAC test, and asserts that the actual output matches the expected
- * output in the given test parameters.
- */
 static void run_hmac_test(const struct hmac_test *test);
-
-/*
- * Runs an HMAC test that has been parsed from its hexadecimal string format.
- * The outputLen must be less than or equal to the digest length of the of the
- * hash algorithm.
- */
 static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte *key,
                                  size_t keyLen, const byte *msg, size_t msgLen,
                                  const byte *output, size_t outputLen);
 
-/*
- * HMAC test vectors from official sources: FIPS documents or NIST examples.
- */
+/* HMAC test vectors from FIPS documents and NIST examples */
 static const struct hmac_test officialTests[] = {
     /* FIPS 198, A.1, SHA-1 with 64-Byte Key */
     {
@@ -277,15 +261,11 @@ static const struct hmac_test officialTests[] = {
 };
 
 /*
- * Custom test vectors. These tests are not official, and should be treated
- * accordingly. However, they have been verified against two other
- * independent implementations of HMAC:
+ * Custom test vectors. These tests are not official, but they have been
+ * verified against two other independent implementations of HMAC:
  *
  * - LibreSSL 3.9.0 libcrypto implementation of HMAC in C
  * - BouncyCastle 1.78.1 implementation of HMAC in Java
- *
- * These vectors are designed to test edge cases of the HMAC algorithm for both
- * HMAC-SHA1 and HMAC-SHA3-512.
  */
 static const struct hmac_test customTests[] = {
     /* HMAC-SHA1, empty key and message */
@@ -351,9 +331,6 @@ static const struct hmac_test customTests[] = {
     },
 };
 
-/*
- * Run the HMAC tests and report the success rate.
- */
 int main(void)
 {
     size_t onTest;

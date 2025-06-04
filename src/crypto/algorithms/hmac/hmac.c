@@ -56,9 +56,8 @@ struct hmac_ctx *hmac_alloc(chf_algorithm alg)
      * on p.4 of FIPS 198-1, which constructs K_0 = H(K) || 00..., up to the
      * block size of of the CHF.
      *
-     * This check is made here as a matter of safety, in case cryptographic
-     * algorithms that do not conform to this assumption (e.g., extensible hash
-     * functions) are ever implemented in the underlying CHF library.
+     * Some cryptographic hash functions (e.g., extensible hash functions) do
+     * not have this property.
      */
     ASSERT(chf_digest_size(ret->innerCtx) <= chf_block_size(ret->innerCtx),
            "CHF not compatible with HMAC specification");
@@ -78,11 +77,11 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t keyLen)
 
     /*
      * If the given key is longer than a block, replace it immediately with a
-     * hash of itself. Note that hmac_alloc() guarantees that the digest size
-     * of the cryptographic hash function is no larger than its block size.
+     * hash of itself -- hmac_alloc() guarantees that the digest size of the
+     * cryptographic hash function is no larger than its block size.
      *
-     * We use the innerCtx context to perform this hash for no particular
-     * reason; it is just available.
+     * There is no particular reason to use innerCtx for this computation; it
+     * is just available.
      */
     blockSize = chf_block_size(hmac->innerCtx);
     if (keyLen > blockSize) {
@@ -94,9 +93,9 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t keyLen)
     }
 
     /*
-     * Compute i_key_pad and start the inner context with it. Since we are
-     * adding only one block with chf_add(), it should succeed unless there is
-     * some manner of fatal flaw in the underlying CHF library.
+     * Compute the inner key pad (K_0 xor ipad) and start the inner context
+     * with it. Since we are adding only one block with chf_add(), the input
+     * size should never be so large as to make the hash computation fail.
      */
     memset(pad, 0x36, blockSize);
     for (i = 0; i < keyLen; i++) {
@@ -107,8 +106,8 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t keyLen)
     ASSERT(chfRes == 0, "HMAC inner context CHF initialization failed");
 
     /*
-     * Compute o_key_pad and start the outer context with it. As above, the
-     * call to chf_add() should succeed.
+     * Compute the outer key pad (K_0 xor opad) and start the outer context
+     * with it. As above, the call to chf_add() should always succeed.
      */
     memset(pad, 0x5C, blockSize);
     for (i = 0; i < keyLen; i++) {
@@ -155,25 +154,23 @@ int hmac_end(struct hmac_ctx *hmac, byte *digest)
         return hmac->errorCode;
     }
 
-    /* Compute the inner digest */
+    /*
+     * The outer key pad (K_0 xor opad) is already in the outer context, so we
+     * only need to append the inner context's digest to it.
+     */
     digestSize = chf_digest_size(hmac->innerCtx);
     if (chf_end(hmac->innerCtx, innerDigest)) {
         ERROR_CODE(isErr, errVal, HMAC_ERROR_MESSAGE_TOO_LONG);
     }
-
-    /*
-     * Concatenate the outer key pad (already in the outer context) and the
-     * inner digest and digest that to get the HMAC.
-     */
     chf_add(hmac->outerCtx, innerDigest, digestSize);
     chfRes = chf_end(hmac->outerCtx, digest);
 
     /*
      * The outer context computes the hash of: a single block related to the
-     * key, concatenated with a single hash output. That is, there are no more
-     * than two blocks of input to the outer context. If the outer-context hash
-     * computation fails because the input is too long, there is some manner of
-     * fatal flaw in the underlying CHF library.
+     * key, concatenated with a single hash digest. Since the hash's digest
+     * size is no greater than its block size, there are no more than two
+     * blocks of input in the outer context. A two-block message should never
+     * make a hash function fail from taking too large an input.
      */
     ASSERT(chfRes == 0, "HMAC outer-context CHF computation failed");
 
