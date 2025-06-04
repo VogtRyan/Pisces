@@ -43,35 +43,34 @@ struct chf_ctx *chf_alloc(chf_algorithm alg);
 void chf_start(struct chf_ctx *chf);
 
 /*
- * Adds the given input data to the stream of bytes being hashed. Returns 0 on
+ * Appends the given input data to the message being hashed. Returns 0 on
  * success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
  */
 int chf_add(struct chf_ctx *chf, const byte *input, size_t input_len);
 
 /*
- * Computes the message digest of the data that has been input. The size of
- * the digest will be equal to chf_digest_size(), which is guaranteed not to
- * exceed CHF_MAX_DIGEST_SIZE. Returns 0 on success, <0 on error
- * (CHF_ERROR_MESSAGE_TOO_LONG).
+ * Computes the message digest. The size of the digest will be equal to
+ * chf_digest_size(), which is guaranteed not to exceed CHF_MAX_DIGEST_SIZE.
+ * Returns 0 on success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
  */
 int chf_end(struct chf_ctx *chf, byte *digest);
 
 /*
- * Calls chf_start(), chf_add(), then chf_end() in sequence. Because the
- * underlying functions are called in sequence, the input and digest buffers
- * may overlap. Returns 0 on success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
+ * Calls chf_start(), chf_add(), then chf_end(). Because the underlying
+ * functions are called in sequence, the buffers may overlap. Returns the same
+ * value as chf_end().
  */
 int chf_single(struct chf_ctx *chf, const byte *input, size_t input_len,
                byte *digest);
 
 /*
- * Returns the size of the hash algorithm's message digest output in bytes,
- * guaranteed to be greater than zero and no larger than CHF_MAX_DIGEST_SIZE.
+ * Returns the size of the hash algorithm's digest output, in bytes.
+ * Guaranteed to be greater than zero and no larger than CHF_MAX_DIGEST_SIZE.
  */
 size_t chf_digest_size(const struct chf_ctx *chf);
 
 /*
- * Returns the hash algorithm's block size in bytes, guaranteed to be greater
+ * Returns the hash algorithm's block size, in bytes. Guaranteed to be greater
  * than zero and no larger than CHF_MAX_BLOCK_SIZE. Typically used only for
  * building other cryptographic algorithms on top of a cryptographic hash
  * primitive.
@@ -80,10 +79,10 @@ size_t chf_block_size(const struct chf_ctx *chf);
 
 /*
  * Copies the current content of the src context into the dst context, which
- * must have been allocated by chf_alloc() for the same hash algorithm.
- * Copying the context is equivalent to running the same sequence of
- * operations (e.g., chf_start(), chf_add(), etc.) on dst that have been run
- * so far on src. Calling with src == dst is a no-op.
+ * must be using the same chf_algorithm. Copying the context is equivalent to
+ * running the same sequence of operations (e.g., chf_start(), chf_add(), etc.)
+ * on dst that have been run so far on src, but in constant time. Calling with
+ * src == dst is a no-op.
  */
 void chf_copy(struct chf_ctx *dst, const struct chf_ctx *src);
 
