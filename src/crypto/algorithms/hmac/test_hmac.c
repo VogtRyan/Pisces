@@ -370,7 +370,7 @@ static void run_parsed_hmac_test(chf_algorithm hashAlg, const byte *key,
                                  const byte *output, size_t outputLen)
 {
     struct hmac_ctx *ctx;
-    byte actual[HMAC_MAX_DIGEST_BYTES];
+    byte actual[HMAC_MAX_DIGEST_SIZE];
 
     ctx = hmac_alloc(hashAlg);
     ASSERT(outputLen <= hmac_digest_size(ctx),

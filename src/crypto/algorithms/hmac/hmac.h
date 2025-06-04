@@ -22,7 +22,7 @@
 
 #include <stddef.h>
 
-#define HMAC_MAX_DIGEST_BYTES (CHF_MAX_DIGEST_SIZE)
+#define HMAC_MAX_DIGEST_SIZE (CHF_MAX_DIGEST_SIZE)
 
 #define HMAC_ERROR_KEY_TOO_LONG     (-1)
 #define HMAC_ERROR_MESSAGE_TOO_LONG (-2)
@@ -51,7 +51,7 @@ int hmac_add(struct hmac_ctx *hmac, const byte *bytes, size_t numBytes);
 /*
  * Computes the HMAC digest of the message. The size of the HMAC will be equal
  * to hmac_digest_size(), which is guaranteed not to exceed
- * HMAC_MAX_DIGEST_BYTES. Returns 0 on success, <0 on error (in order of
+ * HMAC_MAX_DIGEST_SIZE. Returns 0 on success, <0 on error (in order of
  * precedence from highest to lowest: HMAC_ERROR_KEY_TOO_LONG,
  * HMAC_ERROR_MESSAGE_TOO_LONG).
  */
@@ -67,7 +67,7 @@ int hmac_single(struct hmac_ctx *hmac, const byte *key, size_t keyLen,
 
 /*
  * Returns the size of the HMAC digest in bytes. Guaranteed to be greater than
- * zero and no larger than HMAC_MAX_DIGEST_BYTES. The digest size of the HMAC
+ * zero and no larger than HMAC_MAX_DIGEST_SIZE. The digest size of the HMAC
  * is equal to the digest size of the underlying cryptographic hash function.
  */
 size_t hmac_digest_size(const struct hmac_ctx *hmac);

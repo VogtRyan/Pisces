@@ -68,7 +68,7 @@ int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
     struct hmac_ctx *prf = NULL;
     struct hmac_ctx *pwdOnly = NULL;
     struct hmac_ctx *pwdAndSalt = NULL;
-    byte U[HMAC_MAX_DIGEST_BYTES];
+    byte U[HMAC_MAX_DIGEST_SIZE];
     byte iMSOF[4];
     size_t octetsFromT, onOctet, hLen;
     unsigned int uMinusOne;
@@ -166,7 +166,7 @@ int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
 
 isErr:
     free_hmac_trio(&prf, &pwdOnly, &pwdAndSalt);
-    scrub_memory(U, HMAC_MAX_DIGEST_BYTES);
+    scrub_memory(U, HMAC_MAX_DIGEST_SIZE);
     return errVal;
 }
 
