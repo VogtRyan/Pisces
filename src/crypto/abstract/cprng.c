@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm_t;
+typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm;
 
 #ifndef PISCES_NO_ARC4RANDOM
 #define CPRNG_DEFAULT_ALG (CPRNG_ALG_ARC4RANDOM)
@@ -40,7 +40,7 @@ typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm_t;
 #define CPRNG_DEVICE_NAME ("/dev/random")
 
 struct cprng {
-    cprng_algorithm_t type;
+    cprng_algorithm type;
     int fd;
 };
 
