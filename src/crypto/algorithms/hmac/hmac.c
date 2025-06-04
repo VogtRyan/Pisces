@@ -21,6 +21,7 @@
 #include "common/scrub.h"
 #include "crypto/abstract/chf.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +29,7 @@
 struct hmac_ctx {
     struct chf_ctx *innerCtx;
     struct chf_ctx *outerCtx;
-    int isRunning;
+    bool isRunning;
     int errorCode;
 
     /*
@@ -73,7 +74,7 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t keyLen)
     int chfRes;
     int errVal = 0;
 
-    hmac->isRunning = 1;
+    hmac->isRunning = true;
 
     /*
      * If the given key is longer than a block, replace it immediately with a
@@ -148,7 +149,7 @@ int hmac_end(struct hmac_ctx *hmac, byte *digest)
     int errVal = 0;
 
     ASSERT(hmac->isRunning, "HMAC context is not running");
-    hmac->isRunning = 0;
+    hmac->isRunning = false;
 
     if (hmac->errorCode) {
         return hmac->errorCode;
