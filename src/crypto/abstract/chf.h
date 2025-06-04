@@ -43,10 +43,10 @@ struct chf_ctx *chf_alloc(chf_algorithm alg);
 void chf_start(struct chf_ctx *chf);
 
 /*
- * Appends the given input data to the message being hashed. Returns 0 on
- * success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
+ * Appends the given bytes to the message being hashed. Returns 0 on success,
+ * <0 on error (CHF_ERROR_MESSAGE_TOO_LONG).
  */
-int chf_add(struct chf_ctx *chf, const byte *input, size_t input_len);
+int chf_add(struct chf_ctx *chf, const byte *msg, size_t msg_len);
 
 /*
  * Computes the message digest. The size of the digest will be equal to
