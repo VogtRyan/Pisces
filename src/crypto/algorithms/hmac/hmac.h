@@ -43,16 +43,16 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t key_len);
 
 /*
  * Appends the given bytes to the message being authenticated. Returns 0 on
- * success, <0 on error (in order of precedence from highest to lowest:
- * HMAC_ERROR_KEY_TOO_LONG, HMAC_ERROR_MESSAGE_TOO_LONG).
+ * success, <0 on error (HMAC_ERROR_KEY_TOO_LONG if hmac_start() failed,
+ * otherwise HMAC_ERROR_MESSAGE_TOO_LONG).
  */
 int hmac_add(struct hmac_ctx *hmac, const byte *msg, size_t msg_len);
 
 /*
  * Computes the HMAC digest of the message. The size of the HMAC will be equal
  * to hmac_digest_size(), which is guaranteed not to exceed
- * HMAC_MAX_DIGEST_SIZE. Returns 0 on success, <0 on error (in order of
- * precedence from highest to lowest: HMAC_ERROR_KEY_TOO_LONG,
+ * HMAC_MAX_DIGEST_SIZE. Returns 0 on success, <0 on error
+ * (HMAC_ERROR_KEY_TOO_LONG if hmac_start() failed, otherwise
  * HMAC_ERROR_MESSAGE_TOO_LONG).
  */
 int hmac_end(struct hmac_ctx *hmac, byte *digest);
