@@ -40,10 +40,9 @@ struct kdf;
 struct kdf *kdf_alloc(kdf_algorithm alg);
 
 /*
- * Runs the key derivation function, filling the derived_key array with the
- * requested number of bytes of key material. Returns 0 on success, <0 on
- * error (KDF_ERROR_PASSWORD_TOO_LONG, KDF_ERROR_SALT_TOO_LONG, or
- * KDF_ERROR_DERIVED_KEY_TOO_LONG, from highest to lowest precedence).
+ * Computes a derived key. Returns 0 on success, <0 on error (in order of
+ * precedence from highest to lowest: KDF_ERROR_PASSWORD_TOO_LONG,
+ * KDF_ERROR_SALT_TOO_LONG, KDF_ERROR_DERIVED_KEY_TOO_LONG).
  */
 int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
                const char *password, size_t password_len, const byte *salt,
