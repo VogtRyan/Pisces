@@ -38,8 +38,9 @@
  * lowest: PBKDF2_ERROR_PASSWORD_TOO_LONG, PBKDF2_ERROR_SALT_TOO_LONG,
  * PBKDF2_ERROR_DERIVED_KEY_TOO_LONG)
  */
-int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
-                size_t passwordLen, const byte *salt, size_t saltLen,
-                unsigned int iterationCount, chf_algorithm alg);
+int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
+                const char *password, size_t password_len, const byte *salt,
+                size_t salt_len, unsigned int iteration_count,
+                chf_algorithm alg);
 
 #endif

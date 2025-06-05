@@ -28,20 +28,20 @@
 TEST_PREAMBLE("PBKDF2");
 
 struct pbkdf2_test {
-    chf_algorithm hashAlg;
-    unsigned int iterationCount;
+    chf_algorithm hash_alg;
+    unsigned int iteration_count;
     const char *password;
     const char *salt;
-    const char *derivedKey;
+    const char *derived_key;
 };
 
 static void run_pbkdf2_test(const struct pbkdf2_test *test);
-static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
-                                   unsigned int iterationCount,
-                                   const byte *password, size_t passwordLen,
-                                   const byte *salt, size_t saltLen,
-                                   const byte *derivedKey,
-                                   size_t derivedKeyLen);
+static void run_parsed_pbkdf2_test(chf_algorithm hash_alg,
+                                   unsigned int iteration_count,
+                                   const byte *password, size_t password_len,
+                                   const byte *salt, size_t salt_len,
+                                   const byte *derived_key,
+                                   size_t derived_key_len);
 
 /*
  * Official test vectors from RFC 6070. The fourth test vector, with an
@@ -50,32 +50,32 @@ static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
 #ifndef RUN_RFC_6070_TEST_VECTOR_FOUR
 #define RUN_RFC_6070_TEST_VECTOR_FOUR (0)
 #endif
-static const struct pbkdf2_test officialTests[] = {
+static const struct pbkdf2_test official_tests[] = {
     /* RFC 6070, first test vector, with P="password" and S="salt" */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 1,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 1,
         .password = "70617373776F7264",
         .salt = "73616C74",
-        .derivedKey = "0C60C80F961F0E71F3A9B524AF6012062FE037A6",
+        .derived_key = "0C60C80F961F0E71F3A9B524AF6012062FE037A6",
     },
 
     /* RFC 6070, second test vector, with P="password" and S="salt" */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 2,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 2,
         .password = "70617373776F7264",
         .salt = "73616C74",
-        .derivedKey = "EA6C014DC72D6F8CCD1ED92ACE1D41F0D8DE8957",
+        .derived_key = "EA6C014DC72D6F8CCD1ED92ACE1D41F0D8DE8957",
     },
 
     /* RFC 6070, third test vector, with P="password" and S="salt" */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 4096,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 4096,
         .password = "70617373776F7264",
         .salt = "73616C74",
-        .derivedKey = "4B007901B765489ABEAD49D926F721D065A429C1",
+        .derived_key = "4B007901B765489ABEAD49D926F721D065A429C1",
     },
 
 #if RUN_RFC_6070_TEST_VECTOR_FOUR
@@ -84,11 +84,11 @@ static const struct pbkdf2_test officialTests[] = {
      * high iteration count.
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 16777216,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 16777216,
         .password = "70617373776F7264",
         .salt = "73616C74",
-        .derivedKey = "EEFE3D61CD4DA4E4E9945B3D6BA2158C2634E984",
+        .derived_key = "EEFE3D61CD4DA4E4E9945B3D6BA2158C2634E984",
     },
 #endif /* RUN_RFC_6070_TEST_VECTOR_FOUR */
 
@@ -97,21 +97,21 @@ static const struct pbkdf2_test officialTests[] = {
      * S="saltSALTsaltSALTsaltSALTsaltSALTsalt".
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 4096,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 4096,
         .password = "70617373776F726450415353574F524470617373776F7264",
         .salt = "73616C7453414C5473616C7453414C5473616C7453414C5473616C7453414"
                 "C5473616C74",
-        .derivedKey = "3D2EEC4FE41C849B80C8D83662C0E44A8B291A964CF2F07038",
+        .derived_key = "3D2EEC4FE41C849B80C8D83662C0E44A8B291A964CF2F07038",
     },
 
     /* RFC 6070, sixth test vector, with P="pass\0word" and S="sa\0lt" */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 4096,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 4096,
         .password = "7061737300776F7264",
         .salt = "7361006C74",
-        .derivedKey = "56FA6AA75548099DCC37D7F03425E0C3",
+        .derived_key = "56FA6AA75548099DCC37D7F03425E0C3",
     },
 };
 
@@ -138,18 +138,19 @@ static const struct pbkdf2_test officialTests[] = {
  * to generate a second digest-sized portion, happens correctly; and, (c) the
  * truncation of the final digest-sized portion happens correctly.
  */
-static const struct pbkdf2_test customTests[] = {
+static const struct pbkdf2_test custom_tests[] = {
     /*
      * PBKDF2-HMAC-SHA1, 1 iteration, empty password, empty salt, derived
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 1,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 1,
         .password = "",
         .salt = "",
-        .derivedKey = "1E437A1C79D75BE61E91141DAE20AFFC4892CC99ABCC3FE753887BC"
-                      "CC89201768068EBFDB085490014B92C9EBB267A9F2C82",
+        .derived_key =
+            "1E437A1C79D75BE61E91141DAE20AFFC4892CC99ABCC3FE753887BC"
+            "CC89201768068EBFDB085490014B92C9EBB267A9F2C82",
     },
 
     /*
@@ -157,14 +158,15 @@ static const struct pbkdf2_test customTests[] = {
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 1,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 1,
         .password =
             "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
             "02122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F",
         .salt = "",
-        .derivedKey = "2C8F04C4BF9F17BC0BC6DD96ED8D430780FA204E7EC2BD8ECFC1563"
-                      "249C901AE38791DE833DA3259F772BEC8C58573636554",
+        .derived_key =
+            "2C8F04C4BF9F17BC0BC6DD96ED8D430780FA204E7EC2BD8ECFC1563"
+            "249C901AE38791DE833DA3259F772BEC8C58573636554",
     },
 
     /*
@@ -172,14 +174,15 @@ static const struct pbkdf2_test customTests[] = {
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 1,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 1,
         .password = "",
         .salt =
             "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
             "02122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F",
-        .derivedKey = "694C4C2C49A953EC4A6C724BB50714C0311DF865FBBCC8ABDA1C22B"
-                      "D2C6824BFA3C3A6C630D880FEFC4C2C376E657C3EAAB3",
+        .derived_key =
+            "694C4C2C49A953EC4A6C724BB50714C0311DF865FBBCC8ABDA1C22B"
+            "D2C6824BFA3C3A6C630D880FEFC4C2C376E657C3EAAB3",
     },
 
     /*
@@ -187,12 +190,13 @@ static const struct pbkdf2_test customTests[] = {
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 2,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 2,
         .password = "",
         .salt = "",
-        .derivedKey = "620C000A06FED9C10BCA11516B3AC0228D6717007C47BF78DA89306"
-                      "7BF0E258CFDCB80E4A378A48606B770E2D203B84EE6FC",
+        .derived_key =
+            "620C000A06FED9C10BCA11516B3AC0228D6717007C47BF78DA89306"
+            "7BF0E258CFDCB80E4A378A48606B770E2D203B84EE6FC",
     },
 
     /*
@@ -200,14 +204,15 @@ static const struct pbkdf2_test customTests[] = {
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 2,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 2,
         .password =
             "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
             "02122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F",
         .salt = "",
-        .derivedKey = "197DCBEF2740D70C2BA51A18ED0181EF25AAC2AAF0B16221D021C59"
-                      "5CE0682E0A3CDB2101DC99CD53FEE7CF0C2D8F3C4A01B",
+        .derived_key =
+            "197DCBEF2740D70C2BA51A18ED0181EF25AAC2AAF0B16221D021C59"
+            "5CE0682E0A3CDB2101DC99CD53FEE7CF0C2D8F3C4A01B",
     },
 
     /*
@@ -215,14 +220,15 @@ static const struct pbkdf2_test customTests[] = {
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA1,
-        .iterationCount = 2,
+        .hash_alg = CHF_ALG_SHA1,
+        .iteration_count = 2,
         .password = "",
         .salt =
             "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
             "02122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F",
-        .derivedKey = "2ED70C3FC7C2408C757FE5BA404129266489877B28E30827439F445"
-                      "965B7BBA60C1F49E2EEE0C17601A5F77538575759BC4D",
+        .derived_key =
+            "2ED70C3FC7C2408C757FE5BA404129266489877B28E30827439F445"
+            "965B7BBA60C1F49E2EEE0C17601A5F77538575759BC4D",
     },
 
     /*
@@ -230,11 +236,11 @@ static const struct pbkdf2_test customTests[] = {
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA3_512,
-        .iterationCount = 1,
+        .hash_alg = CHF_ALG_SHA3_512,
+        .iteration_count = 1,
         .password = "",
         .salt = "",
-        .derivedKey =
+        .derived_key =
             "665409F49B9B46E3F4CB15476ED41D562F4BA27068BE4C324D95F25755C37EDF2"
             "3D64A31E4A35A344326DA324CCEE72CF45E5896F9BD261BA622E43B7A1A520409"
             "6FA736C55CA0A3B898EAD6275193EFEEA28E62BFFFC90F0972847DFE9DCE94234"
@@ -247,13 +253,13 @@ static const struct pbkdf2_test customTests[] = {
      * derived key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA3_512,
-        .iterationCount = 1,
+        .hash_alg = CHF_ALG_SHA3_512,
+        .iteration_count = 1,
         .password = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1"
                     "C1D1E1F202122232425262728292A2B2C2D2E2F303132333435363738"
                     "393A3B3C3D3E3F4041424344454647",
         .salt = "",
-        .derivedKey =
+        .derived_key =
             "5907574054AB9B9901259D5A43D9DE317FA4ED5DE1FC868724C7FCD41363C916E"
             "3663F0DD3BB705286592ECA0650550FE5908730FA30BC9FE18E43AA4B3CD92D21"
             "9C2B3A4D8988E1F79D40A8E1204EC350279D1CC9E715F593F5BA7B5A8EBFF0101"
@@ -266,13 +272,13 @@ static const struct pbkdf2_test customTests[] = {
      * derived key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA3_512,
-        .iterationCount = 1,
+        .hash_alg = CHF_ALG_SHA3_512,
+        .iteration_count = 1,
         .password = "",
         .salt = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1"
                 "E1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C"
                 "3D3E3F4041424344454647",
-        .derivedKey =
+        .derived_key =
             "DDEB12984918FB9636E7D51CDDAF7B7B02893C905AF6AF4C401FAC505A4B3D7D0"
             "9D18A5ED244324D24C52B110719CD92E23FB788371C5F73A0961197A941F629A0"
             "28C5D1C8665F8B8AEF1533A8FE08910113749A22942C53F43B90FD61707631D3F"
@@ -285,11 +291,11 @@ static const struct pbkdf2_test customTests[] = {
      * key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA3_512,
-        .iterationCount = 2,
+        .hash_alg = CHF_ALG_SHA3_512,
+        .iteration_count = 2,
         .password = "",
         .salt = "",
-        .derivedKey =
+        .derived_key =
             "E0300B096B9EECC5AD2BD231A5DF623C6BE485F6F3C172ED274F6A15BDA08BA89"
             "D4A1934AF1BDEBF30C303E2E065320AB97BB17CEC1A778FF0E2A60413126376B0"
             "539CEF59B283C3CD3D3465A925222809085CEED72BCCEE9FDBF8708676813EA8B"
@@ -302,13 +308,13 @@ static const struct pbkdf2_test customTests[] = {
      * derived key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA3_512,
-        .iterationCount = 2,
+        .hash_alg = CHF_ALG_SHA3_512,
+        .iteration_count = 2,
         .password = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1"
                     "C1D1E1F202122232425262728292A2B2C2D2E2F303132333435363738"
                     "393A3B3C3D3E3F4041424344454647",
         .salt = "",
-        .derivedKey =
+        .derived_key =
             "ECEC8D4FEBD159EAAD31A924A04900DDC780A6E40EFD327494FA8E6BFF80C08BE"
             "D1A656A28F7B0B083C972C1F8FF03EC3B328A11CA343E03E1DFA3651213AF589C"
             "F306C0AF07719AA44DCF17089C94F876F9F86303806E96C28B79B2AD2CE737D85"
@@ -321,13 +327,13 @@ static const struct pbkdf2_test customTests[] = {
      * derived key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA3_512,
-        .iterationCount = 2,
+        .hash_alg = CHF_ALG_SHA3_512,
+        .iteration_count = 2,
         .password = "",
         .salt = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1"
                 "E1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C"
                 "3D3E3F4041424344454647",
-        .derivedKey =
+        .derived_key =
             "2C747171DB9217616A0598A94E37CDB56D221F246C0365A66E3E9F7E39A9F0048"
             "1E4F14125F90D7B67835DA44657DE0CEBFC35D1FEDDA485943B5BB11DE54AE4D1"
             "992CAC133E672061849262F31B53D0AC08DB870690982C9DE3A60449FB61E16E0"
@@ -340,8 +346,8 @@ static const struct pbkdf2_test customTests[] = {
      * the block size; derived key 2.5 times the digest size.
      */
     {
-        .hashAlg = CHF_ALG_SHA3_512,
-        .iterationCount = 255,
+        .hash_alg = CHF_ALG_SHA3_512,
+        .iteration_count = 255,
         .password =
             "2A54983A106E4651A491FAB8DA3719020044EB7B51F97F955DBDCF0424A75059F"
             "13E2858E708D168ED246F3EEC90BC06E0226428BF64A18D5BFB2E50757E9282C9"
@@ -355,7 +361,7 @@ static const struct pbkdf2_test customTests[] = {
                 "747BD7BB099FF264CBB7A8BEAEE2731BCB0C18F931AD079CC84E1CEA7CD6F"
                 "02D61D3EA3BF75B5228CB98E884EFA8C6A33453A9B12665B78FF5C6B91F5C"
                 "234331323EAD2F5BBA1738FB25D9E5109D599522C36D6C3AC7DBD81",
-        .derivedKey =
+        .derived_key =
             "ADC7842BE417EE98FAD451A14AD819CD90821542DD7611C6892FA2CC36A8E63C9"
             "03F8016B4321A057E0902DF61FCC05CCE0A506B14A0ADB4DB84A0FC6DE7A65F06"
             "D9962AB0B288FFB70BF9224C594B3AC1E023D7DBAC9508E86CA65B3361775DDCC"
@@ -366,17 +372,14 @@ static const struct pbkdf2_test customTests[] = {
 
 int main(void)
 {
-    size_t onTest;
+    size_t i;
 
-    for (onTest = 0;
-         onTest < sizeof(officialTests) / sizeof(struct pbkdf2_test);
-         onTest++) {
-        run_pbkdf2_test(&officialTests[onTest]);
+    for (i = 0; i < sizeof(official_tests) / sizeof(struct pbkdf2_test); i++) {
+        run_pbkdf2_test(&official_tests[i]);
     }
 
-    for (onTest = 0; onTest < sizeof(customTests) / sizeof(struct pbkdf2_test);
-         onTest++) {
-        run_pbkdf2_test(&customTests[onTest]);
+    for (i = 0; i < sizeof(custom_tests) / sizeof(struct pbkdf2_test); i++) {
+        run_pbkdf2_test(&custom_tests[i]);
     }
 
     TEST_CONCLUDE();
@@ -384,36 +387,36 @@ int main(void)
 
 static void run_pbkdf2_test(const struct pbkdf2_test *test)
 {
-    byte *password, *salt, *derivedKey;
-    size_t passwordLen, saltLen, derivedKeyLen;
+    byte *password, *salt, *derived_key;
+    size_t password_len, salt_len, derived_key_len;
 
-    hex_to_bytes(test->password, &password, &passwordLen);
-    hex_to_bytes(test->salt, &salt, &saltLen);
-    hex_to_bytes(test->derivedKey, &derivedKey, &derivedKeyLen);
+    hex_to_bytes(test->password, &password, &password_len);
+    hex_to_bytes(test->salt, &salt, &salt_len);
+    hex_to_bytes(test->derived_key, &derived_key, &derived_key_len);
 
-    run_parsed_pbkdf2_test(test->hashAlg, test->iterationCount, password,
-                           passwordLen, salt, saltLen, derivedKey,
-                           derivedKeyLen);
+    run_parsed_pbkdf2_test(test->hash_alg, test->iteration_count, password,
+                           password_len, salt, salt_len, derived_key,
+                           derived_key_len);
 
     free(password);
     free(salt);
-    free(derivedKey);
+    free(derived_key);
 }
 
-static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
-                                   unsigned int iterationCount,
-                                   const byte *password, size_t passwordLen,
-                                   const byte *salt, size_t saltLen,
-                                   const byte *derivedKey,
-                                   size_t derivedKeyLen)
+static void run_parsed_pbkdf2_test(chf_algorithm hash_alg,
+                                   unsigned int iteration_count,
+                                   const byte *password, size_t password_len,
+                                   const byte *salt, size_t salt_len,
+                                   const byte *derived_key,
+                                   size_t derived_key_len)
 {
     byte *actual;
-    actual = calloc(1, derivedKeyLen);
+    actual = calloc(1, derived_key_len);
     GUARD_ALLOC(actual);
 
-    pbkdf2_hmac(actual, derivedKeyLen, (const char *)password, passwordLen,
-                salt, saltLen, iterationCount, hashAlg);
+    pbkdf2_hmac(actual, derived_key_len, (const char *)password, password_len,
+                salt, salt_len, iteration_count, hash_alg);
 
-    TEST_ASSERT(memcmp(actual, derivedKey, derivedKeyLen) == 0);
+    TEST_ASSERT(memcmp(actual, derived_key, derived_key_len) == 0);
     free(actual);
 }
