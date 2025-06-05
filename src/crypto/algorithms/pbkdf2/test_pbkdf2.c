@@ -27,10 +27,6 @@
 
 TEST_PREAMBLE("PBKDF2");
 
-/*
- * Parameters for testing the output of a single invocation of the PBKDF2
- * algorithm.
- */
 struct pbkdf2_test {
     chf_algorithm hashAlg;
     unsigned int iterationCount;
@@ -39,15 +35,7 @@ struct pbkdf2_test {
     const char *derivedKey;
 };
 
-/*
- * Runs a PBKDF2 test, and asserts that the actual derived key matches the
- * expected derived key in the given test parameters.
- */
 static void run_pbkdf2_test(const struct pbkdf2_test *test);
-
-/*
- * Runs a PBKDF2 test that has been parsed from its hexadecimal string format.
- */
 static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
                                    unsigned int iterationCount,
                                    const byte *password, size_t passwordLen,
@@ -56,9 +44,8 @@ static void run_parsed_pbkdf2_test(chf_algorithm hashAlg,
                                    size_t derivedKeyLen);
 
 /*
- * Official test vectors (from RFC 6070) to run for PBKDF2. The fourth test
- * vector, with an iteration count of 16777216, is intentionally omitted
- * by default because of the time it takes to run.
+ * Official test vectors from RFC 6070. The fourth test vector, with an
+ * iteration count of 16777216, is slow and unnecessary.
  */
 #ifndef RUN_RFC_6070_TEST_VECTOR_FOUR
 #define RUN_RFC_6070_TEST_VECTOR_FOUR (0)
@@ -129,32 +116,27 @@ static const struct pbkdf2_test officialTests[] = {
 };
 
 /*
- * Custom test vectors. These tests are not official, and should be treated
- * accordingly. However, they have been verified against two other
- * independent implementations of PBKDF2:
+ * Custom test vectors. These tests are not official, but they have been
+ * verified against two other independent implementations of PBKDF2:
  *
  * - LibreSSL 3.9.0 libcrypto implementation of PBKDF2 in C
  * - BouncyCastle 1.78.1 implementation of PBKDF2 in Java, using a Java byte[]
  *   for the password (not a Java char[])
  *
- * The first of these vectors are designed to test edge cases of the PBKDF2
- * algorithm for both PBKDF2-HMAC-SHA1 and PBKDF2-HMAC-SHA3-512. In the PBKDF2
- * algorithm, the U_i values are only XOR'ed into the derived key when the
- * iteration count is >= 2; so, iteration counts of both 1 and 2 are presented
- * as edge cases below.
+ * A. Vectors for PBKDF2-HMAC-SHA1 and PBKDF2-HMAC-SHA3-512 with iteration
+ * counts of 1 or 2. In PBKDF2, the U_i values are only XOR'ed into the derived
+ * key when the iteration count is >= 2, so counts of 1 and 2 are tested as
+ * edge cases.
  *
- * There is also a test vector for PBKDF2-HMAC-SHA3-512 with a random password,
- * a random salt, and a higher iteration count. This test vector is included
- * due to the lack of an official test vector of this nature.
+ * B. A vector for PBKDF2-HMAC-SHA3-512 with a random password, random salt,
+ * and higher iteration count. There is no official test vector with this type
+ * of typical-case input.
  *
- * The derived key size in these vectors is always 2.5 times the digest size,
- * to test that the first digest-sized portion of the key and subsequent
- * digest-sized portions of the key (truncated or not) are generated correctly.
- * Note: a shorter key derived with PBKDF2 is just a truncation of a longer
- * derived key, provided all the inputs to PBKDF2 aside from the derived key
- * size are the same. So, any derived key size in the test vectors greater than
- * 2 times the digest size, and not a multiple of the digest size, meets the
- * test criteria.
+ * The derived key in these vectors is always 2.5 times the digest size. As
+ * such, these vectors test that: (a) the initial digest-sized portion of the
+ * key is generated correctly; (b) the reset of the HMAC operation, necessary
+ * to generate a second digest-sized portion, happens correctly; and, (c) the
+ * truncation of the final digest-sized portion happens correctly.
  */
 static const struct pbkdf2_test customTests[] = {
     /*
@@ -382,9 +364,6 @@ static const struct pbkdf2_test customTests[] = {
     },
 };
 
-/*
- * Run the PBKDF2 tests and report the success rate.
- */
 int main(void)
 {
     size_t onTest;
