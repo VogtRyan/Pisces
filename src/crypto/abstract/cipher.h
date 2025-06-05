@@ -121,8 +121,8 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
 int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len);
 
 /*
- * Returns the block size of the cipher. Guaranteed to be greater than zero
- * and no larger than CIPHER_MAX_BLOCK_SIZE.
+ * Returns the block size of the cipher. Guaranteed to be greater than zero and
+ * no larger than CIPHER_MAX_BLOCK_SIZE.
  */
 size_t cipher_block_size(const struct cipher_ctx *cipher);
 

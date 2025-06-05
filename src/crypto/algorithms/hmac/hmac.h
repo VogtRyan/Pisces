@@ -66,9 +66,9 @@ int hmac_single(struct hmac_ctx *hmac, const byte *key, size_t key_len,
                 const byte *msg, size_t msg_len, byte *digest);
 
 /*
- * Returns the size of the HMAC digest in bytes. Guaranteed to be greater than
- * zero and no larger than HMAC_MAX_DIGEST_SIZE. The digest size of the HMAC
- * is equal to the digest size of the underlying cryptographic hash function.
+ * Returns the size of the HMAC digest. Guaranteed to be greater than zero and
+ * no larger than HMAC_MAX_DIGEST_SIZE. The digest size of the HMAC is equal to
+ * the digest size of the underlying cryptographic hash function.
  */
 size_t hmac_digest_size(const struct hmac_ctx *hmac);
 

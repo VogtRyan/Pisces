@@ -64,16 +64,15 @@ int chf_single(struct chf_ctx *chf, const byte *msg, size_t msg_len,
                byte *digest);
 
 /*
- * Returns the size of the hash algorithm's digest output, in bytes.
- * Guaranteed to be greater than zero and no larger than CHF_MAX_DIGEST_SIZE.
+ * Returns the size of the hash algorithm's digest output. Guaranteed to be
+ * greater than zero and no larger than CHF_MAX_DIGEST_SIZE.
  */
 size_t chf_digest_size(const struct chf_ctx *chf);
 
 /*
- * Returns the hash algorithm's block size, in bytes. Guaranteed to be greater
- * than zero and no larger than CHF_MAX_BLOCK_SIZE. Typically used only for
- * building other cryptographic algorithms on top of a cryptographic hash
- * primitive.
+ * Returns the hash algorithm's block size. Guaranteed to be greater than zero
+ * and no larger than CHF_MAX_BLOCK_SIZE. Typically used only for building
+ * other cryptographic algorithms on top of a cryptographic hash primitive.
  */
 size_t chf_block_size(const struct chf_ctx *chf);
 

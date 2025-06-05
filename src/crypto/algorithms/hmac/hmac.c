@@ -95,8 +95,8 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t key_len)
 
     /*
      * Compute the inner key pad (K_0 xor ipad) and start the inner context
-     * with it. Since we are adding only one block with chf_add(), the input
-     * size should never be so large as to make the hash computation fail.
+     * with it. We are adding only one block of input to the hash function,
+     * which should never cause it to fail from the input being too large.
      */
     memset(pad, 0x36, block_size);
     for (i = 0; i < key_len; i++) {
