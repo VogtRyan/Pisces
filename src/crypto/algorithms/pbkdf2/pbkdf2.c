@@ -57,20 +57,18 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
     int errval = 0;
 
     ASSERT(iteration_count != 0, "PBKDF2 iteration count of zero");
+
     res = init_hmac_trio(password, password_len, salt, salt_len, alg,
                          &pwd_only, &pwd_and_salt, &prf);
     if (res) {
         ERROR_CODE(done, errval, res);
     }
+    hlen = hmac_digest_size(prf);
 
     /*
      * Each block in the derived key is indexed by a 32-bit counter, i,
-     * ranging from 1 to at most 2^32-1. Because no block may be indexed by
-     * i == 0, the counter in general should not be allowed to overflow to 0.
-     * The exception is the edge case in which the counter overflows to 0
-     * immediately as the last of the key material is derived.
+     * ranging from 1 to at most 2^32-1. No block may be indexed by i == 0.
      */
-    hlen = hmac_digest_size(prf);
     if (would_overflow_counter_before_completion(derived_key_len, hlen)) {
         ERROR_CODE(done, errval, PBKDF2_ERROR_DERIVED_KEY_TOO_LONG);
     }
@@ -81,22 +79,12 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
      * of HMAC operations, and its length is the size of the HMAC digest.
      */
     i = 1;
-    while (derived_key_len > 0 && i != 0) {
-        /*
-         * The check that i != 0 (verifying that the counter has not overflowed
-         * while there is still key material to derive) should be unnecessary,
-         * per the check in would_overflow_counter_before_completion(). But
-         * having the i != 0 check in the loop condition lets us place an
-         * assertion below this loop on the behaviour of
-         * would_overflow_counter_before_completion().
-         */
-
-        octets_from_t = MIN(hlen, derived_key_len);
-
+    while (derived_key_len > 0) {
         /*
          * T_i = U_1 xor U_2 xor ... xor U_c. First, compute U_1 in the
          * derived key location.
          */
+        ASSERT(i != 0, "PBKDF2 loop counter overflow");
         put_big_end_32(i_msof, i);
         hmac_add(prf, i_msof, 4);
         if (hmac_end(prf, u)) {
@@ -106,6 +94,8 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
              */
             ERROR_CODE(done, errval, PBKDF2_ERROR_SALT_TOO_LONG);
         }
+
+        octets_from_t = MIN(hlen, derived_key_len);
         memcpy(derived_key, u, octets_from_t);
 
         /*
@@ -135,14 +125,6 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
         derived_key_len -= octets_from_t;
         i++;
     }
-
-    /*
-     * Per the check in would_overflow_counter_before_completion(), the above
-     * loop should never break because i == 0, unless derived_key_len is also 0
-     * (that is, the counter is only allowed to overflow in the edge case that
-     * all of the key material has already been derived).
-     */
-    ASSERT(derived_key_len == 0, "PBKDF2 loop counter overflow");
 
 done:
     free_hmac_trio(&pwd_only, &pwd_and_salt, &prf);
