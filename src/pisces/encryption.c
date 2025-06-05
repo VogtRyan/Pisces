@@ -44,6 +44,9 @@
  */
 #define BYTES_AT_ONCE (4096)
 
+#define MAX(a, b, c)                                                          \
+    ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
+
 /*
  * The Pisces header: these 6 bytes, followed by a one-byte version number. The
  * version number is not included in the length.
@@ -678,8 +681,7 @@ static void compute_imprint_sizes(size_t *randomData, size_t *total,
     hashLen = chf_digest_size(chf);
     blockLen = cipher_block_size(cipher);
     keyLen = cipher_key_size(cipher);
-    max = hashLen > blockLen ? hashLen : blockLen;
-    max = max > keyLen ? max : keyLen;
+    max = MAX(hashLen, blockLen, keyLen);
 
     /*
      * The total amount of data will be at least as large as that maximum,

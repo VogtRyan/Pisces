@@ -27,6 +27,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+#define UNUSED(varname) (void)(varname)
+
 /*
  * This abstract context contains a struct aes_cbc_ctx *, instead of a void *,
  * because AES-CBC is the only primitive supported in this implementation.
@@ -50,8 +54,6 @@ struct cipher_ctx {
 
 static size_t process_block(struct cipher_ctx *cipher, const byte *input,
                             byte *output);
-
-#define UNUSED(varname) (void)(varname)
 
 struct cipher_ctx *cipher_alloc(cipher_algorithm alg)
 {
@@ -141,8 +143,7 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
         }
         else {
             to_fill_block = AES_CBC_BLOCK_SIZE - cipher->amnt_input;
-            add_to_cipher =
-                (to_fill_block < input_len ? to_fill_block : input_len);
+            add_to_cipher = MIN(to_fill_block, input_len);
             memcpy(cipher->input_block + cipher->amnt_input, input,
                    add_to_cipher);
 

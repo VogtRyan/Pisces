@@ -27,6 +27,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 #define SHA1_MAX_MESSAGE_BYTES ((uint64_t)(0x1FFFFFFFFFFFFFFFLLU))
 
 struct sha1_ctx {
@@ -97,7 +99,7 @@ int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t numBytes)
         }
         else {
             toFillBlock = SHA1_BLOCK_BYTES - ctx->bytesInBlock;
-            addToCtx = (toFillBlock < numBytes ? toFillBlock : numBytes);
+            addToCtx = MIN(toFillBlock, numBytes);
             memcpy(ctx->block + ctx->bytesInBlock, bytes, addToCtx);
             ctx->bytesInBlock += addToCtx;
             bytes += addToCtx;

@@ -27,6 +27,8 @@
 #include <stddef.h>
 #include <string.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 static int init_hmac_trio(const char *password, size_t password_len,
                           const byte *salt, size_t salt_len, chf_algorithm alg,
                           struct hmac_ctx **pwd_only,
@@ -89,7 +91,7 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
          * would_overflow_counter_before_completion().
          */
 
-        octets_from_t = hlen < derived_key_len ? hlen : derived_key_len;
+        octets_from_t = MIN(hlen, derived_key_len);
 
         /*
          * T_i = U_1 xor U_2 xor ... xor U_c. First, compute U_1 in the

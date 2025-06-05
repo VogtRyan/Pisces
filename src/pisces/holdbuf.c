@@ -23,6 +23,8 @@
 #include <stddef.h>
 #include <string.h>
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 struct holdbuf {
     byte *buf;
     size_t stopSize;
@@ -63,7 +65,7 @@ void holdbuf_give(struct holdbuf *hb, const byte *bytes, size_t numBytes,
          * The amount given back is divided into how much comes from storage
          * and how much from the input.
          */
-        fromBuf = (*outputBytes) < (hb->inBuf) ? (*outputBytes) : (hb->inBuf);
+        fromBuf = MIN(*outputBytes, hb->inBuf);
         fromInput = *outputBytes - fromBuf;
 
         /* Give the data to the caller */

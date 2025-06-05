@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 struct sha3_ctx {
     uint64_t state[25];
     byte leftover[SHA3_BLOCK_BYTES_MAX];
@@ -134,7 +136,7 @@ void sha3_end(struct sha3_ctx *ctx, byte *digest)
     i = 0;
     while (bytesNeeded) {
         put_little_end_64(output, ctx->state[i++]);
-        toCopy = (bytesNeeded < 8 ? bytesNeeded : 8);
+        toCopy = MIN(bytesNeeded, 8);
         memcpy(digest, output, toCopy);
         digest += toCopy;
         bytesNeeded -= toCopy;
