@@ -25,7 +25,7 @@
 #endif
 
 /*
- * For clarity, use the byte type for bytes of raw data. Reserve uint8_t for
+ * For clarity, use the byte type for raw data, and reserve uint8_t for
  * mathematical operations using 8-bit numbers.
  */
 typedef unsigned char byte;
