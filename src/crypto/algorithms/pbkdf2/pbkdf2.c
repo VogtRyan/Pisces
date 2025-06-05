@@ -23,6 +23,7 @@
 #include "crypto/algorithms/hmac/hmac.h"
 #include "crypto/machine/endian.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -34,8 +35,8 @@ static int init_hmac_trio(const char *password, size_t passwordLen,
 static void free_hmac_trio(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
                            struct hmac_ctx **hmac3);
 
-static int would_overflow_counter_before_completion(size_t derivedKeyLen,
-                                                    size_t hLen);
+static bool would_overflow_counter_before_completion(size_t derivedKeyLen,
+                                                     size_t hLen);
 
 int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
                 size_t passwordLen, const byte *salt, size_t saltLen,
@@ -193,8 +194,8 @@ static void free_hmac_trio(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
     }
 }
 
-static int would_overflow_counter_before_completion(size_t derivedKeyLen,
-                                                    size_t hLen)
+static bool would_overflow_counter_before_completion(size_t derivedKeyLen,
+                                                     size_t hLen)
 {
     /*
      * Overflow will occur prior to deriving enough key material if:
@@ -207,7 +208,7 @@ static int would_overflow_counter_before_completion(size_t derivedKeyLen,
      * can take values from 1 to 2^32-1, but never 0).
      */
 #if SIZE_MAX <= UINT32_MAX
-    return 0;
+    return false;
 #else
     size_t div = derivedKeyLen / hLen;
     if (derivedKeyLen % hLen == 0) {
