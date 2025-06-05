@@ -29,8 +29,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm;
-
 #ifndef PISCES_NO_ARC4RANDOM
 #define CPRNG_DEFAULT_ALG (CPRNG_ALG_ARC4RANDOM)
 #else
@@ -39,6 +37,8 @@ typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm;
 
 #define CPRNG_DEVICE_NAME ("/dev/random")
 
+typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm;
+
 struct cprng {
     cprng_algorithm type;
     int fd;
@@ -46,8 +46,6 @@ struct cprng {
 
 static void cprng_bytes_devrandom(struct cprng *rng, byte *output,
                                   size_t output_len);
-
-#define UNUSED(varname) (void)(varname)
 
 /*
  * Make arc4random_buf(void *, size_t) visible even when compiling against the
@@ -60,6 +58,7 @@ static void cprng_bytes_devrandom(struct cprng *rng, byte *output,
 #ifndef PISCES_NO_ARC4RANDOM
 extern void arc4random_buf(void *buf, size_t nbytes);
 #else
+#define UNUSED(varname) (void)(varname)
 static void arc4random_buf(void *buf, size_t nbytes)
 {
     /*
