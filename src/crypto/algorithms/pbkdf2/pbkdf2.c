@@ -26,17 +26,13 @@
 #include <stddef.h>
 #include <string.h>
 
-/*
- * In pwdOnly, preprocess only the password (the key to the HMAC operations).
- * In both prf and pwdAndSalt, also preprocess the salt as the first part of
- * the message being authenticated.
- */
 static int init_hmac_trio(const char *password, size_t passwordLen,
                           const byte *salt, size_t saltLen, chf_algorithm alg,
-                          struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
-                          struct hmac_ctx **pwdAndSalt);
-static void free_hmac_trio(struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
-                           struct hmac_ctx **pwdAndSalt);
+                          struct hmac_ctx **pwdOnly,
+                          struct hmac_ctx **pwdAndSalt,
+                          struct hmac_ctx **pwdAndSaltCopy);
+static void free_hmac_trio(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
+                           struct hmac_ctx **hmac3);
 
 static int would_overflow_counter_before_completion(size_t derivedKeyLen,
                                                     size_t hLen);
@@ -57,8 +53,8 @@ int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
     int errVal = 0;
 
     ASSERT(iterationCount != 0, "PBKDF2 iteration count of zero");
-    res = init_hmac_trio(password, passwordLen, salt, saltLen, alg, &prf,
-                         &pwdOnly, &pwdAndSalt);
+    res = init_hmac_trio(password, passwordLen, salt, saltLen, alg, &pwdOnly,
+                         &pwdAndSalt, &prf);
     if (res) {
         ERROR_CODE(isErr, errVal, res);
     }
@@ -145,53 +141,55 @@ int pbkdf2_hmac(byte *derivedKey, size_t derivedKeyLen, const char *password,
     ASSERT(derivedKeyLen == 0, "PBKDF2 loop counter overflow");
 
 isErr:
-    free_hmac_trio(&prf, &pwdOnly, &pwdAndSalt);
+    free_hmac_trio(&pwdOnly, &pwdAndSalt, &prf);
     scrub_memory(U, HMAC_MAX_DIGEST_SIZE);
     return errVal;
 }
 
 static int init_hmac_trio(const char *password, size_t passwordLen,
                           const byte *salt, size_t saltLen, chf_algorithm alg,
-                          struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
-                          struct hmac_ctx **pwdAndSalt)
+                          struct hmac_ctx **pwdOnly,
+                          struct hmac_ctx **pwdAndSalt,
+                          struct hmac_ctx **pwdAndSaltCopy)
 {
     int errVal = 0;
 
-    *prf = hmac_alloc(alg);
     *pwdOnly = hmac_alloc(alg);
     *pwdAndSalt = hmac_alloc(alg);
+    *pwdAndSaltCopy = hmac_alloc(alg);
 
-    if (hmac_start(*prf, (const byte *)password, passwordLen)) {
+    if (hmac_start(*pwdOnly, (const byte *)password, passwordLen)) {
         ERROR_CODE(isErr, errVal, PBKDF2_ERROR_PASSWORD_TOO_LONG);
     }
-    hmac_copy(*pwdOnly, *prf);
 
-    if (hmac_add(*prf, salt, saltLen)) {
+    hmac_copy(*pwdAndSalt, *pwdOnly);
+    if (hmac_add(*pwdAndSalt, salt, saltLen)) {
         ERROR_CODE(isErr, errVal, PBKDF2_ERROR_SALT_TOO_LONG);
     }
-    hmac_copy(*pwdAndSalt, *prf);
+
+    hmac_copy(*pwdAndSaltCopy, *pwdAndSalt);
 
 isErr:
     if (errVal) {
-        free_hmac_trio(prf, pwdOnly, pwdAndSalt);
+        free_hmac_trio(pwdOnly, pwdAndSalt, pwdAndSaltCopy);
     }
     return errVal;
 }
 
-static void free_hmac_trio(struct hmac_ctx **prf, struct hmac_ctx **pwdOnly,
-                           struct hmac_ctx **pwdAndSalt)
+static void free_hmac_trio(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
+                           struct hmac_ctx **hmac3)
 {
-    if (*prf != NULL) {
-        hmac_free_scrub(*prf);
-        *prf = NULL;
+    if (*hmac1 != NULL) {
+        hmac_free_scrub(*hmac1);
+        *hmac1 = NULL;
     }
-    if (pwdOnly != NULL) {
-        hmac_free_scrub(*pwdOnly);
-        *pwdOnly = NULL;
+    if (*hmac2 != NULL) {
+        hmac_free_scrub(*hmac2);
+        *hmac2 = NULL;
     }
-    if (*pwdAndSalt != NULL) {
-        hmac_free_scrub(*pwdAndSalt);
-        *pwdAndSalt = NULL;
+    if (*hmac3 != NULL) {
+        hmac_free_scrub(*hmac3);
+        *hmac3 = NULL;
     }
 }
 
