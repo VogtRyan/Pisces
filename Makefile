@@ -192,14 +192,16 @@ ${BINDIR}/test_pbkdf2: ${TEST_PBKDF2_OBJS}
 # pisces/
 ##
 
-PISCES_OBJS = src/crypto/abstract/cprng.o src/crypto/abstract/kdf.o \
-  src/crypto/abstract/chf.o src/crypto/abstract/cipher.o \
-  src/crypto/algorithms/hmac/hmac.o src/crypto/algorithms/pbkdf2/pbkdf2.o \
+PISCES_OBJS = src/pisces/pisces.o src/crypto/abstract/chf.o \
+  src/crypto/abstract/cipher.o src/crypto/abstract/cprng.o \
+  src/crypto/abstract/kdf.o src/crypto/algorithms/hmac/hmac.o \
+  src/crypto/algorithms/pbkdf2/pbkdf2.o \
   src/crypto/algorithms/pkcs7/pkcs7_padding.o \
-  src/crypto/primitives/sha3/sha3.o src/crypto/primitives/sha1/sha1.o \
   src/crypto/primitives/aes/aes_cbc.o src/crypto/primitives/aes/aes_ecb.o \
-  src/pisces/password.o src/pisces/iowrap.o src/pisces/holdbuf.o \
-  src/pisces/version.o src/pisces/encryption.o src/pisces/pisces.o
+  src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o \
+  src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pisces/encryption.o \
+  src/pisces/holdbuf.o src/pisces/iowrap.o src/pisces/password.o \
+  src/pisces/version.o
 
 ${BINDIR}/pisces: ${PISCES_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${PISCES_OBJS}
@@ -208,8 +210,9 @@ ${BINDIR}/pisces: ${PISCES_OBJS}
 # pwgen/
 ##
 
-PWGEN_OBJS = src/pwgen/pwgen.o src/pwgen/ascii.o src/pwgen/hex.o \
-  src/pwgen/usq.o src/crypto/abstract/cprng.o
+PWGEN_OBJS = src/pwgen/pwgen.o src/crypto/abstract/cprng.o \
+  src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pwgen/ascii.o \
+  src/pwgen/hex.o src/pwgen/usq.o
 
 ${BINDIR}/pwgen: ${PWGEN_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${PWGEN_OBJS}
@@ -237,7 +240,8 @@ deps:
 
 src/crypto/abstract/cprng.o: src/crypto/abstract/cprng.c \
   src/crypto/abstract/cprng.h src/common/bytetype.h \
-  src/common/errorflow.h src/common/scrub.h
+  src/common/errorflow.h src/common/scrub.h src/crypto/random/rarc4.h \
+  src/crypto/random/rdev.h
 src/crypto/abstract/kdf.o: src/crypto/abstract/kdf.c \
   src/crypto/abstract/kdf.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h src/crypto/abstract/chf.h \
@@ -311,6 +315,10 @@ src/crypto/primitives/aes/test_aes_cbc.o: \
 src/crypto/primitives/aes/generate_aes.o: \
   src/crypto/primitives/aes/generate_aes.c src/crypto/machine/endian.h \
   src/common/bytetype.h
+src/crypto/random/rdev.o: src/crypto/random/rdev.c \
+  src/crypto/random/rdev.h src/common/bytetype.h src/common/errorflow.h
+src/crypto/random/rarc4.o: src/crypto/random/rarc4.c \
+  src/crypto/random/rarc4.h src/common/bytetype.h src/common/errorflow.h
 src/pisces/password.o: src/pisces/password.c src/pisces/password.h \
   src/common/config.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h

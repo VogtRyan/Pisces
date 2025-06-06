@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2025 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,32 +14,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef PISCES_CRYPTO_ABSTRACT_CPRNG_H_
-#define PISCES_CRYPTO_ABSTRACT_CPRNG_H_
+#ifndef PISCES_CRYPTO_RANDOM_RDEV_H_
+#define PISCES_CRYPTO_RANDOM_RDEV_H_
 
 #include "common/bytetype.h"
 
 #include <stddef.h>
 
-struct cprng;
+#define RDEV_DEVICE_NAME ("/dev/random")
 
 /*
- * Allocates a new psuedorandom number generator. Must be freed with
- * cprng_free_scrub(). Guaranteed to return non-NULL.
+ * Returns a file descriptor for reading from the random device in /dev/.
+ * Succeeds or the program terminates.
  */
-struct cprng *cprng_alloc_default(void);
+int rdev_open(void);
 
 /*
- * Fills the given buffer with random bytes. Succeeds or the program
- * terminates, but may block for a finite time.
+ * Fills the output buffer with random data from the random device in /dev/.
+ * Succeeds or the program terminates, but may block for a finite time.
  */
-void cprng_bytes(struct cprng *rng, byte *output, size_t output_len);
-
-/*
- * Frees a psuedorandom number generator allocated with cprng_alloc_default()
- * and securely scrubs all memory allocated for it. Calling with NULL is a
- * no-op.
- */
-void cprng_free_scrub(struct cprng *rng);
+void rdev_fill(int fd, byte *output, size_t output_len);
 
 #endif

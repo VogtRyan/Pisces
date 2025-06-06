@@ -19,66 +19,35 @@
 #include "common/bytetype.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
+#include "crypto/random/rarc4.h"
+#include "crypto/random/rdev.h"
 
-#include <sys/types.h>
-#include <sys/uio.h>
-
-#include <fcntl.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+typedef enum { CPRNG_SOURCE_ARC4RANDOM, CPRNG_SOURCE_DEVRANDOM } cprng_source;
+
 #ifndef PISCES_NO_ARC4RANDOM
-#define CPRNG_DEFAULT_ALG (CPRNG_ALG_ARC4RANDOM)
+#define CPRNG_SOURCE_DEFAULT (CPRNG_SOURCE_ARC4RANDOM)
 #else
-#define CPRNG_DEFAULT_ALG (CPRNG_ALG_DEVRANDOM)
+#define CPRNG_SOURCE_DEFAULT (CPRNG_SOURCE_DEVRANDOM)
 #endif
 
-#define CPRNG_DEVICE_NAME ("/dev/random")
-
-typedef enum { CPRNG_ALG_ARC4RANDOM, CPRNG_ALG_DEVRANDOM } cprng_algorithm;
-
 struct cprng {
-    cprng_algorithm type;
+    cprng_source src;
     int fd;
 };
 
-static void cprng_bytes_devrandom(struct cprng *rng, byte *output,
-                                  size_t output_len);
-
-/*
- * Make arc4random_buf(void *, size_t) visible even when compiling against the
- * POSIX.1-2001 standard.
- */
-#ifdef _POSIX_C_SOURCE
-#if _POSIX_C_SOURCE != 200112L
-#error Only the POSIX.1-2001 standard is supported
-#endif
-#ifndef PISCES_NO_ARC4RANDOM
-extern void arc4random_buf(void *buf, size_t nbytes);
-#else
-#define UNUSED(varname) (void)(varname)
-static void arc4random_buf(void *buf, size_t nbytes)
-{
-    /*
-     * This dead-code implementation is to prevent warnings not from the
-     * compiler, but from IDEs that view the extern declaration as missing an
-     * implementation.
-     */
-    UNUSED(buf);
-    UNUSED(nbytes);
-    ASSERT_NEVER_REACH("Not compiled with arc4random_buf() support");
-}
-#endif
-#endif
-
 struct cprng *cprng_alloc_default(void)
 {
-    struct cprng *ret = (struct cprng *)calloc(1, sizeof(struct cprng));
+    struct cprng *ret;
+
+    ret = (struct cprng *)calloc(1, sizeof(struct cprng));
     GUARD_ALLOC(ret);
 
-    ret->type = CPRNG_DEFAULT_ALG;
+    ret->src = CPRNG_SOURCE_DEFAULT;
     ret->fd = -1;
 
     return ret;
@@ -86,17 +55,21 @@ struct cprng *cprng_alloc_default(void)
 
 void cprng_bytes(struct cprng *rng, byte *output, size_t output_len)
 {
-    ASSERT(output_len <= SSIZE_MAX, "Amount of data to read is too large");
+    /* Make too-large requests fail uniformly, regardless of CPRNG source */
+    ASSERT(output_len <= SSIZE_MAX, "Read of random data too large");
 
-    switch (rng->type) {
-    case CPRNG_ALG_ARC4RANDOM:
-        arc4random_buf(output, output_len);
+    switch (rng->src) {
+    case CPRNG_SOURCE_ARC4RANDOM:
+        rarc4_fill(output, output_len);
         break;
-    case CPRNG_ALG_DEVRANDOM:
-        cprng_bytes_devrandom(rng, output, output_len);
+    case CPRNG_SOURCE_DEVRANDOM:
+        if (rng->fd < 0) {
+            rng->fd = rdev_open();
+        }
+        rdev_fill(rng->fd, output, output_len);
         break;
     default:
-        ASSERT_NEVER_REACH("Invalid CPRNG algorithm");
+        ASSERT_NEVER_REACH("Invalid CPRNG source");
     }
 }
 
@@ -108,30 +81,5 @@ void cprng_free_scrub(struct cprng *rng)
         }
         scrub_memory(rng, sizeof(struct cprng));
         free(rng);
-    }
-}
-
-static void cprng_bytes_devrandom(struct cprng *rng, byte *output,
-                                  size_t output_len)
-{
-    ssize_t res;
-
-    if (rng->fd < 0) {
-        rng->fd = open(CPRNG_DEVICE_NAME, O_RDONLY);
-        if (rng->fd < 0) {
-            FATAL_ERROR("Unable to open %s", CPRNG_DEVICE_NAME);
-        }
-    }
-
-    while (output_len > 0) {
-        res = read(rng->fd, output, output_len);
-        if (res == 0) {
-            FATAL_ERROR("Read from %s returned no data", CPRNG_DEVICE_NAME);
-        }
-        if (res < 0) {
-            FATAL_ERROR("Read from %s failed", CPRNG_DEVICE_NAME);
-        }
-        output += res;
-        output_len -= (size_t)res;
     }
 }
