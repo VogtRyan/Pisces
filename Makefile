@@ -167,7 +167,7 @@ ${BINDIR}/test_sha3: ${TEST_SHA3_OBJS}
 ##
 
 TEST_HMAC_OBJS = src/crypto/algorithms/hmac/test_hmac.o \
-  src/crypto/algorithms/hmac/hmac.o src/crypto/abstract/chf.o \
+  src/crypto/abstract/chf.o src/crypto/algorithms/hmac/hmac.o \
   src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o \
   src/crypto/test/hex.o
 
@@ -180,8 +180,8 @@ ${BINDIR}/test_hmac: ${TEST_HMAC_OBJS}
 ##
 
 TEST_PBKDF2_OBJS = src/crypto/algorithms/pbkdf2/test_pbkdf2.o \
-  src/crypto/algorithms/pbkdf2/pbkdf2.o src/crypto/algorithms/hmac/hmac.o \
-  src/crypto/abstract/chf.o src/crypto/primitives/sha1/sha1.o \
+  src/crypto/abstract/chf.o src/crypto/algorithms/hmac/hmac.o \
+  src/crypto/algorithms/pbkdf2/pbkdf2.o src/crypto/primitives/sha1/sha1.o \
   src/crypto/primitives/sha3/sha3.o src/crypto/test/hex.o
 
 ${BINDIR}/test_pbkdf2: ${TEST_PBKDF2_OBJS}
