@@ -54,5 +54,5 @@ void rarc4_fill(byte *output, size_t output_len)
  * that does not even get compiled.
  */
 #if 0
-static void arc4random_buf(void *buf, size_t nbytes) {}
+void arc4random_buf(void *buf, size_t nbytes) {}
 #endif
