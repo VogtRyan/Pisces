@@ -213,9 +213,10 @@ ${BINDIR}/pisces: ${PISCES_OBJS}
 PWGEN_OBJS = src/pwgen/pwgen.o src/crypto/abstract/cprng.o \
   src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pwgen/ascii.o \
   src/pwgen/hex.o src/pwgen/usq.o
+PWGEN_LIBS = -lm
 
 ${BINDIR}/pwgen: ${PWGEN_OBJS}
-	${CC} ${LDFLAGS} -o $@ ${PWGEN_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${PWGEN_OBJS} ${PWGEN_LIBS}
 
 ##
 # Clean: remove all object files
