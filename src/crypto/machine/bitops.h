@@ -22,10 +22,12 @@
 #include <stdint.h>
 
 /*
- * Return the given 32-bit integer with its bits circle-shifted left by the
- * given number of bits. A negative shift amount will compute a corresponding
- * circle-shift right.
+ * Circular left and right bit shifts. Calling any function with a negative
+ * shift amount produces a shift in the opposite direction (e.g., calling a
+ * circular left shift by 10 bits produces the same result as a calling a
+ * circular right shift by -10 bits).
  */
+
 static inline uint32_t circ_shift_left_32(uint32_t value, int amount)
 {
     if ((amount &= 31) == 0) {
@@ -34,11 +36,6 @@ static inline uint32_t circ_shift_left_32(uint32_t value, int amount)
     return (value << amount) | (value >> (32 - amount));
 }
 
-/*
- * Return the given 64-bit integer with its bits circle-shifted left by the
- * given number of bits. A negative shift amount will compute a corresponding
- * circle-shift right.
- */
 static inline uint64_t circ_shift_left_64(uint64_t value, int amount)
 {
     if ((amount &= 63) == 0) {
@@ -47,11 +44,6 @@ static inline uint64_t circ_shift_left_64(uint64_t value, int amount)
     return (value << amount) | (value >> (64 - amount));
 }
 
-/*
- * Return the given 32-bit integer with its bits circle-shifted right by the
- * given number of bits. A negative shift amount will compute a corresponding
- * circle-shift left.
- */
 static inline uint32_t circ_shift_right_32(uint32_t value, int amount)
 {
     if ((amount &= 31) == 0) {
@@ -60,11 +52,6 @@ static inline uint32_t circ_shift_right_32(uint32_t value, int amount)
     return (value >> amount) | (value << (32 - amount));
 }
 
-/*
- * Return the given 64-bit integer with its bits circle-shifted right by the
- * given number of bits. A negative shift amount will compute a corresponding
- * circle-shift left.
- */
 static inline uint64_t circ_shift_right_64(uint64_t value, int amount)
 {
     if ((amount &= 63) == 0) {
