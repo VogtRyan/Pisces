@@ -65,8 +65,8 @@ during the `make install` build step:
 That will install the binaries in `~/pisces/bin/` and the man pages in
 `~/pisces/man/man1/`.
 
-To uninstall Pisces, delete the two binaries (`pisces`, `pwgen`) and their two
-man pages (`pisces.1`, `pwgen.1`).
+To uninstall Pisces, delete the two binaries (`pisces` and `pwgen`) and their
+two man pages (`pisces.1` and `pwgen.1`).
 
 ## Example Pisces Usage
 
