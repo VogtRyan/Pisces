@@ -50,9 +50,8 @@ instead:
     $ make CPRNG=dev
     $ sudo make install
 ```
-Two binaries, `pisces` and `pwgen` (a password generator for Pisces), will be
-installed in `/usr/local/bin/`. The two corresponding man pages will be
-installed in `/usr/local/man/man1/`. 
+Two binaries, `pisces` and `pwgen`, will be installed in `/usr/local/bin/`. The
+two corresponding man pages will be installed in `/usr/local/man/man1/`.
 
 The installation location can be modified by setting the `PREFIX` variable
 during the `make install` build step:
