@@ -30,7 +30,8 @@
 
 static inline uint32_t circ_shift_left_32(uint32_t value, int amount)
 {
-    if ((amount &= 31) == 0) {
+    amount &= 31;
+    if (amount == 0) {
         return value;
     }
     return (value << amount) | (value >> (32 - amount));
@@ -38,7 +39,8 @@ static inline uint32_t circ_shift_left_32(uint32_t value, int amount)
 
 static inline uint64_t circ_shift_left_64(uint64_t value, int amount)
 {
-    if ((amount &= 63) == 0) {
+    amount &= 63;
+    if (amount == 0) {
         return value;
     }
     return (value << amount) | (value >> (64 - amount));
@@ -46,7 +48,8 @@ static inline uint64_t circ_shift_left_64(uint64_t value, int amount)
 
 static inline uint32_t circ_shift_right_32(uint32_t value, int amount)
 {
-    if ((amount &= 31) == 0) {
+    amount &= 31;
+    if (amount == 0) {
         return value;
     }
     return (value >> amount) | (value << (32 - amount));
@@ -54,7 +57,8 @@ static inline uint32_t circ_shift_right_32(uint32_t value, int amount)
 
 static inline uint64_t circ_shift_right_64(uint64_t value, int amount)
 {
-    if ((amount &= 63) == 0) {
+    amount &= 63;
+    if (amount == 0) {
         return value;
     }
     return (value >> amount) | (value << (64 - amount));
