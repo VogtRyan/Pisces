@@ -22,37 +22,37 @@
 #include <stddef.h>
 #include <string.h>
 
-void pkcs7_padding_add(const byte *input, size_t inputSize, size_t blockSize,
-                       byte *output)
+void pkcs7_padding_add(const byte *unpadded, size_t unpadded_len,
+                       size_t block_size, byte *padded)
 {
-    size_t padValue, i;
+    size_t pad_value, i;
 
     /* Block size has to be expressible in a single unsigned byte */
-    ASSERT(blockSize > 0 && blockSize <= 255,
+    ASSERT(block_size > 0 && block_size <= 255,
            "PKCS7 padding incompatible with given block size");
 
     /* The final block has to be incomplete, even if it is empty */
-    ASSERT(inputSize < blockSize,
+    ASSERT(unpadded_len < block_size,
            "Input for PKCS7 padding is not an incomplete block");
 
     /*
-     * Every byte after the last byte of input data is set to the number of
+     * Every byte after the last byte of unpadded data is set to the number of
      * bytes of padding.
      */
-    memmove(output, input, inputSize);
-    padValue = blockSize - inputSize;
-    for (i = inputSize; i < blockSize; i++) {
-        output[i] = (byte)padValue;
+    memmove(padded, unpadded, unpadded_len);
+    pad_value = block_size - unpadded_len;
+    for (i = unpadded_len; i < block_size; i++) {
+        padded[i] = (byte)pad_value;
     }
 }
 
-int pkcs7_padding_remove(const byte *input, size_t blockSize, byte *output,
-                         size_t *outputSize)
+int pkcs7_padding_remove(const byte *padded, size_t block_size, byte *unpadded,
+                         size_t *unpadded_len)
 {
-    size_t padValue, i;
+    size_t pad_value, i;
 
     /* Block size has to be expressible in a single unsigned byte */
-    ASSERT(blockSize > 0 && blockSize <= 255,
+    ASSERT(block_size > 0 && block_size <= 255,
            "PKCS7 padding incompatible with given block size");
 
     /*
@@ -61,8 +61,8 @@ int pkcs7_padding_remove(const byte *input, size_t blockSize, byte *output,
      * to be positive, but there cannot be more padding than the size of the
      * block.
      */
-    padValue = (size_t)input[blockSize - 1];
-    if (padValue == 0 || padValue > blockSize) {
+    pad_value = (size_t)padded[block_size - 1];
+    if (pad_value == 0 || pad_value > block_size) {
         return PKCS7_PADDING_ERROR_INVALID_PAD_DATA;
     }
 
@@ -70,14 +70,14 @@ int pkcs7_padding_remove(const byte *input, size_t blockSize, byte *output,
      * Every byte of padding must have the same value: the size of the padding.
      * If any byte in the pad differs, the padding is malformed.
      */
-    for (i = blockSize - padValue; i < blockSize - 1; i++) {
-        if (input[i] != (byte)padValue) {
+    for (i = block_size - pad_value; i < block_size - 1; i++) {
+        if (padded[i] != (byte)pad_value) {
             return PKCS7_PADDING_ERROR_INVALID_PAD_DATA;
         }
     }
 
     /* The pad is intact and can be removed */
-    *outputSize = blockSize - padValue;
-    memmove(output, input, *outputSize);
+    *unpadded_len = block_size - pad_value;
+    memmove(unpadded, padded, *unpadded_len);
     return 0;
 }

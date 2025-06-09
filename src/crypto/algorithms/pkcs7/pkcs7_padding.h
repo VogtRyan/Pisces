@@ -24,25 +24,25 @@
 #define PKCS7_PADDING_ERROR_INVALID_PAD_DATA (-1)
 
 /*
- * PKCS7 padding is defined in RFC 5652 section 6.3. It requires a block size
- * between 0 and 255 bytes, inclusive.
+ * PKCS7 padding is defined in RFC 5652 section 6.3. It requires a positive
+ * block size no greater than 255 bytes.
  */
 
 /*
  * Adds PKCS7 padding to an incomplete final block of data. The input block
- * must contain between 0 and blockSize-1 bytes of data, inclusive. The output
- * will be exactly blockSize bytes. The two buffers may overlap.
+ * must contain between 0 and block_size-1 bytes of data, inclusive. The output
+ * will be exactly block_size bytes. The two buffers may overlap.
  */
-void pkcs7_padding_add(const byte *input, size_t inputSize, size_t blockSize,
-                       byte *output);
+void pkcs7_padding_add(const byte *unpadded, size_t unpadded_len,
+                       size_t block_size, byte *padded);
 
 /*
  * Removes PKCS7 padding from a final block of data. The input block must be
- * exactly blockSize bytes long. The output will be between 0 and blockSize-1
+ * exactly block_size bytes long. The output will be between 0 and block_size-1
  * bytes, inclusive. The two buffers may overlap. Returns 0 on success, <0 on
  * error (PKCS7_PADDING_ERROR_INVALID_PAD_DATA).
  */
-int pkcs7_padding_remove(const byte *input, size_t blockSize, byte *output,
-                         size_t *outputSize);
+int pkcs7_padding_remove(const byte *padded, size_t block_size, byte *unpadded,
+                         size_t *unpadded_len);
 
 #endif
