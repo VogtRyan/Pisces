@@ -27,20 +27,13 @@ void pkcs7_padding_add(const byte *input, size_t inputSize, size_t blockSize,
 {
     size_t padValue, i;
 
-    /*
-     * For a cipher to be compatible with PKCS7 padding, its block size must be
-     * expressible in a single unsigned byte.
-     */
+    /* Block size has to be expressible in a single unsigned byte */
     ASSERT(blockSize > 0 && blockSize <= 255,
            "PKCS7 padding incompatible with given block size");
 
-    /*
-     * Where PKCS7 padding is used, the final block must have space to insert
-     * the padding. The final block could be empty (resulting in a block of
-     * nothing but padding), but it cannot be full.
-     */
+    /* The final block has to be incomplete, even if it is empty */
     ASSERT(inputSize < blockSize,
-           "Input size for PKCS7 padding not less than block size");
+           "Input for PKCS7 padding is not an incomplete block");
 
     /*
      * Every byte after the last byte of input data is set to the number of
@@ -58,9 +51,7 @@ int pkcs7_padding_remove(const byte *input, size_t blockSize, byte *output,
 {
     size_t padValue, i;
 
-    /*
-     * The block size must be expressible in a single unsigned byte.
-     */
+    /* Block size has to be expressible in a single unsigned byte */
     ASSERT(blockSize > 0 && blockSize <= 255,
            "PKCS7 padding incompatible with given block size");
 
