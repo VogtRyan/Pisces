@@ -29,13 +29,13 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-static int init_hmac_trio(const char *password, size_t password_len,
-                          const byte *salt, size_t salt_len, chf_algorithm alg,
-                          struct hmac_ctx **pwd_only,
-                          struct hmac_ctx **pwd_and_salt,
-                          struct hmac_ctx **pwd_and_salt_copy);
-static void free_hmac_trio(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
-                           struct hmac_ctx **hmac3);
+static int alloc_hmacs(const char *password, size_t password_len,
+                       const byte *salt, size_t salt_len, chf_algorithm alg,
+                       struct hmac_ctx **unstarted,
+                       struct hmac_ctx **pwd_preprocessed,
+                       struct hmac_ctx **pwd_salt_preprocessed);
+static void free_hmacs(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
+                       struct hmac_ctx **hmac3);
 
 static bool would_overflow_counter_before_completion(size_t derived_key_len,
                                                      size_t hlen);
@@ -46,8 +46,8 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
                 chf_algorithm alg)
 {
     struct hmac_ctx *prf = NULL;
-    struct hmac_ctx *pwd_only = NULL;
-    struct hmac_ctx *pwd_and_salt = NULL;
+    struct hmac_ctx *pwd_preprocessed = NULL;
+    struct hmac_ctx *pwd_salt_preprocessed = NULL;
     byte u[HMAC_MAX_DIGEST_SIZE];
     byte i_msof[4];
     size_t octets_from_t, on_octet, hlen;
@@ -58,8 +58,8 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
 
     ASSERT(iteration_count != 0, "PBKDF2 iteration count of zero");
 
-    res = init_hmac_trio(password, password_len, salt, salt_len, alg,
-                         &pwd_only, &pwd_and_salt, &prf);
+    res = alloc_hmacs(password, password_len, salt, salt_len, alg, &prf,
+                      &pwd_preprocessed, &pwd_salt_preprocessed);
     if (res) {
         ERROR_CODE(done, errval, res);
     }
@@ -81,11 +81,14 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
     i = 1;
     while (derived_key_len > 0) {
         /*
-         * T_i = U_1 xor U_2 xor ... xor U_c. First, compute U_1 in the
-         * derived key location.
+         * T_i = U_1 xor U_2 xor ... xor U_c.
+         *
+         * Compute U_1 in the derived key location, so we can compute T_i (or
+         * as much of it as we need) directly in place.
          */
         ASSERT(i != 0, "PBKDF2 loop counter overflow");
         put_big_end_32(i_msof, i);
+        hmac_copy(prf, pwd_salt_preprocessed);
         hmac_add(prf, i_msof, 4);
         if (hmac_end(prf, u)) {
             /*
@@ -99,12 +102,11 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
         memcpy(derived_key, u, octets_from_t);
 
         /*
-         * Next, compute U_j, where 2 <= j <= c. As each U_j value is computed
-         * and stored back into the U array, xor it into the derived key,
-         * computing T_i (or as much of it as we need) directly in place.
+         * Next, compute U_j, where 2 <= j <= c, xor'ing each into the derived
+         * key.
          */
         for (j_minus_one = 1; j_minus_one < iteration_count; j_minus_one++) {
-            hmac_copy(prf, pwd_only);
+            hmac_copy(prf, pwd_preprocessed);
             hmac_add(prf, u, hlen);
             res = hmac_end(prf, u);
 
@@ -120,50 +122,47 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
             }
         }
 
-        hmac_copy(prf, pwd_and_salt);
         derived_key += octets_from_t;
         derived_key_len -= octets_from_t;
         i++;
     }
 
 done:
-    free_hmac_trio(&pwd_only, &pwd_and_salt, &prf);
+    free_hmacs(&prf, &pwd_preprocessed, &pwd_salt_preprocessed);
     scrub_memory(u, HMAC_MAX_DIGEST_SIZE);
     return errval;
 }
 
-static int init_hmac_trio(const char *password, size_t password_len,
-                          const byte *salt, size_t salt_len, chf_algorithm alg,
-                          struct hmac_ctx **pwd_only,
-                          struct hmac_ctx **pwd_and_salt,
-                          struct hmac_ctx **pwd_and_salt_copy)
+static int alloc_hmacs(const char *password, size_t password_len,
+                       const byte *salt, size_t salt_len, chf_algorithm alg,
+                       struct hmac_ctx **unstarted,
+                       struct hmac_ctx **pwd_preprocessed,
+                       struct hmac_ctx **pwd_salt_preprocessed)
 {
     int errval = 0;
 
-    *pwd_only = hmac_alloc(alg);
-    *pwd_and_salt = hmac_alloc(alg);
-    *pwd_and_salt_copy = hmac_alloc(alg);
+    *unstarted = hmac_alloc(alg);
+    *pwd_preprocessed = hmac_alloc(alg);
+    *pwd_salt_preprocessed = hmac_alloc(alg);
 
-    if (hmac_start(*pwd_only, (const byte *)password, password_len)) {
+    if (hmac_start(*pwd_preprocessed, (const byte *)password, password_len)) {
         ERROR_CODE(done, errval, PBKDF2_ERROR_PASSWORD_TOO_LONG);
     }
 
-    hmac_copy(*pwd_and_salt, *pwd_only);
-    if (hmac_add(*pwd_and_salt, salt, salt_len)) {
+    hmac_copy(*pwd_salt_preprocessed, *pwd_preprocessed);
+    if (hmac_add(*pwd_salt_preprocessed, salt, salt_len)) {
         ERROR_CODE(done, errval, PBKDF2_ERROR_SALT_TOO_LONG);
     }
 
-    hmac_copy(*pwd_and_salt_copy, *pwd_and_salt);
-
 done:
     if (errval) {
-        free_hmac_trio(pwd_only, pwd_and_salt, pwd_and_salt_copy);
+        free_hmacs(unstarted, pwd_preprocessed, pwd_salt_preprocessed);
     }
     return errval;
 }
 
-static void free_hmac_trio(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
-                           struct hmac_ctx **hmac3)
+static void free_hmacs(struct hmac_ctx **hmac1, struct hmac_ctx **hmac2,
+                       struct hmac_ctx **hmac3)
 {
     if (*hmac1 != NULL) {
         hmac_free_scrub(*hmac1);
