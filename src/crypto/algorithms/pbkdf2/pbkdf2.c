@@ -82,9 +82,7 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
     while (derived_key_len > 0) {
         /*
          * T_i = U_1 xor U_2 xor ... xor U_c.
-         *
-         * Compute U_1 in the derived key location, so we can compute T_i (or
-         * as much of it as we need) directly in place.
+         * Compute U_1 first.
          */
         ASSERT(i != 0, "PBKDF2 loop counter overflow");
         put_big_end_32(i_msof, i);
@@ -98,12 +96,16 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
             ERROR_CODE(done, errval, PBKDF2_ERROR_SALT_TOO_LONG);
         }
 
+        /*
+         * We will compute as much of T_i as we need directly in the derived
+         * key buffer, so take as much of U_1 as we need.
+         */
         octets_from_t = MIN(hlen, derived_key_len);
         memcpy(derived_key, u, octets_from_t);
 
         /*
-         * Next, compute U_j, where 2 <= j <= c, xor'ing each into the derived
-         * key.
+         * Compute U_j, where 2 <= j <= c, xor'ing as much as we need of each
+         * into the derived key.
          */
         for (j_minus_one = 1; j_minus_one < iteration_count; j_minus_one++) {
             hmac_copy(prf, pwd_preprocessed);
