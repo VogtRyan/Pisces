@@ -38,28 +38,23 @@ basic C compiler tools.
 
 ## Installing Pisces
 
-To install Pisces, run:
+To install Pisces on most systems, run:
 ```
     $ make
     $ sudo make install
-```
-Or, for OpenBSD users:
-```
-    $ make
-    $ doas make install
-```
-Two executables, `pisces` and `pwgen` (a password generator for Pisces), will
-be installed in `/usr/local/bin/`, and the manual pages for both in
-`/usr/local/man/man1/`.
 
-By default, Pisces uses the `arc4random()` family of functions to generate
-random data. For C libraries that do not provide, e.g., `arc4random_buf()`,
-use the following `make` command to draw random data from the `/dev/random`
-cryptographic pseudorandom number generator (CPRNG) instead:
+    [or: doas make install]
+```
+To install Pisces on systems without `arc4random_buf()` support, use
+`/dev/random` as the cryptographic pseudorandom number generator (CPRNG)
+instead:
 ```
     $ make CPRNG=dev
     $ sudo make install
 ```
+Two binaries, `pisces` and `pwgen` (a password generator for Pisces), will be
+installed in `/usr/local/bin/`. The two corresponding man pages will be
+installed in `/usr/local/man/man1/`. 
 
 The installation location can be modified by setting the `PREFIX` variable
 during the `make install` build step:
@@ -67,8 +62,11 @@ during the `make install` build step:
     $ make
     $ make PREFIX=~/pisces install
 ```
-That will install the executables to `~/pisces/bin/` and the manual pages to
+That will install the binaries in `~/pisces/bin/` and the man pages in
 `~/pisces/man/man1/`.
+
+To uninstall Pisces, delete the two binaries (`pisces`, `pwgen`) and their two
+man pages (`pisces.1`, `pwgen.1`).
 
 ## Example Pisces Usage
 
