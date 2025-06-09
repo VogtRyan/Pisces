@@ -22,28 +22,14 @@
 #include <stdint.h>
 
 /*
- * This file contains platform-independent code for interpreting sequences of
- * bytes as big-endian or little-endian integers, which is an operation that
- * cryptographic primitive specifications frequently dictate.
+ * Platform-independent code for interpreting sequences of raw bytes as
+ * unsigned integers stored in big-endian or little-endian order.
  *
- * It would be possible to optimize this code to take advantage of a system's
- * innate endianness. The endian-neutral code, below, introduces a performance
- * penalty. However, endian-specific code introduces a significant portability
- * penalty. Macro names, and even header names, are not standardized (when they
- * exist at all). Runtime detection of endianness can be unreliable on dynamic-
- * endian platforms, etc.
- *
- * The goal of this project is portable, correct code, as opposed to
- * high-performance code. The decision not to attempt to optimize these
- * functions was made purposefully.
+ * The put_* functions store integer values to memory in big/little-endian
+ * order, and the read_* functions read integer values from memory that were
+ * stored in big/little-endian order.
  */
 
-/*
- * Write the given 32-bit integer value into the given address in memory in
- * big-endian order. On a big-endian machine, it would be equivalent to:
- *
- *     *((uint32_t *)location) = value;
- */
 static inline void put_big_end_32(byte *location, uint32_t value)
 {
     /* clang-format off */
@@ -54,12 +40,6 @@ static inline void put_big_end_32(byte *location, uint32_t value)
     /* clang-format on */
 }
 
-/*
- * Write the given 64-bit integer value into the given address in memory in
- * big-endian order. On a big-endian machine, it would be equivalent to:
- *
- *     *((uint64_t *)location) = value;
- */
 static inline void put_big_end_64(byte *location, uint64_t value)
 {
     /* clang-format off */
@@ -74,12 +54,6 @@ static inline void put_big_end_64(byte *location, uint64_t value)
     /* clang-format on */
 }
 
-/*
- * Write the given 32-bit integer value into the given address in memory in
- * little-endian order. On a little-endian machine, it would be equivalent to:
- *
- *     *((uint32_t *)location) = value;
- */
 static inline void put_little_end_32(byte *location, uint32_t value)
 {
     /* clang-format off */
@@ -90,12 +64,6 @@ static inline void put_little_end_32(byte *location, uint32_t value)
     /* clang-format on */
 }
 
-/*
- * Write the given 64-bit integer value into the given address in memory in
- * little-endian order. On a little-endian machine, it would be equivalent to:
- *
- *     *((uint64_t *)location) = value;
- */
 static inline void put_little_end_64(byte *location, uint64_t value)
 {
     /* clang-format off */
@@ -110,13 +78,6 @@ static inline void put_little_end_64(byte *location, uint64_t value)
     /* clang-format on */
 }
 
-/*
- * Interpret the 32 bits bytes at the given memory address as a big-endian
- * integer and return its value.  On a big-endian machine, it would be
- * equivalent to:
- *
- *     return *((uint32_t *)location);
- */
 static inline uint32_t get_big_end_32(const byte *location)
 {
     /* clang-format off */
@@ -127,13 +88,6 @@ static inline uint32_t get_big_end_32(const byte *location)
     /* clang-format on */
 }
 
-/*
- * Interpret the 64 bits bytes at the given memory address as a big-endian
- * integer and return its value. On a big-endian machine, it would be
- * equivalent to:
- *
- *     return *((uint64_t *)location);
- */
 static inline uint64_t get_big_end_64(const byte *location)
 {
     /* clang-format off */
@@ -148,13 +102,6 @@ static inline uint64_t get_big_end_64(const byte *location)
     /* clang-format on */
 }
 
-/*
- * Interpret the 32 bits bytes at the given memory address as a little-endian
- * integer and return its value. On a little-endian machine, it would be
- * equivalent to:
- *
- *     return *((uint32_t *)location);
- */
 static inline uint32_t get_little_end_32(const byte *location)
 {
     /* clang-format off */
@@ -165,13 +112,6 @@ static inline uint32_t get_little_end_32(const byte *location)
     /* clang-format on */
 }
 
-/*
- * Interpret the 64 bits bytes at the given memory address as a little-endian
- * integer and return its value. On a little-endian machine, it would be
- * equivalent to:
- *
- *     return *((uint64_t *)location);
- */
 static inline uint64_t get_little_end_64(const byte *location)
 {
     /* clang-format off */
