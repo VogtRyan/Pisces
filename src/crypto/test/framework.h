@@ -27,19 +27,11 @@
 #define TEST_FAILED_OUTPUT stderr
 #endif
 
-/*
- * Count of failed assertions, along with the name of the test and the total
- * assertion count, stored as global values in the test source file.
- */
 #define TEST_PREAMBLE(name)                                                   \
     static const char *TEST_NAME = (name);                                    \
     static int TEST_ASSERTIONS_FAILED = 0;                                    \
     static int TEST_ASSERTIONS_TOTAL = 0
 
-/*
- * If the given condition is not true, output the source location where it
- * failed, and increment the total number of assertions failed.
- */
 #define TEST_ASSERT(condition)                                                \
     do {                                                                      \
         TEST_ASSERTIONS_TOTAL++;                                              \
@@ -51,10 +43,6 @@
         }                                                                     \
     } while (0)
 
-/*
- * If any tests have failed, output as such and make the program exit with an
- * error code. Otherwise, indicate success and exit with a 0 code.
- */
 #define TEST_CONCLUDE()                                                       \
     do {                                                                      \
         if (TEST_ASSERTIONS_FAILED) {                                         \
