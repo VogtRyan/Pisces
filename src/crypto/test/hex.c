@@ -22,54 +22,49 @@
 #include <stddef.h>
 #include <string.h>
 
-/*
- * Returns the number of bytes represented by the given hexadecimal string. It
- * is a fatal error for the length of the hex string to be greater than
- * HEX_TO_BYTES_MAX_STRLEN or to be odd.
- */
 static size_t hex_byte_len(const char *hex);
 
-void hex_to_bytes(const char *hex, byte **bytes, size_t *numBytes)
+void hex_to_bytes(const char *hex, byte **bytes, size_t *num_bytes)
 {
-    size_t outLen;
+    size_t out_len;
     byte *out;
-    unsigned int byteVal;
-    int scanRes;
+    unsigned int byte_val;
+    int scan_res;
 
-    outLen = hex_byte_len(hex);
-    out = (byte *)calloc(outLen, 1);
+    out_len = hex_byte_len(hex);
+    out = (byte *)calloc(out_len, 1);
     GUARD_ALLOC(out);
 
-    *numBytes = outLen;
+    *num_bytes = out_len;
     *bytes = out;
 
-    while (outLen > 0) {
-        scanRes = sscanf(hex, "%2x", &byteVal);
-        ASSERT(scanRes == 1, "Invalid value in hexadecimal string");
-        *out++ = (byte)byteVal;
+    while (out_len > 0) {
+        scan_res = sscanf(hex, "%2x", &byte_val);
+        ASSERT(scan_res == 1, "Invalid value in hexadecimal string");
+        *out++ = (byte)byte_val;
         hex += 2;
-        outLen--;
+        out_len--;
     }
 }
 
 static size_t hex_byte_len(const char *hex)
 {
-    size_t inLen = 0;
+    size_t in_len = 0;
 
     /*
      * Essentially a portable substitute for strnlen(), for POSIX.1-2001
      * compatibility.
      */
-    while (inLen < HEX_TO_BYTES_MAX_STRLEN) {
-        if (hex[inLen] == '\0') {
+    while (in_len < HEX_TO_BYTES_MAX_STRLEN) {
+        if (hex[in_len] == '\0') {
             break;
         }
-        inLen++;
+        in_len++;
     }
 
-    ASSERT(hex[inLen] == '\0', "Input hexadecimal string too long");
-    ASSERT(inLen % 2 == 0, "Input hexadecimal string has odd length: %zu",
-           inLen);
+    ASSERT(hex[in_len] == '\0', "Input hexadecimal string too long");
+    ASSERT(in_len % 2 == 0, "Input hexadecimal string has odd length: %zu",
+           in_len);
 
-    return inLen / 2;
+    return in_len / 2;
 }
