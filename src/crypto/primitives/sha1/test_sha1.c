@@ -27,9 +27,8 @@
 TEST_PREAMBLE("SHA1");
 
 /*
- * Parameters for testing the output of a single invocation of the SHA-1
- * algorithm, where the input is a single message (potentially repeated
- * multiple times).
+ * Test of a single invocation of SHA-1, but the message itself can be repeated
+ * multiple times.
  */
 struct sha1_plain_test {
     size_t msg_repeats;
@@ -38,42 +37,24 @@ struct sha1_plain_test {
 };
 
 /*
- * Parameters for a SHA-1 test using the NIST Secure Hash Algorithm Validation
- * System (SHAVS) Monte Carlo Test (MCT) algorithm.
+ * A NIST Secure Hash Algorithm Validation System (SHAVS) Monte Carlo Test
+ * (MCT). Only the final output is checked in this implementation, not the
+ * checkpoint values along the way also verified in the full NIST SHAVS.
  */
 struct sha1_monte_test {
     const char *seed;
     const char *output;
 };
 
-/*
- * Runs a SHA-1 single-output test, and asserts that the output matches the
- * expected digest in the given test parameters.
- */
 static void run_sha1_plain_test(const struct sha1_plain_test *test);
 static void run_parsed_sha1_plain_test(const byte *msg, size_t msg_len,
                                        size_t msg_repeats, const byte *digest);
 
-/*
- * Adds the provided message to the currently running SHA-1 context. If the
- * message is larger than one block in size, it will be broken up and added in
- * three pieces (to test the functionality of adding partial blocks to the
- * context).
- */
 static void add_single_message(struct sha1_ctx *ctx, const byte *msg,
                                size_t msg_len);
 
-/*
- * Runs a single SHA-1 NIST SHAVS MCT case, which includes a single assertion:
- * that the outcome of the loop of hash invocations is correct.
- */
 static void run_sha1_monte_test(const struct sha1_monte_test *test);
 static void run_parsed_sha1_monte_test(const byte *seed, const byte *output);
-
-/*
- * Runs the inner loop of the SHA-1 NIST SHAVS MCT algorithm, hashing a single
- * input seed sequentially and storing the result in the output array.
- */
 static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx,
                                        const byte *seed_j,
                                        byte *last_digest_j);
@@ -170,11 +151,6 @@ static const struct sha1_plain_test plain_tests[] = {
     },
 };
 
-/*
- * The final output is checked in this implementation of the Monte Carlo tests,
- * but not the checkpoint values also verified along the way in the full NIST
- * SHAVS.
- */
 static const struct sha1_monte_test monte_tests[] = {
     /*
      * NIST CAVP MCT Vectors for SHA-1, example vector labelled SHA1Monte,
@@ -241,13 +217,17 @@ static void run_parsed_sha1_plain_test(const byte *msg, size_t msg_len,
 static void add_single_message(struct sha1_ctx *ctx, const byte *msg,
                                size_t msg_len)
 {
+    /*
+     * If the message is larger than one block in size, it will be broken up
+     * and added in three pieces, to test the functionality of adding partial
+     * blocks to the context.
+     */
     const size_t QUARTER_BLOCK_SIZE = SHA1_BLOCK_BYTES / 4;
 
     if (msg_len <= SHA1_BLOCK_BYTES) {
         sha1_add(ctx, msg, msg_len);
     }
     else {
-        /* Test the functionality of breaking larger messages into parts */
         sha1_add(ctx, msg, QUARTER_BLOCK_SIZE);
         sha1_add(ctx, msg + QUARTER_BLOCK_SIZE,
                  msg_len - 2 * QUARTER_BLOCK_SIZE);
