@@ -45,12 +45,8 @@ void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key,
                      size_t key_bytes);
 
 /*
- * Encrypts or decrypts a single block of data using the given context and
- * stores the encrypted or decrypted block in the output. The output of these
- * functions is undefined if aes_ecb_set_key() has not been called.
- *
- * The two pointers, block and output, may overlap. Beware, though, that in
- * other AES cipher modes, the input and output buffers might not be allowed to
+ * Encrypts or decrypts a single block. The output of these functions is
+ * undefined if aes_ecb_set_key() has not been called. The two buffers may
  * overlap.
  */
 void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output);

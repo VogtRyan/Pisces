@@ -36,8 +36,9 @@ TEST_PREAMBLE("AES-CBC");
 typedef void (*aes_cbc_fptr)(struct aes_cbc_ctx *, const byte *, byte *);
 
 /*
- * Parameters for a single- or multi-block AES-CBC test, including plaintext
- * and ciphertext to test for both correct encryption and correct decryption.
+ * Single- or multi-block test of both encryption and decryption. Each test is
+ * run in both directions, so only the "encryption" version of a test from the
+ * standards needs to be provided.
  */
 struct aes_cbc_plain_test {
     const char *key;
@@ -47,9 +48,13 @@ struct aes_cbc_plain_test {
 };
 
 /*
- * Parameters for an AES-CBC test using the NIST Algorithm Validation Suite
- * (AESAVS) Monte Carlo Test (MCT) algorithm. Because the MCT algorithm isn't
- * symmetric, only one of encryption or decryption is tested.
+ * An AES-CBC test using the NIST Algorithm Validation Suite (AESAVS) Monte
+ * Carlo Test (MCT) algorithm. Because the MCT algorithm isn't symmetric, only
+ * one of encryption or decryption is tested.
+ *
+ * Tests contain only the final ciphertext or plaintext (not the checkpoint
+ * values specified in the NIST CAVP MCT), because only the final value is
+ * checked in this implementation.
  */
 struct aes_cbc_monte_test {
     const int direction;
@@ -59,10 +64,6 @@ struct aes_cbc_monte_test {
     const char *ciphertext;
 };
 
-/*
- * Runs an AES-CBC regular single- or multi-block test, in both of the
- * directions that it can be run, and assert that both outputs are correct.
- */
 static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test);
 static void run_parsed_aes_cbc_plain_test(const byte *key, size_t key_size,
                                           const byte *iv,
@@ -70,50 +71,24 @@ static void run_parsed_aes_cbc_plain_test(const byte *key, size_t key_size,
                                           const byte *ciphertext,
                                           size_t num_blocks);
 
-/*
- * Runs an AES-CBC encryption or decryption operation over one or more blocks
- * of input.
- */
 static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte *input,
                                 const byte *iv, byte *output,
                                 size_t num_blocks, int direction);
 
-/*
- * Runs a single AES-CBC NIST AESAVS MCT - CBC case, which includes a single
- * assertion: that the outcome of either the loop of encryptions or the loop of
- * decryptions is correct.
- */
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test);
 static void run_parsed_aes_cbc_monte_test(const byte *key, size_t key_size,
                                           const byte *iv,
                                           const byte *plaintext,
                                           const byte *ciphertext,
                                           int direction);
-
-/*
- * Runs the inner loop of the NIST AESAVS MCT - CBC algorithm, encrypting or
- * decrypting blocks sequentially. The last_two_out_blocks_i array must be at
- * least (2 * AES_CBC_BLOCK_SIZE) bytes in length.
- */
 static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
                                       const byte *in_block_i_zero,
                                       const byte *iv_i,
                                       byte *last_two_out_blocks_i,
                                       aes_cbc_fptr operation);
-
-/*
- * Modifies the contents of the key_i array, per the NIST AESAVS MCT algorithm,
- * based on the last two output blocks of the inner loop.
- */
 static void nist_monte_cbc_compute_new_key(byte *key_i, size_t key_size,
                                            const byte *last_two_out_blocks_i);
 
-/*
- * Converts strings of hexadecimal characters to arrays of bytes, and ensures
- * that the number of key bytes converted is a valid AES key size and that the
- * IV is the correct AES-CBC IV size. The caller is responsible for freeing the
- * allocated byte arrays.
- */
 static void parse_hex_to_bytes(const char *key_hex, byte **key_bytes,
                                size_t *key_size, const char *iv_hex,
                                byte **iv_bytes, const char *plaintext_hex,
@@ -122,10 +97,6 @@ static void parse_hex_to_bytes(const char *key_hex, byte **key_bytes,
                                byte **ciphertext_bytes,
                                size_t *ciphertext_len);
 
-/*
- * Each test is run in both directions, so only the "encryption" version of a
- * test from the standards needs to be provided below.
- */
 static const struct aes_cbc_plain_test plain_tests[] = {
     /* NIST SP 800-38A, Appendix F.2.1, CBC-AES128.Encrypt */
     {
@@ -211,11 +182,6 @@ static const struct aes_cbc_plain_test plain_tests[] = {
     },
 };
 
-/*
- * Tests contain only the final ciphertext or plaintext (not the checkpoint
- * values specified in the NIST CAVP MCT), because only the final value is
- * checked in this implementation.
- */
 static const struct aes_cbc_monte_test monte_tests[] = {
     /*
      * NIST CAVP MCT Vectors for AES, example vector labelled CBCMCT128,
@@ -492,6 +458,11 @@ static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
                                       byte *last_two_out_blocks_i,
                                       aes_cbc_fptr operation)
 {
+    /*
+     * The last_two_out_blocks_i array must be at least (2 *
+     * AES_CBC_BLOCK_SIZE) bytes in length.
+     */
+
     const int NIST_MONTE_INNER_LOOP_SIZE = 1000;
     byte intermediate[AES_CBC_BLOCK_SIZE];
     int j;

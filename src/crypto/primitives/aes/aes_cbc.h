@@ -52,14 +52,9 @@ void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte *key,
 void aes_cbc_set_iv(struct aes_cbc_ctx *ctx, const byte *iv);
 
 /*
- * Encrypts or decrypts a single block of data using the given context and
- * stores the encrypted or decrypted block in the output. The initialization
- * vector will be updated with a new value, per the CBC algorithm.
- *
- * The two pointers, block and output, cannot overlap.
- *
- * The output of these functions is undefined if either of aes_cbc_set_key() or
- * aes_cbc_set_iv() has not been called.
+ * Encrypts or decrypts a single block and updates the IV. The output of these
+ * functions is undefined if either of aes_cbc_set_key() or aes_cbc_set_iv()
+ * has not been called. The two buffers cannot overlap.
  */
 void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output);
 void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output);
