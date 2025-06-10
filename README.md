@@ -43,9 +43,8 @@ To install Pisces on most systems, run:
     $ make
     $ sudo make install
 ```
-To install Pisces on systems without `arc4random_buf()` support, use
-`/dev/random` as the cryptographic pseudorandom number generator (CPRNG)
-instead:
+Systems that do not support `arc4random_buf()` will need to use `/dev/random`
+as the cryptographic pseudorandom number generator instead. To do so, run:
 ```
     $ make CPRNG=dev
     $ sudo make install
