@@ -21,44 +21,28 @@
 
 #include <stddef.h>
 
-/*
- * The number of bytes output by the SHA-3 variants.
- */
 #define SHA3_224_DIGEST_BYTES (28)
 #define SHA3_256_DIGEST_BYTES (32)
 #define SHA3_384_DIGEST_BYTES (48)
 #define SHA3_512_DIGEST_BYTES (64)
 #define SHA3_DIGEST_BYTES_MAX (SHA3_512_DIGEST_BYTES)
 
-/*
- * The number of bytes processed at once by the SHA-3 variants.
- */
 #define SHA3_224_BLOCK_BYTES (144)
 #define SHA3_256_BLOCK_BYTES (136)
 #define SHA3_384_BLOCK_BYTES (104)
 #define SHA3_512_BLOCK_BYTES (72)
 #define SHA3_BLOCK_BYTES_MAX (SHA3_224_BLOCK_BYTES)
 
-/*
- * Opaque SHA-3 context. Note that there are undefined behaviours, described
- * below, with this opaque structure.
- */
 struct sha3_ctx;
 
 /*
- * Allocates a new SHA-3 context. Must be freed with sha3_free() or
- * sha3_free_scrub(). Guaranteed to return non-NULL; it is a fatal error if
- * allocation fails.
- *
- * Does not automatically call sha3_*_start(), so sha3_*_start() or sha3_copy()
- * should be called after allocation.
+ * Allocates a new SHA-3 context. Must be freed with sha3_free_scrub().
+ * Guaranteed to return non-NULL. Does not automatically call sha3_*_start().
  */
 struct sha3_ctx *sha3_alloc(void);
 
 /*
- * Starts a new SHA-3 operation. The sha3_end() function will return undefined
- * results if one of the sha3_*_start() functions, or sha3_copy() with a
- * running source, is not called.
+ * Starts a new SHA-3 operation.
  */
 void sha3_224_start(struct sha3_ctx *ctx);
 void sha3_256_start(struct sha3_ctx *ctx);
@@ -67,8 +51,10 @@ void sha3_512_start(struct sha3_ctx *ctx);
 
 /*
  * Adds the given data to the input stream processed by the SHA-3 context.
+ * Unlike some hash functions, SHA-3 has no maximum input size, so this
+ * function always succeeds.
  */
-void sha3_add(struct sha3_ctx *ctx, const byte *bytes, size_t numBytes);
+void sha3_add(struct sha3_ctx *ctx, const byte *bytes, size_t num_bytes);
 
 /*
  * Computes the SHA-3 hash of the message. The output of this function is

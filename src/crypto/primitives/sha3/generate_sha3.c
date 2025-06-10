@@ -62,11 +62,11 @@ static void generate_keccak_f(void)
 
     /* Function header and variables */
     printf("static void keccak_f(struct sha3_ctx *ctx, "
-           "const byte *newData)\n{\n");
-    printf("    uint64_t *A;\n");
-    printf("    uint64_t B[25];\n");
-    printf("    uint64_t C[5];\n");
-    printf("    uint64_t D[5];\n");
+           "const byte *new_data)\n{\n");
+    printf("    uint64_t *a;\n");
+    printf("    uint64_t b[25];\n");
+    printf("    uint64_t c[5];\n");
+    printf("    uint64_t d[5];\n");
     printf("    uint64_t i;\n");
 
     /*
@@ -77,14 +77,14 @@ static void generate_keccak_f(void)
      *   for 0 <= y <= 4:
      *     for 0 <= x <= 4:
      *       if no data remains, break
-     *       A[x,y] = A[x,y] ^ next64BitsOfData
+     *       A[x,y] = A[x,y] ^ ( next 64 bits of data )
      *
      * We implement A as a one-dimensional array in this code, but the
      * computation is equivalent.
      */
-    printf("    A = ctx->state;\n");
+    printf("    a = ctx->state;\n");
     printf("    for (i = 0; i < ctx->rate / 8; i++) {\n");
-    printf("        A[i] ^= get_little_end_64(newData + 8 * i);\n");
+    printf("        a[i] ^= get_little_end_64(new_data + 8 * i);\n");
     printf("    }\n");
 
     /* Unroll the rounds */
@@ -96,18 +96,18 @@ static void generate_keccak_f(void)
          *   A[x,y] = A[x,y] ^ D[x]                                for all x,y
          */
         for (x = 0; x < 5; x++) {
-            printf("    C[%d] = A[%d] ^ A[%d] ^ A[%d] ^ A[%d] ^ A[%d];\n", x,
+            printf("    c[%d] = a[%d] ^ a[%d] ^ a[%d] ^ a[%d] ^ a[%d];\n", x,
                    two_dim_array(x, 0), two_dim_array(x, 1),
                    two_dim_array(x, 2), two_dim_array(x, 3),
                    two_dim_array(x, 4));
         }
         for (x = 0; x < 5; x++) {
-            printf("    D[%d] = C[%d] ^ ((C[%d] << 1) | (C[%d] >> 63));\n", x,
+            printf("    d[%d] = c[%d] ^ ((c[%d] << 1) | (c[%d] >> 63));\n", x,
                    mod(x - 1, 5), mod(x + 1, 5), mod(x + 1, 5));
         }
         for (x = 0; x < 5; x++) {
             for (y = 0; y < 5; y++) {
-                printf("    A[%d] ^= D[%d];\n", two_dim_array(x, y), x);
+                printf("    a[%d] ^= d[%d];\n", two_dim_array(x, y), x);
             }
         }
 
@@ -120,13 +120,13 @@ static void generate_keccak_f(void)
             for (y = 0; y < 5; y++) {
                 rot = compute_rotation_constant(x, y);
                 if (rot != 0) {
-                    printf("    B[%d] = ((A[%d] << %d) | (A[%d] >> %d));\n",
+                    printf("    b[%d] = ((a[%d] << %d) | (a[%d] >> %d));\n",
                            two_dim_array(y, 2 * x + 3 * y),
                            two_dim_array(x, y), rot, two_dim_array(x, y),
                            (64 - rot));
                 }
                 else {
-                    printf("    B[%d] = A[%d];\n",
+                    printf("    b[%d] = a[%d];\n",
                            two_dim_array(y, 2 * x + 3 * y),
                            two_dim_array(x, y));
                 }
@@ -136,12 +136,12 @@ static void generate_keccak_f(void)
         /*
          * Chi and Iota:
          *   A[x,y] = B[x,y] ^ ((~B[x+1,y]) & B[x+2,y])   for all x, y
-         *   A[0,0] = A[0,0] ^ RC
-         * where RC is the round constant, a function of the round number
+         *   A[0,0] = A[0,0] ^ rc
+         * where rc is the round constant, a function of the round number
          */
         for (x = 0; x < 5; x++) {
             for (y = 0; y < 5; y++) {
-                printf("    A[%d] = B[%d] ^ ((~B[%d]) & B[%d])",
+                printf("    a[%d] = b[%d] ^ ((~b[%d]) & b[%d])",
                        two_dim_array(x, y), two_dim_array(x, y),
                        two_dim_array(x + 1, y), two_dim_array(x + 2, y));
                 if (x == 0 && y == 0) {
@@ -162,32 +162,32 @@ static void generate_keccak_f(void)
 
 static int compute_rotation_constant(int x, int y)
 {
-    int currentX, currentY, tmp, t;
+    int current_x, current_y, tmp, t;
 
     if (x == 0 && y == 0) {
         return 0;
     }
 
-    currentX = 1;
-    currentY = 0;
+    current_x = 1;
+    current_y = 0;
     for (t = 0; t < 24; t++) {
-        if (currentX == x && currentY == y) {
+        if (current_x == x && current_y == y) {
             return ((t + 1) * (t + 2) / 2) % 64;
         }
-        tmp = currentY;
-        currentY = (2 * currentX + 3 * currentY) % 5;
-        currentX = tmp;
+        tmp = current_y;
+        current_y = (2 * current_x + 3 * current_y) % 5;
+        current_x = tmp;
     }
     return -1;
 }
 
 static uint64_t compute_round_constant(int round)
 {
-    uint64_t RC;
+    uint64_t rnd_const;
     uint8_t rct;
     int j, bit, i;
 
-    RC = 0;
+    rnd_const = 0;
     for (j = 0; j <= 6; j++) {
         rct = x_to_the_t(j + 7 * round);
         if (rct & 0x01) {
@@ -196,10 +196,10 @@ static uint64_t compute_round_constant(int round)
                 bit = bit << 1;
             }
             bit = bit - 1;
-            RC |= (((uint64_t)1) << bit);
+            rnd_const |= (((uint64_t)1) << bit);
         }
     }
-    return RC;
+    return rnd_const;
 }
 
 static uint8_t x_to_the_t(int t)
