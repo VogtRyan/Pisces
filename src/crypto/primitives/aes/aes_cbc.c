@@ -26,7 +26,7 @@
 #include <string.h>
 
 struct aes_cbc_ctx {
-    struct aes_ecb_ctx *ecbCtx;
+    struct aes_ecb_ctx *ecb_ctx;
     byte iv[AES_CBC_IV_SIZE];
 };
 
@@ -35,21 +35,22 @@ struct aes_cbc_ctx *aes_cbc_alloc(void)
     struct aes_cbc_ctx *ret =
         (struct aes_cbc_ctx *)calloc(1, sizeof(struct aes_cbc_ctx));
     GUARD_ALLOC(ret);
-    ret->ecbCtx = aes_ecb_alloc();
+    ret->ecb_ctx = aes_ecb_alloc();
     return ret;
 }
 
-void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte *key, size_t keyBytes)
+void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte *key,
+                     size_t key_bytes)
 {
-    switch (keyBytes) {
+    switch (key_bytes) {
     case AES_CBC_KEY_SIZE_128:
-        aes_ecb_set_key(ctx->ecbCtx, key, AES_ECB_KEY_SIZE_128);
+        aes_ecb_set_key(ctx->ecb_ctx, key, AES_ECB_KEY_SIZE_128);
         break;
     case AES_CBC_KEY_SIZE_192:
-        aes_ecb_set_key(ctx->ecbCtx, key, AES_ECB_KEY_SIZE_192);
+        aes_ecb_set_key(ctx->ecb_ctx, key, AES_ECB_KEY_SIZE_192);
         break;
     case AES_CBC_KEY_SIZE_256:
-        aes_ecb_set_key(ctx->ecbCtx, key, AES_ECB_KEY_SIZE_256);
+        aes_ecb_set_key(ctx->ecb_ctx, key, AES_ECB_KEY_SIZE_256);
         break;
     default:
         ASSERT_NEVER_REACH("Invalid AES-CBC key size");
@@ -73,7 +74,7 @@ void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output)
     for (i = 0; i < AES_CBC_BLOCK_SIZE; i++) {
         ctx->iv[i] ^= block[i];
     }
-    aes_ecb_encrypt(ctx->ecbCtx, ctx->iv, output);
+    aes_ecb_encrypt(ctx->ecb_ctx, ctx->iv, output);
     memcpy(ctx->iv, output, AES_CBC_BLOCK_SIZE);
 }
 
@@ -86,7 +87,7 @@ void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output)
      * In CBC mode, the IV size is equal to the block size.
      */
     size_t i;
-    aes_ecb_decrypt(ctx->ecbCtx, block, output);
+    aes_ecb_decrypt(ctx->ecb_ctx, block, output);
     for (i = 0; i < AES_CBC_BLOCK_SIZE; i++) {
         output[i] ^= ctx->iv[i];
     }
@@ -96,7 +97,7 @@ void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output)
 void aes_cbc_free_scrub(struct aes_cbc_ctx *ctx)
 {
     if (ctx != NULL) {
-        aes_ecb_free_scrub(ctx->ecbCtx);
+        aes_ecb_free_scrub(ctx->ecb_ctx);
         scrub_memory(ctx, sizeof(struct aes_cbc_ctx));
         free(ctx);
     }

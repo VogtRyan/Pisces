@@ -21,45 +21,29 @@
 
 #include <stddef.h>
 
-/*
- * Possible key sizes, equal to the number of bytes in the key.
- */
 #define AES_CBC_KEY_SIZE_128 (16)
 #define AES_CBC_KEY_SIZE_192 (24)
 #define AES_CBC_KEY_SIZE_256 (32)
 #define AES_CBC_KEY_SIZE_MAX (AES_CBC_KEY_SIZE_256)
 
-/*
- * The size of the AES-CBC initialization vector in bytes.
- */
-#define AES_CBC_IV_SIZE (16)
-
-/*
- * The fixed block size used by AES in bytes.
- */
+#define AES_CBC_IV_SIZE    (16)
 #define AES_CBC_BLOCK_SIZE (16)
 
-/*
- * Opaque AES context operating in CBC mode. Note that there are undefined
- * behaviours, described below, with this opaque structure.
- */
 struct aes_cbc_ctx;
 
 /*
  * Allocates a new AES context operating in CBC mode. Must be freed with
- * aes_cbc_free_scrub(). Guaranteed to return non-NULL; it is a fatal error for
- * allocation to fail.
+ * aes_cbc_free_scrub(). Guaranteed to return non-NULL.
  */
 struct aes_cbc_ctx *aes_cbc_alloc(void);
 
 /*
- * Performs the key schedule expansion for either AES encryption or AES
+ * Performs the key schedule expansion for both AES encryption and AES
  * decryption, storing the computed round keys and decryption round keys in
- * the context. It is a fatal error if keyBytes is not one of
- * AES_CBC_KEY_SIZE_128, AES_CBC_KEY_SIZE_192, or AES_CBC_KEY_SIZE_256.
+ * the context.
  */
 void aes_cbc_set_key(struct aes_cbc_ctx *ctx, const byte *key,
-                     size_t keyBytes);
+                     size_t key_bytes);
 
 /*
  * Sets the initialization vector that will be used for the next block

@@ -16,6 +16,7 @@
 
 #include "crypto/machine/endian.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -59,28 +60,28 @@ static const uint8_t S_BOX_ENC[256] = {
  * Constructs the decryption S-Box based on the encryption S-Box, then outputs
  * both S-Boxes.
  */
-static void build_dec_sbox(const uint8_t *encSBox, uint8_t *decSBox);
+static void build_dec_sbox(const uint8_t *enc_s_box, uint8_t *dec_s_box);
 
 /*
  * Build the lookup tables that describe the single-operation combination of
  * the SubBytes() and MixColumns() operations necessary for this file (where
  * SubBytes() and MixColumns() are described in FIPS-197).
  */
-static void build_sub_mix_tables(const uint8_t *encSBox,
-                                 const uint8_t *decSBox);
+static void build_sub_mix_tables(const uint8_t *enc_s_box,
+                                 const uint8_t *dec_s_box);
 
 /*
  * Builds and outputs a single SubBytes()-MixColumns() operation table using
  * the given S-Box and polynomial multipliers (the S-Box may be NULL to build
- * just a MixColumns() table).  The polyRotation constant induces a rightward
- * circular shift in the polynomials array (e.g., if polyRotation is set to 1,
+ * just a MixColumns() table). The poly_rotation constant induces a rightward
+ * circular shift in the polynomials array (e.g., if poly_rotation is set to 1,
  * when this function tries to look up polynomials[1], it will get the value
  * that is actually stored in polynomials[0] -- that is, it is as if you
  * rotated the polynomials array in a circular fashion).
  */
 static void build_sub_mix_table(const uint8_t *sbox,
-                                const uint8_t *polynomials, int polyRotation,
-                                int isEncryption);
+                                const uint8_t *polynomials, int poly_rotation,
+                                bool is_encryption);
 
 /*
  * Builds the round constant table and outputs it.
@@ -91,7 +92,7 @@ static void build_rcon_table(void);
  * Treats the two given bytes as a polynomials over GF(2^8) and multiplies them
  * together, mod m(x) = x^8 + x^4 + x^3 + x + 1.
  */
-static uint8_t muly_polys(uint8_t polyA, uint8_t polyB);
+static uint8_t muly_polys(uint8_t poly_a, uint8_t poly_b);
 
 /*
  * Treats the given byte as a polynomial over GF(2^8) and multiplies that
@@ -99,17 +100,10 @@ static uint8_t muly_polys(uint8_t polyA, uint8_t polyB);
  */
 static uint8_t mult_by_x(uint8_t polynomial);
 
-/*
- * Outputs the contents of a hexadecimal table to standard output.
- */
-static void print_table(const uint8_t *table, int entries, size_t entrySize,
-                        int entriesPerRow, const char *name,
-                        const char *dataType);
-
-/*
- * Print the given bytes in hexadecimal to standard output.
- */
-void print_bytes(const uint8_t *bytes, size_t numBytes);
+static void print_table(const uint8_t *table, int entries, size_t entry_size,
+                        int entries_per_row, const char *name,
+                        const char *data_type);
+void print_bytes(const uint8_t *bytes, size_t num_bytes);
 
 /*
  * Generates and prints the contents of the S-Boxes and the
@@ -119,31 +113,31 @@ void print_bytes(const uint8_t *bytes, size_t numBytes);
  */
 int main(void)
 {
-    uint8_t decSBox[256];
-    build_dec_sbox(S_BOX_ENC, decSBox);
-    build_sub_mix_tables(S_BOX_ENC, decSBox);
+    uint8_t dec_s_box[256];
+    build_dec_sbox(S_BOX_ENC, dec_s_box);
+    build_sub_mix_tables(S_BOX_ENC, dec_s_box);
     build_rcon_table();
     return 0;
 }
 
-static void build_dec_sbox(const uint8_t *encSBox, uint8_t *decSBox)
+static void build_dec_sbox(const uint8_t *enc_s_box, uint8_t *dec_s_box)
 {
     int i;
     uint8_t s;
 
     for (i = 0; i < 256; i++) {
-        s = encSBox[i];
-        decSBox[s] = (uint8_t)i;
+        s = enc_s_box[i];
+        dec_s_box[s] = (uint8_t)i;
     }
 
-    print_table(encSBox, 256, 1, 12, "S_BOX_ENC", "uint8_t");
+    print_table(enc_s_box, 256, 1, 12, "S_BOX_ENC", "uint8_t");
     printf("\n");
-    print_table(decSBox, 256, 1, 12, "S_BOX_DEC", "uint8_t");
+    print_table(dec_s_box, 256, 1, 12, "S_BOX_DEC", "uint8_t");
     printf("\n");
 }
 
-static void build_sub_mix_tables(const uint8_t *encSBox,
-                                 const uint8_t *decSBox)
+static void build_sub_mix_tables(const uint8_t *enc_s_box,
+                                 const uint8_t *dec_s_box)
 {
     uint8_t polynomials[4];
     int i;
@@ -156,7 +150,7 @@ static void build_sub_mix_tables(const uint8_t *encSBox,
 
     /* Print encryption sub-mix tables */
     for (i = 0; i < 4; i++) {
-        build_sub_mix_table(encSBox, polynomials, i, 1);
+        build_sub_mix_table(enc_s_box, polynomials, i, true);
         printf("\n");
     }
 
@@ -168,20 +162,20 @@ static void build_sub_mix_tables(const uint8_t *encSBox,
 
     /* Print decryption mix tables */
     for (i = 0; i < 4; i++) {
-        build_sub_mix_table(NULL, polynomials, i, 0);
+        build_sub_mix_table(NULL, polynomials, i, false);
         printf("\n");
     }
 
     /* Print decryption sub-mix tables */
     for (i = 0; i < 4; i++) {
-        build_sub_mix_table(decSBox, polynomials, i, 0);
+        build_sub_mix_table(dec_s_box, polynomials, i, false);
         printf("\n");
     }
 }
 
 static void build_sub_mix_table(const uint8_t *sbox,
-                                const uint8_t *polynomials, int polyRotation,
-                                int isEncryption)
+                                const uint8_t *polynomials, int poly_rotation,
+                                bool is_encryption)
 {
     uint8_t table[1024];
     char name[17];
@@ -191,16 +185,16 @@ static void build_sub_mix_table(const uint8_t *sbox,
         for (j = 0; j < 4; j++) {
             if (sbox == NULL) {
                 table[i * 4 + j] = muly_polys(
-                    (uint8_t)i, polynomials[(j + 4 - polyRotation) % 4]);
+                    (uint8_t)i, polynomials[(j + 4 - poly_rotation) % 4]);
             }
             else {
                 table[i * 4 + j] = muly_polys(
-                    sbox[i], polynomials[(j + 4 - polyRotation) % 4]);
+                    sbox[i], polynomials[(j + 4 - poly_rotation) % 4]);
             }
         }
     }
     snprintf(name, 17, "%sMIX_%s_POS%d", (sbox != NULL ? "SUB_" : ""),
-             (isEncryption ? "ENC" : "DEC"), polyRotation);
+             (is_encryption ? "ENC" : "DEC"), poly_rotation);
     print_table(table, 256, 4, 6, name, "uint32_t");
 }
 
@@ -219,16 +213,16 @@ static void build_rcon_table(void)
     print_table(table, 10, 4, 5, "RCON", "uint32_t");
 }
 
-static uint8_t muly_polys(uint8_t polyA, uint8_t polyB)
+static uint8_t muly_polys(uint8_t poly_a, uint8_t poly_b)
 {
     uint8_t ret = 0;
 
-    while (polyB != 0) {
-        if (polyB & 0x01) {
-            ret ^= polyA;
+    while (poly_b != 0) {
+        if (poly_b & 0x01) {
+            ret ^= poly_a;
         }
-        polyB >>= 1;
-        polyA = mult_by_x(polyA);
+        poly_b >>= 1;
+        poly_a = mult_by_x(poly_a);
     }
 
     return ret;
@@ -244,27 +238,27 @@ static uint8_t mult_by_x(uint8_t polynomial)
     }
 }
 
-static void print_table(const uint8_t *table, int entries, size_t entrySize,
-                        int entriesPerRow, const char *name,
-                        const char *dataType)
+static void print_table(const uint8_t *table, int entries, size_t entry_size,
+                        int entries_per_row, const char *name,
+                        const char *data_type)
 {
-    int inRow, onEntry;
+    int in_row, on_entry;
 
-    printf("static const %s %s[%d] = {\n    ", dataType, name, entries);
+    printf("static const %s %s[%d] = {\n    ", data_type, name, entries);
 
-    inRow = 0;
-    for (onEntry = 0; onEntry < entries; onEntry++) {
-        print_bytes(table, entrySize);
-        table += entrySize;
-        if (onEntry == entries - 1) {
+    in_row = 0;
+    for (on_entry = 0; on_entry < entries; on_entry++) {
+        print_bytes(table, entry_size);
+        table += entry_size;
+        if (on_entry == entries - 1) {
             printf("};\n");
         }
         else {
             printf(",");
-            inRow++;
-            if (inRow == entriesPerRow) {
+            in_row++;
+            if (in_row == entries_per_row) {
                 printf("\n    ");
-                inRow = 0;
+                in_row = 0;
             }
             else {
                 printf(" ");
@@ -273,12 +267,12 @@ static void print_table(const uint8_t *table, int entries, size_t entrySize,
     }
 }
 
-void print_bytes(const uint8_t *bytes, size_t numBytes)
+void print_bytes(const uint8_t *bytes, size_t num_bytes)
 {
     size_t i;
 
     printf("0x");
-    for (i = 0; i < numBytes; i++) {
+    for (i = 0; i < num_bytes; i++) {
         printf("%02X", bytes[i]);
     }
 }

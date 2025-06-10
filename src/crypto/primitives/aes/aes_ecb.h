@@ -21,49 +21,37 @@
 
 #include <stddef.h>
 
-/*
- * Possible key sizes, equal to the number of bytes in the key.
- */
 #define AES_ECB_KEY_SIZE_128 (16)
 #define AES_ECB_KEY_SIZE_192 (24)
 #define AES_ECB_KEY_SIZE_256 (32)
 #define AES_ECB_KEY_SIZE_MAX (AES_ECB_KEY_SIZE_256)
 
-/*
- * The fixed block size used by AES in bytes.
- */
 #define AES_ECB_BLOCK_SIZE (16)
 
-/*
- * Opaque AES context operating in ECB mode. Note that there are undefined
- * behaviours, described below, with this opaque structure.
- */
 struct aes_ecb_ctx;
 
 /*
  * Allocates a new AES context operating in ECB mode. Must be freed with
- * aes_ecb_free_scrub(). Guaranteed to return non-NULL; it is a fatal error for
- * allocation to fail.
+ * aes_ecb_free_scrub(). Guaranteed to return non-NULL.
  */
 struct aes_ecb_ctx *aes_ecb_alloc(void);
 
 /*
  * Performs the key schedule expansion for both AES encryption and AES
  * decryption, storing the computed round keys and decryption round keys in
- * the context. It is a fatal error if keyBytes is not one of
- * AES_ECB_KEY_SIZE_128, AES_ECB_KEY_SIZE_192, or AES_ECB_KEY_SIZE_256.
+ * the context.
  */
 void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key,
-                     size_t keyBytes);
+                     size_t key_bytes);
 
 /*
  * Encrypts or decrypts a single block of data using the given context and
  * stores the encrypted or decrypted block in the output. The output of these
  * functions is undefined if aes_ecb_set_key() has not been called.
  *
- * The two pointers, block and output, may overlap. However, it should be noted
- * that in other AES cipher modes, the input and output buffers might not be
- * allowed to overlap.
+ * The two pointers, block and output, may overlap. Beware, though, that in
+ * other AES cipher modes, the input and output buffers might not be allowed to
+ * overlap.
  */
 void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output);
 void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output);

@@ -715,13 +715,14 @@ struct aes_ecb_ctx *aes_ecb_alloc(void)
     return ret;
 }
 
-void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key, size_t keyBytes)
+void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key,
+                     size_t key_bytes)
 {
     size_t nk;
-    size_t i, rksToGen;
-    size_t round, modVal;
+    size_t i, rks_to_gen;
+    size_t round, mod_val;
 
-    switch (keyBytes) {
+    switch (key_bytes) {
     case AES_ECB_KEY_SIZE_128:
         ctx->nr = 10;
         nk = 4;
@@ -745,14 +746,14 @@ void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key, size_t keyBytes)
 
     /* The subsequent words are built off the previous words */
     i = nk;
-    rksToGen = (ctx->nr + 1) * 4;
-    round = modVal = 0;
-    while (i < rksToGen) {
-        if (modVal == 0) {
+    rks_to_gen = (ctx->nr + 1) * 4;
+    round = mod_val = 0;
+    while (i < rks_to_gen) {
+        if (mod_val == 0) {
             ctx->rk[i] = sbox_enc_word(circ_shift_left_32(ctx->rk[i - 1], 8)) ^
                          RCON[round++] ^ ctx->rk[i - nk];
         }
-        else if (nk > 6 && modVal == 4) {
+        else if (nk > 6 && mod_val == 4) {
             ctx->rk[i] = sbox_enc_word(ctx->rk[i - 1]) ^ ctx->rk[i - nk];
         }
         else {
@@ -760,11 +761,11 @@ void aes_ecb_set_key(struct aes_ecb_ctx *ctx, const byte *key, size_t keyBytes)
         }
 
         i++;
-        if (modVal == nk - 1) {
-            modVal = 0;
+        if (mod_val == nk - 1) {
+            mod_val = 0;
         }
         else {
-            modVal++;
+            mod_val++;
         }
     }
 
