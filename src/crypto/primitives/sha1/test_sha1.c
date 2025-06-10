@@ -170,6 +170,11 @@ static const struct sha1_plain_test plain_tests[] = {
     },
 };
 
+/*
+ * The final output is checked in this implementation of the Monte Carlo tests,
+ * but not the checkpoint values also verified along the way in the full NIST
+ * SHAVS.
+ */
 static const struct sha1_monte_test monte_tests[] = {
     /*
      * NIST CAVP MCT Vectors for SHA-1, example vector labelled SHA1Monte,
