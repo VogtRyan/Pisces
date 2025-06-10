@@ -27,8 +27,7 @@
 TEST_PREAMBLE("SHA3");
 
 /*
- * Parameters for testing the output of a single invocation of the SHA-3
- * algorithm, where the input is a single message.
+ * Single-input test, arbitrary length message.
  */
 struct sha3_plain_test {
     const char *msg;
@@ -36,35 +35,22 @@ struct sha3_plain_test {
 };
 
 /*
- * Parameters for a SHA-3 test using the NIST Secure Hash Algorithm 3
- * Validation System (SHA3VS) Monte Carlo Test (MCT) algorithm.
+ * A NIST Secure Hash Algorithm 3 Validation System (SHA3VS) Monte Carlo Test
+ * (MCT). Only the final output is checked in this implementation, not the
+ * checkpoint values along the way also verified in the full NIST SHA3VS.
  */
 struct sha3_monte_test {
     const char *seed;
     const char *output;
 };
 
-/*
- * Runs a SHA-3 single-output test, and asserts that the output matches the
- * expected digest in the given test parameters.
- */
 static void run_sha3_plain_test(const struct sha3_plain_test *test);
 static void run_parsed_sha3_plain_test(const byte *msg, size_t msg_len,
                                        const byte *digest, size_t digest_len);
 
-/*
- * Adds the provided message to the currently running SHA-3 context. If the
- * message is larger than one block in size, it will be broken up and added in
- * three pieces (to test the functionality of adding partial blocks to the
- * context).
- */
 static void add_single_message(struct sha3_ctx *ctx, const byte *msg,
                                size_t msg_len, size_t digest_len);
 
-/*
- * Runs a single SHA-3 NIST SHA3VS MCT case, which includes a single assertion:
- * that the outcome of the loop of hash invocations is correct.
- */
 static void run_sha3_monte_test(const struct sha3_monte_test *test);
 static void run_parsed_sha3_monte_test(const byte *seed, const byte *output,
                                        size_t digest_len);
@@ -291,11 +277,6 @@ static const struct sha3_plain_test plain_tests[] = {
     },
 };
 
-/*
- * The final output is checked in this implementation of the Monte Carlo tests,
- * but not the checkpoint values also verified along the way in the full NIST
- * SHA3VS.
- */
 static const struct sha3_monte_test monte_tests[] = {
     /*
      * NIST CAVP MCT Vectors for SHA-3, example vector labelled SHA3-224 Monte,
@@ -390,6 +371,11 @@ static void run_parsed_sha3_plain_test(const byte *msg, size_t msg_len,
 static void add_single_message(struct sha3_ctx *ctx, const byte *msg,
                                size_t msg_len, size_t digest_len)
 {
+    /*
+     * If the message is larger than one block in size, it will be broken up
+     * and added in three pieces, to test the functionality of adding partial
+     * blocks to the context.
+     */
     size_t block_len, quarter_block_len;
 
     block_len = block_bytes(digest_len);
@@ -399,7 +385,6 @@ static void add_single_message(struct sha3_ctx *ctx, const byte *msg,
         sha3_add(ctx, msg, msg_len);
     }
     else {
-        /* Test the functionality of breaking larger messages into parts */
         sha3_add(ctx, msg, quarter_block_len);
         sha3_add(ctx, msg + quarter_block_len,
                  msg_len - 2 * quarter_block_len);
