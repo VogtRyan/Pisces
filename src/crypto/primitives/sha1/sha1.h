@@ -21,33 +21,19 @@
 
 #include <stddef.h>
 
-/*
- * The number of bytes output in a SHA-1 hash, and the internal block size of
- * SHA-1.
- */
 #define SHA1_DIGEST_BYTES (20)
 #define SHA1_BLOCK_BYTES  (64)
 
-/*
- * Opaque SHA-1 context. Note that there are undefined behaviours, described
- * below, with this opaque structure.
- */
 struct sha1_ctx;
 
 /*
- * Allocates a new SHA-1 context. Must be freed with sha1_free() or
- * sha1_free_scrub(). Guaranteed to return non-NULL; it is a fatal error for
- * allocation to fail.
- *
- * Does not automatically call sha1_start(), so sha1_start() or sha1_copy()
- * should be called after allocation.
+ * Allocates a new SHA-1 context. Must be freed with sha1_free_scrub().
+ * Guaranteed to return non-NULL. Does not automatically call sha1_start().
  */
 struct sha1_ctx *sha1_alloc(void);
 
 /*
- * Starts a new SHA-1 operation. The sha1_end() function will return undefined
- * results if sha1_start(), or sha1_copy() with a running source, is not
- * called.
+ * Starts a new SHA-1 operation.
  */
 void sha1_start(struct sha1_ctx *ctx);
 
@@ -56,7 +42,7 @@ void sha1_start(struct sha1_ctx *ctx);
  * Returns 0 on success or -1 if the message size has exceeded the maximum
  * SHA-1 message length.
  */
-int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t numBytes);
+int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t num_bytes);
 
 /*
  * Computes the SHA-1 hash of the message. Guaranteed to succeed if the maximum

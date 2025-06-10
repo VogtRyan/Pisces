@@ -22,6 +22,7 @@
 #include "crypto/machine/bitops.h"
 #include "crypto/machine/endian.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -33,10 +34,10 @@
 
 struct sha1_ctx {
     uint32_t h[5];
-    uint64_t bytesProcessed;
+    uint64_t bytes_processed;
     byte block[SHA1_BLOCK_BYTES];
-    uint8_t bytesInBlock;
-    int bytesExceeded;
+    uint8_t bytes_in_block;
+    bool bytes_exceeded;
 };
 
 /*
@@ -48,18 +49,10 @@ static void sha1_process_block(struct sha1_ctx *ctx, const byte *block);
 
 /*
  * Adds the given number of bytes to the context's count of bytes processed.
- * Returns 0 on success, or -1 if the maximum message size is exceeded
- * (including if it overflows). If the maximum message size is exceeded, the
- * bytesExceeded flag is set in the context, and all subsequent calls to this
- * function will return -1.
+ * Returns 0 on success, or -1 if the maximum message size is exceeded.
  */
-static int add_num_bytes(struct sha1_ctx *ctx, size_t numBytes);
-
-/*
- * Returns 1 if the addition of a and b (with b cast to a uint64_t), would
- * overflow a uint64_t result. If not, returns 0.
- */
-static int addition_would_overflow_u64(uint64_t a, size_t b);
+static int add_num_bytes(struct sha1_ctx *ctx, size_t num_bytes);
+static bool addition_would_overflow_u64(uint64_t a, size_t b);
 
 struct sha1_ctx *sha1_alloc(void)
 {
@@ -76,36 +69,36 @@ void sha1_start(struct sha1_ctx *ctx)
     ctx->h[2] = (uint32_t)0x98BADCFE;
     ctx->h[3] = (uint32_t)0x10325476;
     ctx->h[4] = (uint32_t)0xC3D2E1F0;
-    ctx->bytesProcessed = 0;
-    ctx->bytesInBlock = 0;
-    ctx->bytesExceeded = 0;
+    ctx->bytes_processed = 0;
+    ctx->bytes_in_block = 0;
+    ctx->bytes_exceeded = false;
 }
 
-int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t numBytes)
+int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t num_bytes)
 {
-    size_t toFillBlock, addToCtx;
+    size_t to_fill_block, add_to_ctx;
 
     /* Update the number of bytes processed by the context */
-    if (add_num_bytes(ctx, numBytes)) {
+    if (add_num_bytes(ctx, num_bytes)) {
         return -1;
     }
 
     /* Process the data in blocks */
-    while (numBytes > 0) {
-        if (ctx->bytesInBlock == 0 && numBytes >= SHA1_BLOCK_BYTES) {
+    while (num_bytes > 0) {
+        if (ctx->bytes_in_block == 0 && num_bytes >= SHA1_BLOCK_BYTES) {
             sha1_process_block(ctx, bytes);
             bytes += SHA1_BLOCK_BYTES;
-            numBytes -= SHA1_BLOCK_BYTES;
+            num_bytes -= SHA1_BLOCK_BYTES;
         }
         else {
-            toFillBlock = SHA1_BLOCK_BYTES - ctx->bytesInBlock;
-            addToCtx = MIN(toFillBlock, numBytes);
-            memcpy(ctx->block + ctx->bytesInBlock, bytes, addToCtx);
-            ctx->bytesInBlock += addToCtx;
-            bytes += addToCtx;
-            numBytes -= addToCtx;
-            if (ctx->bytesInBlock == SHA1_BLOCK_BYTES) {
-                ctx->bytesInBlock = 0;
+            to_fill_block = SHA1_BLOCK_BYTES - ctx->bytes_in_block;
+            add_to_ctx = MIN(to_fill_block, num_bytes);
+            memcpy(ctx->block + ctx->bytes_in_block, bytes, add_to_ctx);
+            ctx->bytes_in_block += add_to_ctx;
+            bytes += add_to_ctx;
+            num_bytes -= add_to_ctx;
+            if (ctx->bytes_in_block == SHA1_BLOCK_BYTES) {
+                ctx->bytes_in_block = 0;
                 sha1_process_block(ctx, ctx->block);
             }
         }
@@ -116,39 +109,39 @@ int sha1_add(struct sha1_ctx *ctx, const byte *bytes, size_t numBytes)
 
 int sha1_end(struct sha1_ctx *ctx, byte *digest)
 {
-    byte toAppend[SHA1_BLOCK_BYTES + 8];
-    uint64_t totalBits;
-    size_t numToAppend;
+    byte to_append[SHA1_BLOCK_BYTES + 8];
+    uint64_t total_bits;
+    size_t num_to_append;
     int i;
 
-    if (ctx->bytesExceeded) {
+    if (ctx->bytes_exceeded) {
         return -1;
     }
 
-    totalBits = ctx->bytesProcessed * 8;
+    total_bits = ctx->bytes_processed * 8;
 
     /*
      * Append 0x80 0x00 0x00 0x00 ... 0x00 so that the resulting amount of data
      * in the context's current block is 56 bytes
      */
-    if (ctx->bytesInBlock < 56) {
-        numToAppend = 56 - ctx->bytesInBlock;
+    if (ctx->bytes_in_block < 56) {
+        num_to_append = 56 - ctx->bytes_in_block;
     }
     else {
-        numToAppend = SHA1_BLOCK_BYTES - (ctx->bytesInBlock - 56);
+        num_to_append = SHA1_BLOCK_BYTES - (ctx->bytes_in_block - 56);
     }
-    toAppend[0] = (byte)(0x80);
-    memset(toAppend + 1, 0, numToAppend - 1);
+    to_append[0] = (byte)(0x80);
+    memset(to_append + 1, 0, num_to_append - 1);
 
     /*
      * Place the number of bits processed prior to this function being called
      * into the context (as a 64-bit integer in big endian order), filling out
      * the current block.
      */
-    put_big_end_64(toAppend + numToAppend, totalBits);
+    put_big_end_64(to_append + num_to_append, total_bits);
 
     /* Append and finalize */
-    sha1_add(ctx, toAppend, numToAppend + 8);
+    sha1_add(ctx, to_append, num_to_append + 8);
     for (i = 0; i < 5; i++) {
         put_big_end_32(digest + i * 4, ctx->h[i]);
     }
@@ -220,29 +213,29 @@ static void sha1_process_block(struct sha1_ctx *ctx, const byte *block)
     ctx->h[4] += e;
 }
 
-static int add_num_bytes(struct sha1_ctx *ctx, size_t numBytes)
+static int add_num_bytes(struct sha1_ctx *ctx, size_t num_bytes)
 {
-    if (ctx->bytesExceeded) {
+    if (ctx->bytes_exceeded) {
         return -1;
     }
-    if (addition_would_overflow_u64(ctx->bytesProcessed, numBytes)) {
-        ctx->bytesExceeded = 1;
+    if (addition_would_overflow_u64(ctx->bytes_processed, num_bytes)) {
+        ctx->bytes_exceeded = true;
         return -1;
     }
 
-    ctx->bytesProcessed = ctx->bytesProcessed + (uint64_t)numBytes;
-    if (ctx->bytesProcessed > SHA1_MAX_MESSAGE_BYTES) {
-        ctx->bytesExceeded = 1;
+    ctx->bytes_processed = ctx->bytes_processed + (uint64_t)num_bytes;
+    if (ctx->bytes_processed > SHA1_MAX_MESSAGE_BYTES) {
+        ctx->bytes_exceeded = true;
         return -1;
     }
     return 0;
 }
 
-static int addition_would_overflow_u64(uint64_t a, size_t b)
+static bool addition_would_overflow_u64(uint64_t a, size_t b)
 {
 #if SIZE_MAX > UINT64_MAX
     if (b > (size_t)UINT64_MAX) {
-        return 1;
+        return true;
     }
 #endif
     return (UINT64_MAX - (uint64_t)b < a);
