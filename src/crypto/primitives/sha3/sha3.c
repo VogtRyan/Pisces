@@ -37,8 +37,8 @@ struct sha3_ctx {
 };
 
 /*
- * Compute the Keccak-f function on the given data, as defined in FIPS 202.
- * Note that the keccak_f() function is algorithmically generated.
+ * The Keccak-f function is defined in FIPS 202. This implementation is
+ * algorithmically generated.
  */
 static void keccak_f(struct sha3_ctx *ctx, const byte *new_data);
 
@@ -129,7 +129,7 @@ void sha3_end(struct sha3_ctx *ctx, byte *digest)
     keccak_f(ctx, ctx->leftover);
 
     /*
-     * Take rate bytes at a time from the state.  In this implementation, rate
+     * Take rate bytes at a time from the state. In this implementation, rate
      * is guaranteed to be larger than output length, so this is simple.
      */
     bytes_needed = ctx->output_size;
