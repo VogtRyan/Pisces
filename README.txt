@@ -90,7 +90,7 @@ To encrypt foo.txt and write the result to foo.enc:
 
     $ pisces foo.txt foo.enc
 
-To decrypt foo.enc and write the result to foo.orig, using 'secret' as the
+To decrypt foo.enc and write the result to foo.orig, using "secret" as the
 password instead of prompting for one:
 
     $ pisces -d -p 'secret' foo.enc foo.orig
@@ -108,8 +108,8 @@ without writing the decrypted file to disk:
 
     $ pisces -d foo.enc /dev/null
 
-To archive and encrypt a directory, foodir/, with the GNU version of tar
-(installed as gtar in the example) performing the archiving operation:
+To archive and encrypt a directory, foodir/, using the GNU version of tar
+(installed as 'gtar' in the example) to perform the archiving operation:
 
     $ gtar czf - foodir/ --format=posix | pisces - foodir.enc
 
