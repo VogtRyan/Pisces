@@ -1,8 +1,6 @@
 # Pisces
 Straightforward password-based file encryption on the UNIX command line
 
-Version 5.3.0-devel (projected 2025 release)
-
 **Table of Contents:**
 1. [Copyright and License](#copyright-and-license)
 2. [About Pisces](#about-pisces)
@@ -12,6 +10,8 @@ Version 5.3.0-devel (projected 2025 release)
 6. [Cryptographic Details](#cryptographic-details)
 7. [Historical Details](#historical-details)
 8. [Additional Build Targets](#additional-build-targets)
+
+Version: 5.3.0-devel (projected 2025 release)
 
 ## Copyright and License
 
