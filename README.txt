@@ -1,5 +1,5 @@
 PISCES: PASSWORD-BASED FILE ENCRYPTION
-Version 5.2.4 (7 April 2025)
+Version 5.3.0-devel (projected 2025 release)
 
 Ryan Vogt
 rvogt.ca@gmail.com
