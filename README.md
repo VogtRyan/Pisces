@@ -107,6 +107,11 @@ uppercase letter, one lowercase letter, one number, and one special character:
 ```
     $ pwgen
 ```
+To describe how many bits of security are provided by the password generated
+above:
+```
+    $ pwgen -d
+```
 To generate a four-digit PIN:
 ```
     $ pwgen -l 4 -p
@@ -114,16 +119,6 @@ To generate a four-digit PIN:
 To generate a 12-character hexadecimal string:
 ```
     $ pwgen -l 12 -h
-```
-To generate a 22-character alphanumeric password using uppercase letters,
-lowercase letters, and numbers, without guaranteeing the presence of each type:
-```
-    $ pwgen -l 22 -n
-```
-To describe how many bits of security are provided by the 22-character
-alphanumeric password generated above:
-```
-    $ pwgen -l 22 -n -d
 ```
 See the `pwgen.1` man page for more details.
 
