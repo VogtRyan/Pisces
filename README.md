@@ -66,14 +66,12 @@ two man pages (`pisces.1` and `pwgen.1`).
 
 ## Example Pisces Usage
 
-To encrypt the contents of an input file, `foo.txt`, to an output file,
-`foo.enc`:
+To encrypt `foo.txt` and write the result to `foo.enc`:
 ```
     $ pisces foo.txt foo.enc
 ```
-To decrypt the contents of the file `foo.enc`, with a command-line argument as
-the password, and store the original unencrypted data in a new file,
-`foo.orig`:
+To decrypt `foo.enc` and write the result to `foo.orig`, using '`secret`' as
+the password instead of prompting for one:
 ```
     $ pisces -d -p 'secret' foo.enc foo.orig
 ```
@@ -95,7 +93,7 @@ To archive and encrypt a directory, `foodir/`, with the GNU version of `tar`
 ```
     $ gtar czf - foodir/ --format=posix | pisces - foodir.enc
 ```
-To restore an archived, encrypted directory to a new directory, `newfoo/`:
+To restore an archived, encrypted directory into a new directory, `newfoo/`:
 ```
     $ mkdir newfoo/
     $ pisces -d foodir.enc - | gtar xzf - --strip-components=1 -C newfoo/
