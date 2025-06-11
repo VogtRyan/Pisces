@@ -146,7 +146,7 @@ $K$ that was used in the original encryption. Specifically, some random data
 $R$ is generated. Then, a cryptographic hash of $R$ is computed,
 $\textnormal{H}(R)$, and these data are concatenated. The imprint is an
 encrypted version of this concatenation using the key $K$ and the
-initialization vector $I$. That is,the imprint is
+initialization vector $I$ -- that is,
 $\textnormal{E}_{K, I}{\left(R~||~\textnormal{H}(R)\right)}$.
 
 For the imprint, the size of $R$ is chosen such that it is at least as large as
