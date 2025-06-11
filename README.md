@@ -126,42 +126,43 @@ See the `pwgen.1` man page for more details.
 
 When Pisces is used to encrypt a file, the user enters a one-line password (or
 passphrase) that will later be used to decrypt the file. That password is
-transformed into an encryption key, $K$, using a key derivation function,
-$\textnormal{KDF}$. $\textnormal{KDF}$ will salt the password using a randomly
-generated salt, $S$, with length equal to the length of the key $K$.
+transformed into an encryption key, $K\!$, using a key derivation function,
+$\textnormal{KDF}\!$. $\textnormal{KDF}$ will salt the password using a
+randomly generated salt, $S\!$, with length equal to the length of the key
+$K\!$.
 
 The first element placed into the output file is a header. The header begins
 with the six characters `PISCES`, followed by a one-byte encoding of the file
 format version. The current version of Pisces uses the Pisces version 5
 specifications, so the single byte `0x05` will be output. The next component in
-the header is the salt, $S$. That will be followed by two randomly generated
-initialization vectors, denoted $I$ and $J$.
+the header is the salt, $S\!$. That will be followed by two randomly generated
+initialization vectors, denoted $I$ and $J\!$.
 
 Following the header, an imprint is placed into the output file. When Pisces is
 used to decrypt the file, and a user enters password $P^\prime$ which gets
-transformed using the stored salt $S$ into a key $K^\prime$, the imprint makes
-it possible to check quickly whether $K^\prime$ was the key used to encrypt
-that file. However, given the imprint, it is not feasible to compute the key
-$K$ that was used in the original encryption. Specifically, some random data
-$R$ is generated. Then, a cryptographic hash of $R$ is computed,
-$\textnormal{H}(R)$, and these data are concatenated. The imprint is an
+transformed using the stored salt $S$ into a key $K^\prime\!$, the imprint
+makes it possible to check quickly whether $K^\prime$ was the key used to
+encrypt that file. However, given the imprint, it is not feasible to compute
+the key $K$ that was used in the original encryption. Specifically, some random
+data $R$ is generated. Then, a cryptographic hash of $R$ is computed,
+$\textnormal{H}(R)\!$, and these data are concatenated. The imprint is an
 encrypted version of this concatenation using the key $K$ and the
-initialization vector $I$. That is,the imprint is
-$\textnormal{E}_{K, I}{\left(R~||~\textnormal{H}(R)\right)}$.
+initialization vector $I\!$. That is,the imprint is
+$\textnormal{E}_{K, I}{\left(R~||~\textnormal{H}(R)\right)}\!$.
 
 For the imprint, the size of $R$ is chosen such that it is at least as large as
-the output of $\textnormal{H}$, and at least as large as both the block size
-and key size of  $\textnormal{E}$. Furthermore, the size of $R$ is chosen such
-that the length of $R$ plus the  length of the output of $\textnormal{H}$ is a
-multiple of the block size of $\textnormal{E}$.  Because of this size choice,
-no padding is used during the encryption operation for the imprint.
+the output of $\textnormal{H}\!$, and at least as large as both the block size
+and key size of  $\textnormal{E}\!$. Furthermore, the size of $R$ is chosen
+such that the length of $R$ plus the  length of the output of $\textnormal{H}$
+is a multiple of the block size of $\textnormal{E}\!$.  Because of this size
+choice, no padding is used during the encryption operation for the imprint.
 
-Next, the key $K$ and the second initialization vector, $J$, are used as
+Next, the key $K$ and the second initialization vector, $J\!$, are used as
 parameters to the encryption algorithm $\textnormal{E}$ to encrypt the contents
 of the input file. If $C$ represents the contents of the input file, then
 $\textnormal{E}_{K, J}{\left(C~||~\textnormal{H}(C)\right)}$ is output to the
 output file. Because the length of $C$ is indeterminate, PKCS #7 padding is
-used this time in $\textnormal{E}$.
+used this time in $\textnormal{E}\!$.
 
 In Pisces version 5,
 
@@ -201,7 +202,7 @@ In Pisces version 3,
 - $\textnormal{H}$ was SHA1; and,
 - $\textnormal{KDF}$ was PBKDF2, using HMAC-SHA1 as the generator, with 1024
 iterations;
-- $R$ was 224 bits in length; and, $I$, $J$, and $S$ were all 128 bits in
+- $R$ was 224 bits in length; and, $I\!$, $J\!$, and $S$ were all 128 bits in
 length.
 
 ## Additional Build Targets
