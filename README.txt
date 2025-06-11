@@ -97,11 +97,11 @@ the password, and store the original unencrypted data in a new file, foo.orig:
 
 To decrypt a file to standard output and filter the contents using grep:
 
-    $ pisces -d -o foo.enc | grep bar
+    $ pisces -d foo.enc - | grep bar
 
 To encrypt a file from standard input, piped from cat:
 
-    $ cat foo.txt | pisces -i foo.enc
+    $ cat foo.txt | pisces - foo.enc
 
 To verify that a file would decrypt and pass Pisces' file-integrity check,
 without writing the decrypted file to disk:
@@ -111,12 +111,12 @@ without writing the decrypted file to disk:
 To archive and encrypt a directory, foodir/, with the GNU version of tar
 (installed as gtar in the example) performing the archiving operation:
 
-    $ gtar czf - foodir/ --format=posix | pisces -i foodir.enc
+    $ gtar czf - foodir/ --format=posix | pisces - foodir.enc
 
 To restore an archived, encrypted directory to a new directory, newfoo/:
 
     $ mkdir newfoo/
-    $ pisces -d -o foodir.enc | gtar xzf - --strip-components=1 -C newfoo/
+    $ pisces -d foodir.enc - | gtar xzf - --strip-components=1 -C newfoo/
 
 See the pisces.1 man page for more details.
 

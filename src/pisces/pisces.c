@@ -22,6 +22,7 @@
 #include "common/errorflow.h"
 #include "common/scrub.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -41,9 +42,10 @@
  * If there is any error processing the arguments, print the usage message to
  * standard error and exit with a negative code.
  */
-static void parse_command_line(int argc, char **argv, int *encrypt,
+static void parse_command_line(int argc, char **argv, bool *encrypt,
                                char **inputFile, char **outputFile,
                                char **password);
+static bool is_stdin_stdout(const char *cmdLineArg);
 
 /*
  * Stat the input file to check its type, and ensure that the input file
@@ -64,7 +66,7 @@ int main(int argc, char **argv)
     size_t passwordLen;
     char *providedPassword;
     char *inputFile, *outputFile;
-    int encrypt;
+    bool encrypt;
     int errVal = 0;
 
     /* Parse the command line, stat the input file, and ensure file safety */
@@ -107,36 +109,32 @@ isErr:
     return errVal;
 }
 
-static void parse_command_line(int argc, char **argv, int *encrypt,
+static void parse_command_line(int argc, char **argv, bool *encrypt,
                                char **inputFile, char **outputFile,
                                char **password)
 {
-    int opSpecified;
+    bool opSpecified;
     int ch;
-    int needInput, needOutput;
 
-    /* Default operation is encryption, interactive password, files */
-    *encrypt = 1;
+    *encrypt = true;
     *password = NULL;
-    needInput = needOutput = 1;
 
-    /* Process input options */
-    opSpecified = 0;
-    while ((ch = getopt(argc, argv, "edp:iov")) != -1) {
+    opSpecified = false;
+    while ((ch = getopt(argc, argv, "edp:v")) != -1) {
         switch (ch) {
         case 'e':
-            if (opSpecified && (*encrypt == 0)) {
+            if (opSpecified && (*encrypt == false)) {
                 usage();
             }
-            opSpecified = 1;
-            *encrypt = 1;
+            opSpecified = true;
+            *encrypt = true;
             break;
         case 'd':
-            if (opSpecified && (*encrypt == 1)) {
+            if (opSpecified && *encrypt) {
                 usage();
             }
-            opSpecified = 1;
-            *encrypt = 0;
+            opSpecified = true;
+            *encrypt = false;
             break;
         case 'p':
             if (*password != NULL) {
@@ -148,12 +146,6 @@ static void parse_command_line(int argc, char **argv, int *encrypt,
             }
             *password = optarg;
             break;
-        case 'i':
-            needInput = 0;
-            break;
-        case 'o':
-            needOutput = 0;
-            break;
         case 'v':
             printf("pisces version %s\n", IMPLEMENTATION_VERSION);
             exit(EXIT_SUCCESS);
@@ -162,25 +154,23 @@ static void parse_command_line(int argc, char **argv, int *encrypt,
         }
     }
 
-    /* Ensure correctness of option flags */
-    if (argc - optind != needInput + needOutput) {
+    if (argc - optind != 2) {
         usage();
     }
+    *inputFile = argv[argc - 2];
+    *outputFile = argv[argc - 1];
 
-    /* Process the input and output files */
-    if (needInput) {
-        *inputFile = argv[argc - (needInput + needOutput)];
-    }
-    else {
+    if (is_stdin_stdout(*inputFile)) {
         *inputFile = NULL;
     }
-
-    if (needOutput) {
-        *outputFile = argv[argc - 1];
-    }
-    else {
+    if (is_stdin_stdout(*outputFile)) {
         *outputFile = NULL;
     }
+}
+
+static bool is_stdin_stdout(const char *cmdLineArg)
+{
+    return (cmdLineArg[0] == '-' && cmdLineArg[1] == '\0');
 }
 
 static int check_files(char *inputFile, char *outputFile)
@@ -216,9 +206,6 @@ isErr:
 static void usage(void)
 {
     fprintf(stderr,
-            "usage: pisces [-dev] [-p password] input_file output_file\n"
-            "       pisces [-dev] [-p password] -i output_file\n"
-            "       pisces [-dev] [-p password] -o input_file\n"
-            "       pisces [-dev] [-p password] -i -o\n");
-    exit(-1);
+            "usage: pisces [-dev] [-p password] input_file output_file\n");
+    exit(EXIT_FAILURE);
 }

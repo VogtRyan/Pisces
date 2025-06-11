@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 21, 2025
+.Dd June 11, 2025
 .Dt PISCES 1
 .Os
 .Sh NAME
@@ -24,33 +24,18 @@
 .Op Fl p Ar password
 .Ar input_file
 .Ar output_file
-.Nm pisces
-.Op Fl dev
-.Op Fl p Ar password
-.Fl i
-.Ar output_file
-.Nm pisces
-.Op Fl dev
-.Op Fl p Ar password
-.Fl o
-.Ar input_file
-.Nm pisces
-.Op Fl dev
-.Op Fl p Ar password
-.Fl i
-.Fl o
 .Sh DESCRIPTION
 The
 .Nm
-utility will encrypt or decrypt either the contents of a named
-.Ar input_file
-or data from standard input. The
+utility encrypts or decrypts data from the specified
+.Ar input_file ,
+writing the result to
+.Ar output_file .
+A file operand of
+.Sq -
+denotes standard input or standard output, respectively. By default,
 .Nm
-utility will then write the result of that operation either to a named
-.Ar output_file
-or to standard output. By default,
-.Nm
-encrypts the given input source.
+performs encryption.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
@@ -62,10 +47,6 @@ Encrypt
 .Ar input_file .
 This option is the default behaviour of
 .Nm .
-.It Fl i
-Use standard input as the input source instead of a file.
-.It Fl o
-Output to standard output instead of an output file.
 .It Fl p Ar password
 Use the password provided on the command line, instead of prompting for one. It
 may be useful to enclose the password in single quotes, to prevent the shell
@@ -92,12 +73,12 @@ the password, and store the original unencrypted data in a new file, foo.orig:
 To decrypt a file to standard output and filter the contents using
 .Xr grep 1 :
 .Pp
-.Dl $ pisces -d -o foo.enc | grep bar
+.Dl $ pisces -d foo.enc - | grep bar
 .Pp
 To encrypt a file from standard input, piped from
 .Xr cat 1 :
 .Pp
-.Dl $ cat foo.txt | pisces -i foo.enc
+.Dl $ cat foo.txt | pisces - foo.enc
 .Pp
 To verify that a file would decrypt and pass Pisces' file-integrity check,
 without writing the decrypted file to disk:
@@ -112,14 +93,14 @@ in the example) performing the archiving operation:
 .Pp
 .Bd -literal -offset indent 
 $ gtar czf - foodir/ --format=posix | \\
-    pisces -i foodir.enc
+    pisces - foodir.enc
 .Ed
 .Pp
 To restore an archived, encrypted directory to a new directory, newfoo/:
 .Pp
 .Bd -literal -offset indent 
 $ mkdir newfoo/
-$ pisces -d -o foodir.enc | \\
+$ pisces -d foodir.enc - | \\
     gtar xzf - --strip-components=1 -C newfoo/ 
 .Ed
 .Sh ENCRYPTION ALGORITHM
