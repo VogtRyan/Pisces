@@ -226,7 +226,7 @@ explicitly using:
     $ make test
 ```
 Any build target can be built in strict mode, to make the compiler treat all
-warnings as errors, by setting the BUILD variable to strict:
+warnings as errors, by setting the `BUILD` variable to `strict`:
 ```
     $ make BUILD=strict clean all
 ```
