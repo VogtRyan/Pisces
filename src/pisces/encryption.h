@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2023 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,21 +20,15 @@
 #include <stddef.h>
 
 /*
- * Encrypts inputFile to outputFile. If either of those is NULL, standard
- * in/out will be used, respectively. The given password will be used to
- * encrypt the file. Return 0 on success, -1 on error (and prints error
- * messages).
+ * Encrypts and decrypts files. If input_file or output_file is NULL, stdin and
+ * stdout will be used, respectively. Returns 0 on success, <0 on error and
+ * prints error messages.
  */
-int encrypt_file(const char *inputFile, const char *outputFile,
-                 const char *password, size_t passwordLen);
 
-/*
- * Decrypts inputFile to outputFile. If either of those is NULL, standard
- * in/out will be used, respectively. The given password will be used to
- * decrypt the file. Returns 0 on success, -1 on error (and prints error
- * messages).
- */
-int decrypt_file(const char *inputFile, const char *outputFile,
-                 const char *password, size_t passwordLen);
+int encrypt_file(const char *input_file, const char *output_file,
+                 const char *password, size_t password_len);
+
+int decrypt_file(const char *input_file, const char *output_file,
+                 const char *password, size_t password_len);
 
 #endif

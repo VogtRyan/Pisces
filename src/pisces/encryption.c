@@ -31,26 +31,31 @@
 #include <string.h>
 #include <unistd.h>
 
-/*
- * Decryption error message, in the case of the imprint check failing
- */
-#define CANNOT_DECRYPT                                                        \
+#define INPUT_BYTES_READ_AT_ONCE (4096)
+
+#define MESSAGE_CANNOT_DECRYPT                                                \
     "Cannot decrypt input file.  Either:\n"                                   \
     "- The file was not encrypted in Pisces format; or,\n"                    \
     "- A different key was used to encrypt the file."
 
 /*
- * Bytes to read from input file on each read
+ * PISCES FILE FORMAT AND TERMINOLOGY
+ *
+ * Header:
+ *     Magic bytes:
+ *         6-byte magic prefix
+ *         1-byte magic version number
+ *     Salt
+ *     Imprint IV
+ *     Body IV
+ * Imprint, encrypted with key K, imprint IV, no padding:
+ *     Random data R
+ *     Hash of the random data, H(R)
+ * Body, encrypted with key K, body IV, padding:
+ *     File contents C
+ *     Hash of the file contents, H(C)
  */
-#define BYTES_AT_ONCE (4096)
 
-#define MAX(a, b, c)                                                          \
-    ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
-
-/*
- * The Pisces magic bytes are these 6 bytes, followed by a one-byte version
- * number.
- */
 #define PISCES_MAGIC_PREFIX     "PISCES"
 #define PISCES_MAGIC_PREFIX_LEN (6)
 
@@ -64,11 +69,11 @@
  *   - The cipher key size
  *
  * Additionally, the length of the random data plus the length of a hash output
- * is a multiple of the block size (so the imprint can be encrypted without
- * padding). Hence, the amount of random data is no larger than the largest of
- * the three items above, plus the block size minus one (the most "extra"
- * random data that would have to be added to make the random data plus the
- * hash a multiple of the block size).
+ * is a multiple of the cipher's block size (so the imprint can be encrypted
+ * without padding). Hence, the amount of random data is no larger than the
+ * largest of the three items above, plus the block size minus one (the most
+ * "extra" random data that would have to be added to make the random data
+ * plus the hash a multiple of the block size).
  */
 #if CHF_MAX_DIGEST_SIZE > CIPHER_MAX_BLOCK_SIZE
 #if CHF_MAX_DIGEST_SIZE > CIPHER_MAX_KEY_SIZE
@@ -86,130 +91,80 @@
 #define PISCES_MAX_RANDOM_SIZE (BIGGEST_OF_THREE + CIPHER_MAX_BLOCK_SIZE - 1)
 
 /*
- * An upper bound on the size of the imprint.  The imprint is the random data
- * size plus the size of its hash. The size of the imprint is guaranteed
- * to be the same encrypted and unencrypted.
+ * An upper bound on the size of the imprint: the size of the random data, plus
+ * the size of its hash. Because there is no padding in the imprint, the size
+ * of the imprint is guaranteed to be the same encrypted and unencrypted.
  */
 #define PISCES_MAX_IMPRINT_SIZE (PISCES_MAX_RANDOM_SIZE + CHF_MAX_DIGEST_SIZE)
 
-/*
- * Generates the salt and two IVs and stores them into the provided arrays.
- * Writes out the Pisces magic bytes, followed by the salt and IVs. This
- * function relies on the Pisces version already having been set, as it uses
- * pisces_get_version(). Returns 0 on success, -1 on error (and prints error
- * messages).
- */
-static int write_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV,
-                        struct cprng *rng);
+#define MAX(a, b, c)                                                          \
+    ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
 
-/*
- * Reads in the Pisces magic bytes, sets the version of Pisces being used to
- * match the version in the file, then reads the salt and two IVs. Returns 0
- * on success, -1 on error (and prints error messages).
- */
-static int read_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV);
+static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv);
+static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv);
 
-/*
- * Writes the key-verification imprint to the file, using the provided key and
- * imprint IV. Returns 0 on success, -1 on error (and prints error messages).
- */
-static int write_imprint(int fd, const byte *key, const byte *imprintIV,
+static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
                          struct cprng *rng);
+static int read_imprint(int fd, const byte *key, const byte *imprint_iv);
 
-/*
- * Reads the key-verification imprint from the file, and verifies that the
- * correct key is being used to decrypt this file, by running computations with
- * the provided key and IV. Returns 0 on success, -1 on error (and prints error
- * messages).
- */
-static int read_imprint(int fd, const byte *key, const byte *imprintIV);
+static int encrypt_body(int in, int out, const byte *key, const byte *body_iv);
+static int decrypt_body(int in, int out, const byte *key, const byte *body_iv);
 
-/*
- * Encrypts the input contents to the output file descriptor, using the
- * provided key and IV. Returns 0 on success, -1 on error (and prints error
- * messages).
- */
-static int encrypt_body(int in, int out, const byte *key, const byte *bodyIV);
+static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
+                              struct cprng *rng);
 
-/*
- * Decrypts the input contents to the output file descriptor, using the
- * provided key and IV. Returns 0 on success, -1 on error (and prints error
- * messages).
- */
-static int decrypt_body(int in, int out, const byte *key, const byte *bodyIV);
+static int password_to_key(byte *derived_key, const char *password,
+                           size_t password_len, const byte *salt);
 
-/*
- * Generates two random IVs of the provided length, and stores them into the
- * provided arrays. Guarantees that the two IVs will be distinct.
- */
-static void generate_distinct_ivs(byte *ivA, byte *ivB, size_t ivLen,
-                                  struct cprng *rng);
+static void compute_imprint_size(size_t *random_data_size,
+                                 size_t *total_imprint_size,
+                                 const struct cipher_ctx *cipher,
+                                 const struct chf_ctx *chf);
+static size_t cipher_block_ceiling(size_t bytes,
+                                   const struct cipher_ctx *cipher);
 
-/*
- * Converts the given password and salt into a key to be used with a
- * cryptographic primitive.
- */
-static int password_to_key(byte *derivedKey, const char *password,
-                           size_t passwordLen, const byte *salt);
-
-/*
- * Computes both the total size of the key-verification imprint, as well as the
- * amount of random data in the imprint. Stores the results to the respective
- * variables.
- */
-static void compute_imprint_sizes(size_t *randomData, size_t *total,
-                                  const struct cipher_ctx *cipher,
-                                  const struct chf_ctx *chf);
-
-/*
- * Rounds the given number of bytes up to a multiple of the block size of the
- * given cipher. That is, it adds between 0 and blockSize(cipher)-1 bytes to
- * the given size. It is a fatal error for an overflow to occur.
- */
-size_t cipher_block_ceiling(size_t bytes, const struct cipher_ctx *cipher);
-
-int encrypt_file(const char *inputFile, const char *outputFile,
-                 const char *password, size_t passwordLen)
+int encrypt_file(const char *input_file, const char *output_file,
+                 const char *password, size_t password_len)
 {
     struct cprng *rng = NULL;
     byte key[CIPHER_MAX_KEY_SIZE];
     byte salt[CIPHER_MAX_KEY_SIZE];
-    byte imprintIV[CIPHER_MAX_BLOCK_SIZE];
-    byte bodyIV[CIPHER_MAX_BLOCK_SIZE];
+    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
+    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
-    int errVal = 0;
+    int errval = 0;
 
-    /* Open the input and output files */
-    in = open_input_file(inputFile);
-    if (in == -1) {
-        ERROR(isErr, errVal, "Could not open input file: %s",
-              (inputFile == NULL ? "standard input" : inputFile));
-    }
-    out = open_output_file(outputFile);
-    if (out == -1) {
-        ERROR(isErr, errVal, "Could not open output file: %s",
-              (outputFile == NULL ? "standard output" : outputFile));
-    }
-
-    /* Generate and write the salt+IVs into the header, and derive our key. */
+    /* Catch any errors with the password before we start opening files */
     rng = cprng_alloc_default();
-    if (write_header(out, salt, imprintIV, bodyIV, rng)) {
-        ERROR_QUIET(isErr, errVal);
-    }
-    if (password_to_key(key, password, passwordLen, salt)) {
-        ERROR_QUIET(isErr, errVal);
+    generate_salt_ivs(salt, imprint_iv, body_iv, rng);
+    if (password_to_key(key, password, password_len, salt)) {
+        ERROR_QUIET(done, errval);
     }
 
-    /* Write the imprint, then encrypt the file */
-    if (write_imprint(out, key, imprintIV, rng)) {
-        ERROR_QUIET(isErr, errVal);
-    }
-    if (encrypt_body(in, out, key, bodyIV)) {
-        ERROR_QUIET(isErr, errVal);
+    in = open_input_file(input_file);
+    if (in == -1) {
+        ERROR(done, errval, "Could not open input file: %s",
+              (input_file == NULL ? "standard input" : input_file));
     }
 
-isErr:
+    out = open_output_file(output_file);
+    if (out == -1) {
+        ERROR(done, errval, "Could not open output file: %s",
+              (output_file == NULL ? "standard output" : output_file));
+    }
+
+    if (write_header(out, salt, imprint_iv, body_iv)) {
+        ERROR_QUIET(done, errval);
+    }
+    if (write_imprint(out, key, imprint_iv, rng)) {
+        ERROR_QUIET(done, errval);
+    }
+    if (encrypt_body(in, out, key, body_iv)) {
+        ERROR_QUIET(done, errval);
+    }
+
+done:
     if (in != -1) {
         close(in);
     }
@@ -218,54 +173,51 @@ isErr:
     }
     cprng_free_scrub(rng);
     scrub_memory(key, CIPHER_MAX_KEY_SIZE);
-    return errVal;
+    return errval;
 }
 
-int decrypt_file(const char *inputFile, const char *outputFile,
-                 const char *password, size_t passwordLen)
+int decrypt_file(const char *input_file, const char *output_file,
+                 const char *password, size_t password_len)
 {
     byte key[CIPHER_MAX_KEY_SIZE];
     byte salt[CIPHER_MAX_KEY_SIZE];
-    byte imprintIV[CIPHER_MAX_BLOCK_SIZE];
-    byte bodyIV[CIPHER_MAX_BLOCK_SIZE];
+    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
+    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
-    int errVal = 0;
+    int errval = 0;
 
-    /* Open the input file */
-    in = open_input_file(inputFile);
+    in = open_input_file(input_file);
     if (in == -1) {
-        ERROR(isErr, errVal, "Could not open input file: %s",
-              (inputFile == NULL ? "standard input" : inputFile));
+        ERROR(done, errval, "Could not open input file: %s",
+              (input_file == NULL ? "standard input" : input_file));
+    }
+
+    if (read_header(in, salt, imprint_iv, body_iv)) {
+        ERROR_QUIET(done, errval);
+    }
+    if (password_to_key(key, password, password_len, salt)) {
+        ERROR_QUIET(done, errval);
+    }
+    if (read_imprint(in, key, imprint_iv)) {
+        ERROR_QUIET(done, errval);
     }
 
     /*
-     * Read the header to determine the version and get the salt and IVs, then
-     * derive the key from the password
+     * Hold off on opening the output file until we've confirmed the decryption
+     * key is correct.
      */
-    if (read_header(in, salt, imprintIV, bodyIV)) {
-        ERROR_QUIET(isErr, errVal);
-    }
-    if (password_to_key(key, password, passwordLen, salt)) {
-        ERROR_QUIET(isErr, errVal);
-    }
-
-    /* Verify the imprint before opening the output file */
-    if (read_imprint(in, key, imprintIV)) {
-        ERROR_QUIET(isErr, errVal);
-    }
-
-    /* Now open the output file and decrypt the body */
-    out = open_output_file(outputFile);
+    out = open_output_file(output_file);
     if (out == -1) {
-        ERROR(isErr, errVal, "Could not open output file: %s",
-              (outputFile == NULL ? "standard output" : outputFile));
-    }
-    if (decrypt_body(in, out, key, bodyIV)) {
-        ERROR_QUIET(isErr, errVal);
+        ERROR(done, errval, "Could not open output file: %s",
+              (output_file == NULL ? "standard output" : output_file));
     }
 
-isErr:
+    if (decrypt_body(in, out, key, body_iv)) {
+        ERROR_QUIET(done, errval);
+    }
+
+done:
     if (in != -1) {
         close(in);
     }
@@ -273,364 +225,400 @@ isErr:
         close(out);
     }
     scrub_memory(key, CIPHER_MAX_KEY_SIZE);
-    return errVal;
+    return errval;
 }
 
-static int write_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV,
-                        struct cprng *rng)
+static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
     struct cipher_ctx *cipher = NULL;
-    byte versionByte;
-    size_t keyAndSaltLen, ivLen;
-    int errVal = 0;
+    byte magic_version;
+    size_t key_salt_len, iv_len;
+    int errval = 0;
 
-    /* Write the Pisces magic bytes, which include the version number */
-    versionByte = (byte)pisces_get_version();
+    magic_version = (byte)pisces_get_version();
     if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
                       PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR(isErr, errVal, "Could not write magic-byte prefix");
+        ERROR(done, errval, "Could not write magic-byte prefix");
     }
-    if (write_exactly(fd, &versionByte, 1)) {
-        ERROR(isErr, errVal, "Could not write magic-byte version");
+    if (write_exactly(fd, &magic_version, 1)) {
+        ERROR(done, errval, "Could not write magic-byte version");
     }
 
-    /* Generate the random salt and IVs */
     cipher = pisces_unpadded_cipher_alloc();
-    keyAndSaltLen = cipher_key_size(cipher);
-    ivLen = cipher_iv_size(cipher);
-    cprng_bytes(rng, salt, keyAndSaltLen);
-    generate_distinct_ivs(imprintIV, bodyIV, ivLen, rng);
+    key_salt_len = cipher_key_size(cipher);
+    iv_len = cipher_iv_size(cipher);
 
-    /* Write out the salt and IVs */
-    if (write_exactly(fd, salt, keyAndSaltLen)) {
-        ERROR(isErr, errVal, "Could not write salt");
+    if (write_exactly(fd, salt, key_salt_len)) {
+        ERROR(done, errval, "Could not write salt");
     }
-    if (write_exactly(fd, imprintIV, ivLen)) {
-        ERROR(isErr, errVal, "Could not write imprint IV");
+    if (write_exactly(fd, imprint_iv, iv_len)) {
+        ERROR(done, errval, "Could not write imprint IV");
     }
-    if (write_exactly(fd, bodyIV, ivLen)) {
-        ERROR(isErr, errVal, "Could not write body IV");
+    if (write_exactly(fd, body_iv, iv_len)) {
+        ERROR(done, errval, "Could not write body IV");
     }
 
-isErr:
+done:
     cipher_free_scrub(cipher);
-    return errVal;
+    return errval;
 }
 
-static int read_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV)
+static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
     struct cipher_ctx *cipher = NULL;
-    byte magicPrefix[PISCES_MAGIC_PREFIX_LEN];
-    byte magicVersion;
-    size_t keyAndSaltLen, ivLen;
-    int errVal = 0;
+    byte magic_prefix[PISCES_MAGIC_PREFIX_LEN];
+    byte magic_version;
+    size_t key_salt_len, iv_len;
+    int errval = 0;
 
-    /* Read the magic Pisces identifier and the version number */
-    if (read_exactly(fd, magicPrefix, PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR(isErr, errVal, "Could not read magic-byte prefix");
+    if (read_exactly(fd, magic_prefix, PISCES_MAGIC_PREFIX_LEN)) {
+        ERROR(done, errval, "Could not read magic-byte prefix");
     }
-    if (memcmp(magicPrefix, PISCES_MAGIC_PREFIX, PISCES_MAGIC_PREFIX_LEN) !=
-        0) {
-        ERROR(isErr, errVal, CANNOT_DECRYPT);
+    if (memcmp(magic_prefix, PISCES_MAGIC_PREFIX, PISCES_MAGIC_PREFIX_LEN)) {
+        ERROR(done, errval, MESSAGE_CANNOT_DECRYPT);
     }
-    if (read_exactly(fd, &magicVersion, 1)) {
-        ERROR(isErr, errVal, "Could not read magic-byte version");
+    if (read_exactly(fd, &magic_version, 1)) {
+        ERROR(done, errval, "Could not read magic-byte version");
     }
-    if (pisces_set_version((int)magicVersion)) {
-        ERROR(isErr, errVal, "Unsupported Pisces version: %d",
-              (int)magicVersion);
+    if (pisces_set_version((int)magic_version)) {
+        ERROR(done, errval, "Unsupported Pisces version: %d",
+              (int)magic_version);
     }
 
-    /* Get the cipher primitive */
     cipher = pisces_unpadded_cipher_alloc();
+    key_salt_len = cipher_key_size(cipher);
+    iv_len = cipher_iv_size(cipher);
 
-    /* Read the random salt and IVs */
-    keyAndSaltLen = cipher_key_size(cipher);
-    ivLen = cipher_iv_size(cipher);
-    if (read_exactly(fd, salt, keyAndSaltLen)) {
-        ERROR(isErr, errVal, "Could not read salt");
+    if (read_exactly(fd, salt, key_salt_len)) {
+        ERROR(done, errval, "Could not read salt");
     }
-    if (read_exactly(fd, imprintIV, ivLen)) {
-        ERROR(isErr, errVal, "Could not read imprint IV");
+    if (read_exactly(fd, imprint_iv, iv_len)) {
+        ERROR(done, errval, "Could not read imprint IV");
     }
-    if (read_exactly(fd, bodyIV, ivLen)) {
-        ERROR(isErr, errVal, "Could not read body IV");
+    if (read_exactly(fd, body_iv, iv_len)) {
+        ERROR(done, errval, "Could not read body IV");
     }
 
-isErr:
+done:
     cipher_free_scrub(cipher);
-    return errVal;
+    return errval;
 }
 
-static int write_imprint(int fd, const byte *key, const byte *imprintIV,
+static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
                          struct cprng *rng)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
-    byte randomData[PISCES_MAX_RANDOM_SIZE];
-    byte randomHash[CHF_MAX_DIGEST_SIZE];
-    byte encryptedImprint[PISCES_MAX_IMPRINT_SIZE];
-    size_t randomLen, hashLen, totalLen;
-    size_t encOutA, encOutB;
-    int errVal = 0;
+    byte random_data[PISCES_MAX_RANDOM_SIZE];
+    byte random_hash[CHF_MAX_DIGEST_SIZE];
+    byte encrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
+    size_t random_len, hash_len, total_len;
+    size_t bytes_encrypted1, bytes_encrypted2;
+    int errval = 0;
 
-    /* Generate the random data */
     chf = pisces_chf_alloc();
     cipher = pisces_unpadded_cipher_alloc();
-    hashLen = chf_digest_size(chf);
-    compute_imprint_sizes(&randomLen, &totalLen, cipher, chf);
-    cprng_bytes(rng, randomData, randomLen);
+    hash_len = chf_digest_size(chf);
+    compute_imprint_size(&random_len, &total_len, cipher, chf);
 
-    /* Hash the random data */
-    if (chf_single(chf, randomData, randomLen, randomHash)) {
-        ERROR(isErr, errVal, "Could not hash random imprint data - %s",
+    /*
+     * The number of random bytes is small enough that we can generate them and
+     * compute their hash all at once.
+     */
+    cprng_bytes(rng, random_data, random_len);
+    if (chf_single(chf, random_data, random_len, random_hash)) {
+        ERROR(done, errval, "Could not hash random imprint data - %s",
               chf_error(chf));
     }
 
-    /* Encrypt the random data and the hash without padding */
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
-    cipher_set_iv(cipher, imprintIV);
+    cipher_set_iv(cipher, imprint_iv);
     cipher_set_key(cipher, key);
+
     cipher_start(cipher);
-    cipher_add(cipher, randomData, randomLen, encryptedImprint, &encOutA);
-    cipher_add(cipher, randomHash, hashLen, encryptedImprint + encOutA,
-               &encOutB);
-    if (cipher_end(cipher, encryptedImprint + encOutA + encOutB, NULL)) {
-        ERROR(isErr, errVal, "Could not encrypt imprint data - %s",
+    cipher_add(cipher, random_data, random_len, encrypted_imprint,
+               &bytes_encrypted1);
+    cipher_add(cipher, random_hash, hash_len,
+               encrypted_imprint + bytes_encrypted1, &bytes_encrypted2);
+    if (cipher_end(cipher,
+                   encrypted_imprint + bytes_encrypted1 + bytes_encrypted2,
+                   NULL)) {
+        ERROR(done, errval, "Could not encrypt imprint data - %s",
               cipher_error(cipher));
     }
 
-    /* Write out the encrypted imprint */
-    if (write_exactly(fd, encryptedImprint, totalLen)) {
-        ERROR(isErr, errVal, "Could not write encrypted imprint");
+    if (write_exactly(fd, encrypted_imprint, total_len)) {
+        ERROR(done, errval, "Could not write encrypted imprint");
     }
 
-isErr:
+done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
-    scrub_memory(randomData, PISCES_MAX_RANDOM_SIZE);
-    scrub_memory(randomHash, CHF_MAX_DIGEST_SIZE);
-    return errVal;
+    scrub_memory(random_data, PISCES_MAX_RANDOM_SIZE);
+    scrub_memory(random_hash, CHF_MAX_DIGEST_SIZE);
+    return errval;
 }
 
-static int read_imprint(int fd, const byte *key, const byte *imprintIV)
+static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
-    byte encryptedImprint[PISCES_MAX_IMPRINT_SIZE];
-    byte decryptedImprint[PISCES_MAX_IMPRINT_SIZE];
-    byte computedHash[CHF_MAX_DIGEST_SIZE];
-    size_t randomLen, hashLen, totalLen;
-    size_t decOut;
-    int errVal = 0;
+    byte encrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
+    byte decrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
+    byte computed_hash[CHF_MAX_DIGEST_SIZE];
+    size_t random_len, hash_len, total_len;
+    size_t decrypted_len;
+    int errval = 0;
 
-    /* Compute the necessary sizes */
     chf = pisces_chf_alloc();
     cipher = pisces_unpadded_cipher_alloc();
-    hashLen = chf_digest_size(chf);
-    compute_imprint_sizes(&randomLen, &totalLen, cipher, chf);
+    hash_len = chf_digest_size(chf);
+    compute_imprint_size(&random_len, &total_len, cipher, chf);
 
-    /* Read the encrypted imprint and decrypt it */
-    if (read_exactly(fd, encryptedImprint, totalLen)) {
-        ERROR(isErr, errVal, "Could not read encrypted imprint");
+    /* Read the entire imprint */
+    if (read_exactly(fd, encrypted_imprint, total_len)) {
+        ERROR(done, errval, "Could not read encrypted imprint");
     }
+
+    /*
+     * Decrypt the entire imprint. We do not need the size filled in by
+     * cipher_end(), because we know the size of the imprint the cipher context
+     * will give us (if there is no error).
+     */
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
-    cipher_set_iv(cipher, imprintIV);
+    cipher_set_iv(cipher, imprint_iv);
     cipher_set_key(cipher, key);
     cipher_start(cipher);
-    cipher_add(cipher, encryptedImprint, totalLen, decryptedImprint, &decOut);
-    if (cipher_end(cipher, decryptedImprint + decOut, NULL)) {
-        ERROR(isErr, errVal, "Could not decrypt imprint data - %s",
+    cipher_add(cipher, encrypted_imprint, total_len, decrypted_imprint,
+               &decrypted_len);
+    if (cipher_end(cipher, decrypted_imprint + decrypted_len, NULL)) {
+        ERROR(done, errval, "Could not decrypt imprint data - %s",
               cipher_error(cipher));
     }
 
-    /* Compute the hash of the random data portion of the decrypted data */
-    if (chf_single(chf, decryptedImprint, randomLen, computedHash)) {
-        ERROR(isErr, errVal,
-              "Could not compute hash of decrypted imprint - %s",
+    /* Hash only the first part of the decrypted imprint (the random data) */
+    if (chf_single(chf, decrypted_imprint, random_len, computed_hash)) {
+        ERROR(done, errval, "Could not compute hash of decrypted imprint - %s",
               chf_error(chf));
     }
 
-    /* Compare the two hashes */
-    if (memcmp(computedHash, decryptedImprint + randomLen, hashLen) != 0) {
-        ERROR(isErr, errVal, CANNOT_DECRYPT);
+    /*
+     * Check the computed hash matches the decrypted hash found in the file. If
+     * it does not, assume an incorrect decryption key was given.
+     *
+     * We ignore the possibility that there has been file corruption in the
+     * imprint. That could render the hash in the imprint incorrect, despite
+     * the body being intact. But, checking for that possibility at this point
+     * (by decrypting the body and computing its hash) would defeat the purpose
+     * of placing the imprint in the encrypted file.
+     */
+    if (memcmp(computed_hash, decrypted_imprint + random_len, hash_len) != 0) {
+        ERROR(done, errval, MESSAGE_CANNOT_DECRYPT);
     }
 
-isErr:
+done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
-    scrub_memory(decryptedImprint, PISCES_MAX_IMPRINT_SIZE);
-    scrub_memory(computedHash, CHF_MAX_DIGEST_SIZE);
-    return errVal;
+    scrub_memory(decrypted_imprint, PISCES_MAX_IMPRINT_SIZE);
+    scrub_memory(computed_hash, CHF_MAX_DIGEST_SIZE);
+    return errval;
 }
 
-static int encrypt_body(int in, int out, const byte *key, const byte *bodyIV)
+static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
-    byte buffer[BYTES_AT_ONCE];
+    byte input[INPUT_BYTES_READ_AT_ONCE];
     byte hash[CHF_MAX_DIGEST_SIZE];
-    byte eBuf[BYTES_AT_ONCE + CHF_MAX_DIGEST_SIZE + CIPHER_MAX_BLOCK_SIZE];
-    size_t hashLen, bytesRead, bytesEnc;
-    int errVal = 0;
+    byte enc_data[INPUT_BYTES_READ_AT_ONCE + CHF_MAX_DIGEST_SIZE +
+                  CIPHER_MAX_BLOCK_SIZE];
+    size_t hash_len, bytes_read, bytes_encrypted;
+    int errval = 0;
 
-    /* Initialize the message digest */
     chf = pisces_chf_alloc();
-    hashLen = chf_digest_size(chf);
+    hash_len = chf_digest_size(chf);
     chf_start(chf);
 
-    /* Initialize the cipher */
     cipher = pisces_padded_cipher_alloc();
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
-    cipher_set_iv(cipher, bodyIV);
+    cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
     cipher_start(cipher);
 
-    /* Loop until all data is encrypted */
+    /*
+     * Hash the all of the file contents, and write most (possibly all) of the
+     * encrypted file contents out. It is possible (likely) that there are
+     * still encrypted file contents in the cipher context at the end of this
+     * loop, because of the padding scheme.
+     */
     while (1) {
-        /* Read up to BYTES_AT_ONCE from the input source */
-        if (read_up_to(in, buffer, BYTES_AT_ONCE, &bytesRead)) {
-            ERROR(isErr, errVal, "Could not read bytes to encrypt from input");
+        if (read_up_to(in, input, INPUT_BYTES_READ_AT_ONCE, &bytes_read)) {
+            ERROR(done, errval, "Could not read bytes to encrypt from input");
         }
-        if (bytesRead == 0) {
+        if (bytes_read == 0) {
             break;
         }
 
-        /* Cipher and hash the data, then write out the ciphered data */
-        cipher_add(cipher, buffer, bytesRead, eBuf, &bytesEnc);
-        if (chf_add(chf, buffer, bytesRead)) {
-            ERROR(isErr, errVal,
+        if (chf_add(chf, input, bytes_read)) {
+            ERROR(done, errval,
                   "Could not generate hash of input contents - %s",
                   chf_error(chf));
         }
-        if (write_exactly(out, eBuf, bytesEnc)) {
-            ERROR(isErr, errVal, "Could not write encrypted data to output");
+
+        cipher_add(cipher, input, bytes_read, enc_data, &bytes_encrypted);
+        if (write_exactly(out, enc_data, bytes_encrypted)) {
+            ERROR(done, errval, "Could not write encrypted data to output");
         }
     }
 
-    /* Finalize and encrypt the hash */
+    /*
+     * All of the input file contents have been run through the hash context,
+     * so the hash computation can be finalized.
+     */
     if (chf_end(chf, hash)) {
-        ERROR(isErr, errVal, "Could not generate hash of input contents - %s",
+        ERROR(done, errval, "Could not generate hash of input contents - %s",
               chf_error(chf));
     }
-    cipher_add(cipher, hash, hashLen, eBuf, &bytesEnc);
-    if (write_exactly(out, eBuf, bytesEnc)) {
-        ERROR(isErr, errVal, "Could not write encrypted data to output");
-    }
 
-    /* Write out the final padded block */
-    if (cipher_end(cipher, eBuf, &bytesEnc)) {
-        ERROR(isErr, errVal, "Could not encrypt input contents - %s",
+    /*
+     * Adding the computed hash to the cipher context and finalizing the cipher
+     * operation flushes any last encrypted file contents, along with the
+     * encrypted hash of the file contents.
+     */
+    cipher_add(cipher, hash, hash_len, enc_data, &bytes_encrypted);
+    if (write_exactly(out, enc_data, bytes_encrypted)) {
+        ERROR(done, errval, "Could not write encrypted data to output");
+    }
+    if (cipher_end(cipher, enc_data, &bytes_encrypted)) {
+        ERROR(done, errval, "Could not encrypt input contents - %s",
               cipher_error(cipher));
     }
-    if (write_exactly(out, eBuf, bytesEnc)) {
-        ERROR(isErr, errVal, "Could not write encrypted data to output");
+    if (write_exactly(out, enc_data, bytes_encrypted)) {
+        ERROR(done, errval, "Could not write encrypted data to output");
     }
 
-isErr:
+done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
-    scrub_memory(buffer, BYTES_AT_ONCE);
+    scrub_memory(input, INPUT_BYTES_READ_AT_ONCE);
     scrub_memory(hash, CHF_MAX_DIGEST_SIZE);
-    return errVal;
+    return errval;
 }
 
-static int decrypt_body(int in, int out, const byte *key, const byte *bodyIV)
+static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
 {
     struct chf_ctx *chf = NULL;
     struct cipher_ctx *cipher = NULL;
     struct holdbuf *hb = NULL;
-    byte buffer[BYTES_AT_ONCE];
-    byte dBuf[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
-    byte retFromHB[BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
-    byte storedHash[CHF_MAX_DIGEST_SIZE];
-    byte computedHash[CHF_MAX_DIGEST_SIZE];
-    size_t hashLen, bytesRead, bytesDec, bytesReturned;
-    int errVal = 0;
+    byte input[INPUT_BYTES_READ_AT_ONCE];
+    byte dec_data[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
+    byte data_from_hb[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
+    byte stored_hash[CHF_MAX_DIGEST_SIZE];
+    byte computed_hash[CHF_MAX_DIGEST_SIZE];
+    size_t hash_len, bytes_read, bytes_decrypted, bytes_from_hb;
+    int errval = 0;
 
-    /* Initialize the cipher, message digest, and holdback buffer */
     chf = pisces_chf_alloc();
     chf_start(chf);
-    hashLen = chf_digest_size(chf);
+    hash_len = chf_digest_size(chf);
 
     cipher = pisces_padded_cipher_alloc();
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
-    cipher_set_iv(cipher, bodyIV);
+    cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
     cipher_start(cipher);
 
-    hb = holdbuf_alloc(hashLen);
+    hb = holdbuf_alloc(hash_len);
 
-    /* Loop until all data is decrypted */
+    /*
+     * We decrypt the entire body, but hash and write out only what the
+     * holdback buffer allows. The final part of the decrypted input, retained
+     * in the holdback buffer, is the supposed decrypted hash of the file
+     * contents.
+     */
     while (1) {
-        /* Read up to BYTES_AT_ONCE from the input source */
-        if (read_up_to(in, buffer, BYTES_AT_ONCE, &bytesRead)) {
-            ERROR(isErr, errVal, "Could not read bytes to decrypt from input");
+        if (read_up_to(in, input, INPUT_BYTES_READ_AT_ONCE, &bytes_read)) {
+            ERROR(done, errval, "Could not read bytes to decrypt from input");
         }
-        if (bytesRead == 0) {
+        if (bytes_read == 0) {
             break;
         }
 
-        /*
-         * Decrypt the data, then write and hash what the holdback buffer
-         * allows
-         */
-        cipher_add(cipher, buffer, bytesRead, dBuf, &bytesDec);
-        holdbuf_give(hb, dBuf, bytesDec, retFromHB, &bytesReturned);
-        if (chf_add(chf, retFromHB, bytesReturned)) {
-            ERROR(isErr, errVal,
+        cipher_add(cipher, input, bytes_read, dec_data, &bytes_decrypted);
+        holdbuf_give(hb, dec_data, bytes_decrypted, data_from_hb,
+                     &bytes_from_hb);
+
+        if (chf_add(chf, data_from_hb, bytes_from_hb)) {
+            ERROR(done, errval,
                   "Could not compute hash for decrypted data - %s",
                   chf_error(chf));
         }
-        if (write_exactly(out, retFromHB, bytesReturned)) {
-            ERROR(isErr, errVal, "Could not write decrypted data to output");
+
+        if (write_exactly(out, data_from_hb, bytes_from_hb)) {
+            ERROR(done, errval, "Could not write decrypted data to output");
         }
     }
 
-    /* Decrypt the final padded block into the holdback, then hash/write */
-    if (cipher_end(cipher, dBuf, &bytesDec)) {
-        ERROR(isErr, errVal, "Could not decrypt input contents - %s",
+    /*
+     * Everything the holdback buffer is giving back here is the last of the
+     * file contents that have been decrypted.
+     */
+    if (cipher_end(cipher, dec_data, &bytes_decrypted)) {
+        ERROR(done, errval, "Could not decrypt input contents - %s",
               cipher_error(cipher));
     }
-    holdbuf_give(hb, dBuf, bytesDec, retFromHB, &bytesReturned);
-    if (chf_add(chf, retFromHB, bytesReturned)) {
-        ERROR(isErr, errVal, "Could not compute hash for decrypted data - %s",
+    holdbuf_give(hb, dec_data, bytes_decrypted, data_from_hb, &bytes_from_hb);
+    if (chf_add(chf, data_from_hb, bytes_from_hb)) {
+        ERROR(done, errval, "Could not compute hash for decrypted data - %s",
               chf_error(chf));
     }
-    if (write_exactly(out, retFromHB, bytesReturned)) {
-        ERROR(isErr, errVal, "Could not write decrypted data to output");
+    if (write_exactly(out, data_from_hb, bytes_from_hb)) {
+        ERROR(done, errval, "Could not write decrypted data to output");
     }
 
     /*
-     * Grab the remaining hashLen bytes out of the holdback to verify the file
+     * All that is left in the holdback buffer now is the supposed hash of the
+     * file contents, as provided by the input file.
      */
-    if (holdbuf_end(hb, storedHash)) {
-        ERROR(isErr, errVal, "Could not get stored hash value from buffer");
+    if (holdbuf_end(hb, stored_hash)) {
+        ERROR(done, errval, "Could not get stored hash value from buffer");
     }
-    if (chf_end(chf, computedHash)) {
-        ERROR(isErr, errVal, "Could not compute hash for decrypted data - %s",
+    if (chf_end(chf, computed_hash)) {
+        ERROR(done, errval, "Could not compute hash for decrypted data - %s",
               chf_error(chf));
     }
-    if (memcmp(storedHash, computedHash, hashLen) != 0) {
-        ERROR(isErr, errVal, "Data integrity check failed on input file");
+
+    /*
+     * If the hashes do not match, despite the hash check on the imprint
+     * succeeding, we can safely conclude there was file corruption.
+     */
+    if (memcmp(stored_hash, computed_hash, hash_len) != 0) {
+        ERROR(done, errval, "Data integrity check failed on input file");
     }
 
-isErr:
+done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
     holdbuf_free_scrub(hb);
-    scrub_memory(dBuf, BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
-    scrub_memory(retFromHB, BYTES_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
-    scrub_memory(storedHash, CHF_MAX_DIGEST_SIZE);
-    scrub_memory(computedHash, CHF_MAX_DIGEST_SIZE);
-    return errVal;
+    scrub_memory(dec_data, INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
+    scrub_memory(data_from_hb,
+                 INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
+    scrub_memory(stored_hash, CHF_MAX_DIGEST_SIZE);
+    scrub_memory(computed_hash, CHF_MAX_DIGEST_SIZE);
+    return errval;
 }
 
-static void generate_distinct_ivs(byte *ivA, byte *ivB, size_t ivLen,
-                                  struct cprng *rng)
+static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
+                              struct cprng *rng)
 {
-    cprng_bytes(rng, ivA, ivLen);
-    cprng_bytes(rng, ivB, ivLen);
+    struct cipher_ctx *cipher;
+    size_t key_salt_len, iv_len;
+
+    cipher = pisces_unpadded_cipher_alloc();
+    key_salt_len = cipher_key_size(cipher);
+    iv_len = cipher_iv_size(cipher);
+
+    cprng_bytes(rng, salt, key_salt_len);
 
     /*
      * The generated IVs being identical would be a coincidence so unlikely it
@@ -642,70 +630,80 @@ static void generate_distinct_ivs(byte *ivA, byte *ivB, size_t ivLen,
      * cryptographic library. But, since it is theoretically possible, we use
      * a fatal error here instead of aborting on a failed assertion.
      */
-    if (memcmp(ivA, ivB, ivLen) == 0) {
-        cprng_bytes(rng, ivB, ivLen);
-        if (memcmp(ivA, ivB, ivLen) == 0) {
+    cprng_bytes(rng, iv1, iv_len);
+    cprng_bytes(rng, iv2, iv_len);
+    if (memcmp(iv1, iv2, iv_len) == 0) {
+        cprng_bytes(rng, iv2, iv_len);
+        if (memcmp(iv1, iv2, iv_len) == 0) {
             FATAL_ERROR("Identical IVs generated twice");
         }
     }
+
+    cipher_free_scrub(cipher);
 }
 
-static int password_to_key(byte *derivedKey, const char *password,
-                           size_t passwordLen, const byte *salt)
+static int password_to_key(byte *derived_key, const char *password,
+                           size_t password_len, const byte *salt)
 {
     struct cipher_ctx *cipher = NULL;
     struct kdf *fn = NULL;
-    size_t keyAndSaltLen;
-    int errVal = 0;
+    size_t key_salt_len;
+    int errval = 0;
 
     cipher = pisces_unpadded_cipher_alloc();
     fn = pisces_kdf_alloc();
-    keyAndSaltLen = cipher_key_size(cipher);
+    key_salt_len = cipher_key_size(cipher);
 
-    if (kdf_derive(fn, derivedKey, keyAndSaltLen, password, passwordLen, salt,
-                   keyAndSaltLen)) {
-        ERROR(isErr, errVal, "Could not derive key - %s", kdf_error(fn));
+    if (kdf_derive(fn, derived_key, key_salt_len, password, password_len, salt,
+                   key_salt_len)) {
+        ERROR(done, errval, "Could not derive key - %s", kdf_error(fn));
     }
 
-isErr:
+done:
     cipher_free_scrub(cipher);
     kdf_free_scrub(fn);
-    return errVal;
+    return errval;
 }
 
-static void compute_imprint_sizes(size_t *randomData, size_t *total,
-                                  const struct cipher_ctx *cipher,
-                                  const struct chf_ctx *chf)
+static void compute_imprint_size(size_t *random_data_size,
+                                 size_t *total_imprint_size,
+                                 const struct cipher_ctx *cipher,
+                                 const struct chf_ctx *chf)
 {
-    size_t hashLen, blockLen, keyLen, max, required;
+    size_t hash_len, block_len, key_len, max, required;
 
-    /* Find which of the hash, block, and key lengths is the largest */
-    hashLen = chf_digest_size(chf);
-    blockLen = cipher_block_size(cipher);
-    keyLen = cipher_key_size(cipher);
-    max = MAX(hashLen, blockLen, keyLen);
+    /* Amount of random data is guaranteed to be as large as each of these */
+    hash_len = chf_digest_size(chf);
+    block_len = cipher_block_size(cipher);
+    key_len = cipher_key_size(cipher);
+    max = MAX(hash_len, block_len, key_len);
+
+    /* The imprint also includes the hash of the random data */
+    required = max + hash_len;
+    ASSERT(required >= max, "Addition overflow computing imprint size");
 
     /*
-     * The total amount of data will be at least as large as that maximum,
-     * plus the hash output.
+     * The random data and its hash have to be a multiple of the cipher's block
+     * size, so we might need to make the random data slightly larger, to fill
+     * out a final block.
      */
-    required = max + hashLen;
-    ASSERT(required >= max, "Addition overflow computing imprint size");
-    *total = cipher_block_ceiling(required, cipher);
-    *randomData = (*total) - hashLen;
+    *total_imprint_size = cipher_block_ceiling(required, cipher);
+    *random_data_size = (*total_imprint_size) - hash_len;
 }
 
-size_t cipher_block_ceiling(size_t bytes, const struct cipher_ctx *cipher)
+static size_t cipher_block_ceiling(size_t bytes,
+                                   const struct cipher_ctx *cipher)
 {
-    size_t blockSize, remainder, res;
+    size_t block_size, remainder, res;
 
-    blockSize = cipher_block_size(cipher);
-    remainder = bytes % blockSize;
+    /* Ceiling to a multiple of the cipher's block size */
+    block_size = cipher_block_size(cipher);
+    remainder = bytes % block_size;
     if (remainder == 0) {
         return bytes;
     }
     else {
-        res = bytes + (blockSize - remainder);
+        res = bytes + (block_size - remainder);
         ASSERT(res >= bytes, "Addition overflow computing block ceiling");
         return res;
     }
