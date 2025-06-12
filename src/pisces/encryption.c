@@ -48,11 +48,11 @@
     ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
 
 /*
- * The Pisces header: these 6 bytes, followed by a one-byte version number. The
- * version number is not included in the length.
+ * The Pisces magic bytes are these 6 bytes, followed by a one-byte version
+ * number.
  */
-#define PISCES_HEADER     "PISCES"
-#define PISCES_HEADER_LEN (6)
+#define PISCES_MAGIC_PREFIX     "PISCES"
+#define PISCES_MAGIC_PREFIX_LEN (6)
 
 /*
  * PISCES_MAX_RANDOM_SIZE defines an upper bound on the amount of random data
@@ -94,18 +94,18 @@
 
 /*
  * Generates the salt and two IVs and stores them into the provided arrays.
- * Writes out the Pisces identification header, followed by the salt and IVs.
- * This function relies on the Pisces version already having been set, as it
- * uses pisces_get_version(). Returns 0 on success, -1 on error (and prints
- * error messages).
+ * Writes out the Pisces magic bytes, followed by the salt and IVs. This
+ * function relies on the Pisces version already having been set, as it uses
+ * pisces_get_version(). Returns 0 on success, -1 on error (and prints error
+ * messages).
  */
 static int write_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV,
                         struct cprng *rng);
 
 /*
- * Reads in the Pisces identification header, sets the version of Pisces being
- * used to match the version in the file, then reads the salt and two IVs.
- * Returns 0 on success, -1 on error (and prints error messages).
+ * Reads in the Pisces magic bytes, sets the version of Pisces being used to
+ * match the version in the file, then reads the salt and two IVs. Returns 0
+ * on success, -1 on error (and prints error messages).
  */
 static int read_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV);
 
@@ -240,7 +240,7 @@ int decrypt_file(const char *inputFile, const char *outputFile,
     }
 
     /*
-     * Read the header to determine the version, then get the salt and IVs to
+     * Read the header to determine the version and get the salt and IVs, then
      * derive the key from the password
      */
     if (read_header(in, salt, imprintIV, bodyIV)) {
@@ -284,13 +284,14 @@ static int write_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV,
     size_t keyAndSaltLen, ivLen;
     int errVal = 0;
 
-    /* Write the magic Pisces identifier and the version number */
+    /* Write the Pisces magic bytes, which include the version number */
     versionByte = (byte)pisces_get_version();
-    if (write_exactly(fd, (byte *)PISCES_HEADER, PISCES_HEADER_LEN)) {
-        ERROR(isErr, errVal, "Could not write header to output");
+    if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
+                      PISCES_MAGIC_PREFIX_LEN)) {
+        ERROR(isErr, errVal, "Could not write magic-byte prefix");
     }
     if (write_exactly(fd, &versionByte, 1)) {
-        ERROR(isErr, errVal, "Could not write version byte");
+        ERROR(isErr, errVal, "Could not write magic-byte version");
     }
 
     /* Generate the random salt and IVs */
@@ -319,24 +320,25 @@ isErr:
 static int read_header(int fd, byte *salt, byte *imprintIV, byte *bodyIV)
 {
     struct cipher_ctx *cipher = NULL;
-    byte header[PISCES_HEADER_LEN];
-    byte versionByte;
+    byte magicPrefix[PISCES_MAGIC_PREFIX_LEN];
+    byte magicVersion;
     size_t keyAndSaltLen, ivLen;
     int errVal = 0;
 
     /* Read the magic Pisces identifier and the version number */
-    if (read_exactly(fd, header, PISCES_HEADER_LEN)) {
-        ERROR(isErr, errVal, "Could not read Pisces header from input");
+    if (read_exactly(fd, magicPrefix, PISCES_MAGIC_PREFIX_LEN)) {
+        ERROR(isErr, errVal, "Could not read magic-byte prefix");
     }
-    if (memcmp(header, PISCES_HEADER, PISCES_HEADER_LEN) != 0) {
+    if (memcmp(magicPrefix, PISCES_MAGIC_PREFIX, PISCES_MAGIC_PREFIX_LEN) !=
+        0) {
         ERROR(isErr, errVal, CANNOT_DECRYPT);
     }
-    if (read_exactly(fd, &versionByte, 1)) {
-        ERROR(isErr, errVal, "Could not read Pisces version from input");
+    if (read_exactly(fd, &magicVersion, 1)) {
+        ERROR(isErr, errVal, "Could not read magic-byte version");
     }
-    if (pisces_set_version((int)versionByte)) {
+    if (pisces_set_version((int)magicVersion)) {
         ERROR(isErr, errVal, "Unsupported Pisces version: %d",
-              (int)versionByte);
+              (int)magicVersion);
     }
 
     /* Get the cipher primitive */
