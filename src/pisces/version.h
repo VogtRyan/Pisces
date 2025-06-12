@@ -25,10 +25,15 @@
 #define PISCES_VERSION_EARLIEST_SUPPORTED (3)
 
 /*
- * Returns 0 on success, -1 if the provided version is unsupported. Does not
+ * Returns 0 on success or -1 if the provided version is unsupported. Does not
  * print error messages.
  */
 int pisces_set_version(int version);
+
+/*
+ * Guaranteed to return a value between the earliest supported version of
+ * Pisces and the newest version.
+ */
 int pisces_get_version(void);
 
 /*
