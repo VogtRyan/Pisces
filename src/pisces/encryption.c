@@ -621,22 +621,18 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
     cprng_bytes(rng, salt, key_salt_len);
 
     /*
-     * The generated IVs being identical would be a coincidence so unlikely it
-     * should realistically never happen. But, check for it and attempt to
-     * re-generate one of the IVs if it does happen.
-     *
-     * If they're identical twice in a row, terminate the program with a fatal
-     * error. At that point, it's almost certainly an error in the underlying
-     * cryptographic library. But, since it is theoretically possible, we use
-     * a fatal error here instead of aborting on a failed assertion.
+     * IVs cannot be reused for multiple cipher operations. That said, the
+     * generated IVs being identical would be a coincidence so unlikely it
+     * should realistically never happen (speaking in lifetime-of-the-universe
+     * magnitude probabilities). If it happens, treat it as an error in the
+     * cryptographic library. Use a fatal error (instead of aborting on a
+     * failed assertion) to be consistent with the behaviour when we fail to
+     * open a random number source from the system.
      */
     cprng_bytes(rng, iv1, iv_len);
     cprng_bytes(rng, iv2, iv_len);
     if (memcmp(iv1, iv2, iv_len) == 0) {
-        cprng_bytes(rng, iv2, iv_len);
-        if (memcmp(iv1, iv2, iv_len) == 0) {
-            FATAL_ERROR("Identical IVs generated twice");
-        }
+        FATAL_ERROR("Identical IVs generated");
     }
 
     cipher_free_scrub(cipher);
