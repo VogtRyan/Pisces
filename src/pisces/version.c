@@ -21,33 +21,26 @@
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-/*
- * Which version of Pisces we are running.
- */
-static int piscesVersion = PISCES_VERSION_NEWEST;
+static int pisces_version = PISCES_VERSION_NEWEST;
 
 int pisces_set_version(int version)
 {
-    int errVal = 0;
-
     if (version < PISCES_VERSION_EARLIEST_SUPPORTED ||
         version > PISCES_VERSION_NEWEST) {
-        ERROR_QUIET(isErr, errVal);
+        return -1;
     }
-    piscesVersion = version;
-
-isErr:
-    return errVal;
+    pisces_version = version;
+    return 0;
 }
 
 int pisces_get_version(void)
 {
-    return piscesVersion;
+    return pisces_version;
 }
 
 struct cipher_ctx *pisces_unpadded_cipher_alloc(void)
 {
-    switch (piscesVersion) {
+    switch (pisces_version) {
     case 3:
         return cipher_alloc(CIPHER_ALG_AES_128_CBC_NOPAD);
     case 4:
@@ -61,7 +54,7 @@ struct cipher_ctx *pisces_unpadded_cipher_alloc(void)
 
 struct cipher_ctx *pisces_padded_cipher_alloc(void)
 {
-    switch (piscesVersion) {
+    switch (pisces_version) {
     case 3:
         return cipher_alloc(CIPHER_ALG_AES_128_CBC_PKCS7PAD);
     case 4:
@@ -75,7 +68,7 @@ struct cipher_ctx *pisces_padded_cipher_alloc(void)
 
 struct chf_ctx *pisces_chf_alloc(void)
 {
-    switch (piscesVersion) {
+    switch (pisces_version) {
     case 3:
         return chf_alloc(CHF_ALG_SHA1);
     case 4:
@@ -89,7 +82,7 @@ struct chf_ctx *pisces_chf_alloc(void)
 
 struct kdf *pisces_kdf_alloc(void)
 {
-    switch (piscesVersion) {
+    switch (pisces_version) {
     case 3:
         return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_1024);
     case 4:

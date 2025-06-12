@@ -21,42 +21,24 @@
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-/*
- * Pisces version information: the current version, and the earliest
- * version supported by this implementation.
- */
 #define PISCES_VERSION_NEWEST             (5)
 #define PISCES_VERSION_EARLIEST_SUPPORTED (3)
 
 /*
- * Set the version of Pisces being used to the specified version. Returns 0 on
- * success, -1 if the provided version is unsupported.
+ * Returns 0 on success, -1 if the provided version is unsupported. Does not
+ * print error messages.
  */
 int pisces_set_version(int version);
-
-/*
- * Gets the version of Pisces that is currently in use.
- */
 int pisces_get_version(void);
 
 /*
- * Gets the cipher used by this version of Pisces to encrypt the header.
+ * Returns the cipher, hash function, or KDF used by this version of Pisces. If
+ * no version has been set with pisces_set_version(), the newest version of
+ * Pisces is used.
  */
 struct cipher_ctx *pisces_unpadded_cipher_alloc(void);
-
-/*
- * Gets the cipher used by this version of Pisces to encrypt the file body.
- */
 struct cipher_ctx *pisces_padded_cipher_alloc(void);
-
-/*
- * Gets the cryptographic hash function used by this version of Pisces.
- */
 struct chf_ctx *pisces_chf_alloc(void);
-
-/*
- * Gets the key derivation function used by this version of Pisces.
- */
 struct kdf *pisces_kdf_alloc(void);
 
 #endif
