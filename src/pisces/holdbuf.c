@@ -23,88 +23,91 @@
 #include <stddef.h>
 #include <string.h>
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 struct holdbuf {
     byte *buf;
-    size_t stopSize;
-    size_t inBuf;
+    size_t stop_size;
+    size_t in_buf;
 };
 
-struct holdbuf *holdbuf_alloc(size_t stopSize)
+struct holdbuf *holdbuf_alloc(size_t stop_size)
 {
     struct holdbuf *ret = calloc(1, sizeof(struct holdbuf));
     GUARD_ALLOC(ret);
 
-    ret->buf = calloc(1, stopSize);
+    ret->buf = calloc(1, stop_size);
     GUARD_ALLOC(ret->buf);
-    ret->stopSize = stopSize;
+    ret->stop_size = stop_size;
 
     return ret;
 }
 
-void holdbuf_give(struct holdbuf *hb, const byte *bytes, size_t numBytes,
-                  byte *output, size_t *outputBytes)
+void holdbuf_give(struct holdbuf *hb, const byte *input, size_t input_len,
+                  byte *output, size_t *output_len)
 {
-    size_t toFill, fromBuf, fromInput;
+    size_t to_fill, from_buf, from_input;
 
     /*
      * Compute how much data goes back to caller. The subtraction is safe,
-     * since inBuf <= stopSize.
+     * since in_buf <= stop_size.
      */
-    toFill = hb->stopSize - hb->inBuf;
-    if (numBytes < toFill) {
-        *outputBytes = 0;
+    to_fill = hb->stop_size - hb->in_buf;
+    if (input_len < to_fill) {
+        *output_len = 0;
     }
     else {
-        *outputBytes = numBytes - toFill;
+        *output_len = input_len - to_fill;
     }
 
-    if (*outputBytes > 0) {
+    if (*output_len > 0) {
         /*
-         * The amount given back is divided into how much comes from storage
-         * and how much from the input.
+         * Data given back to the caller comes first from the holdbuf's
+         * internal buffer, then from the input buffer (FIFO order).
          */
-        fromBuf = MIN(*outputBytes, hb->inBuf);
-        fromInput = *outputBytes - fromBuf;
+        from_buf = MIN(*output_len, hb->in_buf);
+        from_input = *output_len - from_buf;
 
-        /* Give the data to the caller */
-        memcpy(output, hb->buf, fromBuf);
-        memcpy(output + fromBuf, bytes, fromInput);
+        /* Give the data to the caller, potentially from both sources */
+        memcpy(output, hb->buf, from_buf);
+        memcpy(output + from_buf, input, from_input);
 
-        /* Update the stored buffer */
-        hb->inBuf -= fromBuf;
-        memmove(hb->buf, hb->buf + fromBuf, hb->inBuf);
+        /*
+         * Delete data given back from the front of the holdbuf's internal
+         * buffer.
+         */
+        hb->in_buf -= from_buf;
+        memmove(hb->buf, hb->buf + from_buf, hb->in_buf);
 
-        /* Update the input passed to us */
-        bytes += fromInput;
-        numBytes -= fromInput;
+        /* Skip data in the input that was just given back */
+        input += from_input;
+        input_len -= from_input;
     }
 
-    /* Add data we received (and haven't given back) to our storage */
-    memcpy(hb->buf + hb->inBuf, bytes, numBytes);
-    hb->inBuf += numBytes;
+    /* Add data we haven't given back to the holdbuf's internal storage */
+    memcpy(hb->buf + hb->in_buf, input, input_len);
+    hb->in_buf += input_len;
 }
 
 int holdbuf_end(struct holdbuf *hb, byte *output)
 {
-    int errVal = 0;
+    int errval = 0;
 
-    if (hb->inBuf != hb->stopSize) {
-        ERROR_CODE(isErr, errVal, HOLDBUF_ERROR_INSUFFICIENT_DATA);
+    if (hb->in_buf != hb->stop_size) {
+        ERROR_CODE(done, errval, HOLDBUF_ERROR_INSUFFICIENT_DATA);
     }
-    memcpy(output, hb->buf, hb->inBuf);
-    hb->inBuf = 0;
+    memcpy(output, hb->buf, hb->in_buf);
+    hb->in_buf = 0;
 
-isErr:
-    return errVal;
+done:
+    return errval;
 }
 
 void holdbuf_free_scrub(struct holdbuf *hb)
 {
     if (hb != NULL) {
         if (hb->buf != NULL) {
-            scrub_memory(hb->buf, hb->stopSize);
+            scrub_memory(hb->buf, hb->stop_size);
             free(hb->buf);
         }
         scrub_memory(hb, sizeof(struct holdbuf));

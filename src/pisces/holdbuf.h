@@ -21,37 +21,31 @@
 
 #include <stddef.h>
 
-/*
- * The error if there is insufficient data to conclude the holdbuf_end()
- * operation.
- */
 #define HOLDBUF_ERROR_INSUFFICIENT_DATA (-1)
 
 /*
- * This structure holds the most recent fix number of bytes given to it, in
- * FIFO order.
+ * A holdback buffer is a FIFO that retains the most recent stop_size bytes
+ * given to it, until holdbuf_end() is called.
  */
 struct holdbuf;
 
 /*
  * Allocates a new holdback buffer. Must be freed with holdbuf_free_scrub().
- * Guaranteed to return non-NULL; it is a fatal error for allocation to fail.
+ * Guaranteed to return non-NULL.
  */
-struct holdbuf *holdbuf_alloc(size_t stopSize);
+struct holdbuf *holdbuf_alloc(size_t stop_size);
 
 /*
- * Give the numBytes in bytes to the holdback buffer. If the buffer overflows
- * past stopSize, return (as a FIFO) some bytes to the caller. The bytes will
- * be placed in output, with outputBytes being set to the amount given back. It
- * is guaranteed that no more than numBytes will be written to output.
+ * Adds more bytes to the holdback buffer, returning bytes in FIFO order as
+ * more than stop_size bytes fill the buffer. It is guaranteed no more than
+ * input_len bytes will be written to the output buffer.
  */
-void holdbuf_give(struct holdbuf *hb, const byte *bytes, size_t numBytes,
-                  byte *output, size_t *outputBytes);
+void holdbuf_give(struct holdbuf *hb, const byte *input, size_t input_len,
+                  byte *output, size_t *output_len);
 
 /*
- * Empties the reamining stopSize bytes into the given output buffer. Returns 0
- * on success, or HOLDBUF_ERROR_INSUFFICIENT_DATA if there are not enough bytes
- * in the buffer.
+ * Empties the reamining stop_size bytes from the holdback buffer. Returns 0 on
+ * success, <0 on error (HOLDBUF_ERROR_INSUFFICIENT_DATA).
  */
 int holdbuf_end(struct holdbuf *hb, byte *output);
 
