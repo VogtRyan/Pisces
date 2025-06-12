@@ -22,125 +22,101 @@
 #include "common/errorflow.h"
 #include "common/scrub.h"
 
+#include <sys/stat.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
-/*
- * Parse the command line options passed to Pisces.
- *
- * encrypt will hold 1 if the operation is encryption or 0 for decryption.
- *
- * inputFile and outputFile will point to the relevant arguments within argv,
- * or will be NULL for stdin/stdout.
- *
- * password will point to the relevant argument within argv, or will be NULL
- * if none is provided on the command line.
- *
- * If there is any error processing the arguments, print the usage message to
- * standard error and exit with a negative code.
- */
 static void parse_command_line(int argc, char **argv, bool *encrypt,
-                               char **inputFile, char **outputFile,
+                               char **input_file, char **output_file,
                                char **password);
-static bool is_stdin_stdout(const char *cmdLineArg);
+static bool is_stdin_stdout(const char *cmdline_arg);
 
-/*
- * Stat the input file to check its type, and ensure that the input file
- * and output file are distinct. Return 0 on success, -1 on error (and
- * print error messages).
- */
-static int check_files(char *inputFile, char *outputFile);
+static int sanity_check_files(char *input_file, char *output_file);
 
-/*
- * Prints the usage message and version number to stderr and exit with a
- * negative code.
- */
 static void usage(void);
 
 int main(int argc, char **argv)
 {
     char password[PASSWORD_LENGTH_MAX];
-    size_t passwordLen;
-    char *providedPassword;
-    char *inputFile, *outputFile;
+    size_t password_len;
+    char *provided_password;
+    char *input_file, *output_file;
     bool encrypt;
-    int errVal = 0;
+    int errval = 0;
 
-    /* Parse the command line, stat the input file, and ensure file safety */
-    parse_command_line(argc, argv, &encrypt, &inputFile, &outputFile,
-                       &providedPassword);
-    if (check_files(inputFile, outputFile)) {
-        ERROR_QUIET(isErr, errVal);
+    parse_command_line(argc, argv, &encrypt, &input_file, &output_file,
+                       &provided_password);
+    if (sanity_check_files(input_file, output_file)) {
+        ERROR_QUIET(done, errval);
     }
 
-    /* Get the user's password */
     if (encrypt) {
-        if (get_encryption_password(password, &passwordLen,
-                                    providedPassword)) {
-            ERROR_QUIET(isErr, errVal);
+        if (get_encryption_password(password, &password_len,
+                                    provided_password)) {
+            ERROR_QUIET(done, errval);
         }
     }
     else {
-        if (get_decryption_password(password, &passwordLen,
-                                    providedPassword)) {
-            ERROR_QUIET(isErr, errVal);
+        if (get_decryption_password(password, &password_len,
+                                    provided_password)) {
+            ERROR_QUIET(done, errval);
         }
     }
 
-    /* Perform the encryption or decryption */
     if (encrypt) {
         pisces_set_version(PISCES_VERSION_NEWEST);
-        if (encrypt_file(inputFile, outputFile, password, passwordLen)) {
-            ERROR_QUIET(isErr, errVal);
+        if (encrypt_file(input_file, output_file, password, password_len)) {
+            ERROR_QUIET(done, errval);
         }
     }
     else {
-        if (decrypt_file(inputFile, outputFile, password, passwordLen)) {
-            ERROR_QUIET(isErr, errVal);
+        if (decrypt_file(input_file, output_file, password, password_len)) {
+            ERROR_QUIET(done, errval);
         }
     }
 
-isErr:
+done:
     scrub_memory(password, PASSWORD_LENGTH_MAX);
-    scrub_memory(&passwordLen, sizeof(size_t));
-    return errVal;
+    scrub_memory(&password_len, sizeof(size_t));
+    return errval;
 }
 
 static void parse_command_line(int argc, char **argv, bool *encrypt,
-                               char **inputFile, char **outputFile,
+                               char **input_file, char **output_file,
                                char **password)
 {
-    bool opSpecified;
+    bool op_specified;
     int ch;
 
     *encrypt = true;
     *password = NULL;
+    op_specified = false;
 
-    opSpecified = false;
     while ((ch = getopt(argc, argv, "edp:v")) != -1) {
         switch (ch) {
         case 'e':
-            if (opSpecified && (*encrypt == false)) {
+            if (op_specified && (*encrypt == false)) {
                 usage();
             }
-            opSpecified = true;
+            op_specified = true;
             *encrypt = true;
             break;
         case 'd':
-            if (opSpecified && *encrypt) {
+            if (op_specified && *encrypt) {
                 usage();
             }
-            opSpecified = true;
+            op_specified = true;
             *encrypt = false;
             break;
         case 'p':
             if (*password != NULL) {
                 /*
-                 * Don't bother to see if two passwords specified on the
-                 * command line are the same; just quit with a usage error.
+                 * Do not accept any sort of pathological command-line
+                 * behaviour related to the password, even if the same password
+                 * is given twice.
                  */
                 usage();
             }
@@ -157,50 +133,50 @@ static void parse_command_line(int argc, char **argv, bool *encrypt,
     if (argc - optind != 2) {
         usage();
     }
-    *inputFile = argv[argc - 2];
-    *outputFile = argv[argc - 1];
+    *input_file = argv[argc - 2];
+    *output_file = argv[argc - 1];
 
-    if (is_stdin_stdout(*inputFile)) {
-        *inputFile = NULL;
+    if (is_stdin_stdout(*input_file)) {
+        *input_file = NULL;
     }
-    if (is_stdin_stdout(*outputFile)) {
-        *outputFile = NULL;
+    if (is_stdin_stdout(*output_file)) {
+        *output_file = NULL;
     }
 }
 
-static bool is_stdin_stdout(const char *cmdLineArg)
+static bool is_stdin_stdout(const char *cmdline_arg)
 {
-    return (cmdLineArg[0] == '-' && cmdLineArg[1] == '\0');
+    return (cmdline_arg[0] == '-' && cmdline_arg[1] == '\0');
 }
 
-static int check_files(char *inputFile, char *outputFile)
+static int sanity_check_files(char *input_file, char *output_file)
 {
-    struct stat inStat, outStat;
-    int errVal = 0;
+    struct stat in_stat, out_stat;
+    int errval = 0;
 
-    /* Stat the input file to check its type */
-    if (inputFile != NULL) {
-        if (stat(inputFile, &inStat)) {
-            ERROR(isErr, errVal, "Could not stat input file: %s", inputFile);
+    /* Check that we can operate on the type of input file */
+    if (input_file != NULL) {
+        if (stat(input_file, &in_stat)) {
+            ERROR(done, errval, "Could not stat input file: %s", input_file);
         }
-        if (S_ISDIR(inStat.st_mode)) {
-            ERROR(isErr, errVal, "Cannot operate on directories");
+        if (S_ISDIR(in_stat.st_mode)) {
+            ERROR(done, errval, "Cannot operate on directories");
         }
     }
 
     /* Ensure, as well as possible, that the two files are different */
-    if (inputFile != NULL && outputFile != NULL) {
-        if (stat(outputFile, &outStat) == 0) {
-            if (inStat.st_dev == outStat.st_dev &&
-                inStat.st_ino == outStat.st_ino) {
-                ERROR(isErr, errVal,
+    if (input_file != NULL && output_file != NULL) {
+        if (stat(output_file, &out_stat) == 0) {
+            if (in_stat.st_dev == out_stat.st_dev &&
+                in_stat.st_ino == out_stat.st_ino) {
+                ERROR(done, errval,
                       "Input file and output file are the same");
             }
         }
     }
 
-isErr:
-    return errVal;
+done:
+    return errval;
 }
 
 static void usage(void)
