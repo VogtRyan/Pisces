@@ -22,38 +22,18 @@
 #include <stddef.h>
 
 /*
- * Returns a file descriptor for the given file, opened for input. If inputFile
- * is NULL, it returns the file descriptor for standard in. Returns -1 on
- * error.
+ * Use NULL for stdin / stdout. Opening the output file creates it if necessary
+ * and truncates it. Returns a file descriptor >= 0 on success, -1 on error.
  */
-int open_input_file(const char *inputFile);
+int open_input_file(const char *input_file);
+int open_output_file(const char *output_file);
 
 /*
- * Returns a file descriptor for the given file, opened for output (the file
- * will be created and truncated, if necessary). If outputFile is NULL, it
- * returns the file descriptor for standard out. Returns -1 on error.
+ * Reads and writes, looping on attempts to allowing for safe reading from
+ * pipes. Returns 0 on success, -1 on error.
  */
-int open_output_file(const char *outputFile);
-
-/*
- * Reads exactly the given number of bytes from the given file descriptor.
- * Loops on attempts, allowing for safe reading from pipes. Returns 0 on
- * success, -1 on error.
- */
-int read_exactly(int fd, byte *buf, size_t nBytes);
-
-/*
- * Reads up to the given number of bytes from the given file descriptor. Loops
- * on attempts, allowing for safe reading from pipes. Return 0 on success and
- * set numRead to be the number of bytes read, or return -1 on error.
- */
-int read_up_to(int fd, byte *buf, size_t nBytes, size_t *numRead);
-
-/*
- * Writes exactly the given number of bytes to the given file descriptor. Loops
- * on attempts, allowing for safe writing to pipes. Return 0 on success, -1 on
- * error.
- */
-int write_exactly(int fd, const byte *buf, size_t nBytes);
+int read_exactly(int fd, byte *buf, size_t nbytes);
+int read_up_to(int fd, byte *buf, size_t nbytes, size_t *num_read);
+int write_exactly(int fd, const byte *buf, size_t nbytes);
 
 #endif

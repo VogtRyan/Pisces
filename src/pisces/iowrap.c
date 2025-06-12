@@ -26,104 +26,80 @@
 #include <stddef.h>
 #include <unistd.h>
 
-int open_input_file(const char *inputFile)
+int open_input_file(const char *input_file)
 {
-    int inFile = -1;
-    int errVal = 0;
-
-    if (inputFile == NULL) {
-        inFile = STDIN_FILENO;
+    if (input_file == NULL) {
+        return STDIN_FILENO;
     }
     else {
-        inFile = open(inputFile, O_RDONLY);
-        if (inFile == -1) {
-            ERROR_QUIET(isErr, errVal);
-        }
+        return open(input_file, O_RDONLY);
     }
-
-isErr:
-    if (errVal) {
-        return errVal;
-    }
-    return inFile;
 }
 
-int open_output_file(const char *outputFile)
+int open_output_file(const char *output_file)
 {
-    int outFile = -1;
-    int errVal = 0;
-
-    if (outputFile == NULL) {
-        outFile = STDOUT_FILENO;
+    if (output_file == NULL) {
+        return STDOUT_FILENO;
     }
     else {
-        outFile =
-            open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        if (outFile == -1) {
-            ERROR_QUIET(isErr, errVal);
-        }
+        return open(output_file, O_WRONLY | O_CREAT | O_TRUNC,
+                    S_IRUSR | S_IWUSR);
     }
-
-isErr:
-    if (errVal) {
-        return errVal;
-    }
-    return outFile;
 }
 
-int read_exactly(int fd, byte *buf, size_t nBytes)
+int read_exactly(int fd, byte *buf, size_t nbytes)
 {
-    size_t numRead = 0;
-    int errVal = 0;
+    size_t num_read = 0;
+    int errval = 0;
 
-    if (read_up_to(fd, buf, nBytes, &numRead)) {
-        ERROR_QUIET(isErr, errVal);
+    if (read_up_to(fd, buf, nbytes, &num_read)) {
+        ERROR_QUIET(done, errval);
     }
-    if (numRead != nBytes) {
-        ERROR_QUIET(isErr, errVal);
+    if (num_read != nbytes) {
+        ERROR_QUIET(done, errval);
     }
 
-isErr:
-    return errVal;
+done:
+    return errval;
 }
 
-int read_up_to(int fd, byte *buf, size_t nBytes, size_t *numRead)
+int read_up_to(int fd, byte *buf, size_t nbytes, size_t *num_read)
 {
     ssize_t res;
-    int errVal = 0;
+    int errval = 0;
 
-    *numRead = 0;
-    while (nBytes > 0) {
-        res = read(fd, buf, nBytes);
+    *num_read = 0;
+    while (nbytes > 0) {
+        res = read(fd, buf, nbytes);
         if (res == 0) {
             break;
         }
         if (res < 0) {
-            ERROR_QUIET(isErr, errVal);
+            ERROR_QUIET(done, errval);
         }
         buf += res;
-        nBytes -= (size_t)res;
-        *numRead += (size_t)res;
+        nbytes -= (size_t)res;
+        *num_read += (size_t)res;
     }
 
-isErr:
-    return errVal;
+done:
+    return errval;
 }
 
-int write_exactly(int fd, const byte *buf, size_t nBytes)
+int write_exactly(int fd, const byte *buf, size_t nbytes)
 {
     ssize_t res;
-    int errVal = 0;
+    int errval = 0;
 
-    while (nBytes > 0) {
-        res = write(fd, buf, nBytes);
+    while (nbytes > 0) {
+        res = write(fd, buf, nbytes);
         if (res < 0) {
-            ERROR_QUIET(isErr, errVal);
+            ERROR_QUIET(done, errval);
         }
         buf += res;
-        nBytes -= (size_t)res;
+        nbytes -= (size_t)res;
     }
 
-isErr:
-    return errVal;
+done:
+    return errval;
 }
