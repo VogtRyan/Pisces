@@ -114,6 +114,21 @@
 #endif
 
 #ifndef DEBUGGING
+#define ERROR_RETURN(code)                                                    \
+    do {                                                                      \
+        return (code);                                                        \
+    } while (0)
+#else
+#define ERROR_RETURN(code)                                                    \
+    do {                                                                      \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d, code %d]\n", __FILE__, __LINE__, \
+                (code));                                                      \
+        fflush(ERROR_OUTPUT);                                                 \
+        return (code);                                                        \
+    } while (0)
+#endif
+
+#ifndef DEBUGGING
 #define ERROR_SET(flag, code)                                                 \
     do {                                                                      \
         flag = (code);                                                        \

@@ -28,45 +28,54 @@
 
 int open_input_file(const char *input_file)
 {
+    int in;
+
     if (input_file == NULL) {
         return STDIN_FILENO;
     }
     else {
-        return open(input_file, O_RDONLY);
+        in = open(input_file, O_RDONLY);
+        if (in == -1) {
+            ERROR_RETURN(-1);
+        }
+        return in;
     }
 }
 
 int open_output_file(const char *output_file)
 {
+    int out;
+
     if (output_file == NULL) {
         return STDOUT_FILENO;
     }
     else {
-        return open(output_file, O_WRONLY | O_CREAT | O_TRUNC,
-                    S_IRUSR | S_IWUSR);
+        out =
+            open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+        if (out == -1) {
+            ERROR_RETURN(-1);
+        }
+        return out;
     }
 }
 
 int read_exactly(int fd, byte *buf, size_t nbytes)
 {
     size_t num_read = 0;
-    int errval = 0;
 
     if (read_up_to(fd, buf, nbytes, &num_read)) {
-        ERROR_QUIET(done, errval);
+        ERROR_RETURN(-1);
     }
     if (num_read != nbytes) {
-        ERROR_QUIET(done, errval);
+        ERROR_RETURN(-1);
     }
 
-done:
-    return errval;
+    return 0;
 }
 
 int read_up_to(int fd, byte *buf, size_t nbytes, size_t *num_read)
 {
     ssize_t res;
-    int errval = 0;
 
     *num_read = 0;
     while (nbytes > 0) {
@@ -75,31 +84,28 @@ int read_up_to(int fd, byte *buf, size_t nbytes, size_t *num_read)
             break;
         }
         if (res < 0) {
-            ERROR_QUIET(done, errval);
+            ERROR_RETURN(-1);
         }
         buf += res;
         nbytes -= (size_t)res;
         *num_read += (size_t)res;
     }
 
-done:
-    return errval;
+    return 0;
 }
 
 int write_exactly(int fd, const byte *buf, size_t nbytes)
 {
     ssize_t res;
-    int errval = 0;
 
     while (nbytes > 0) {
         res = write(fd, buf, nbytes);
         if (res < 0) {
-            ERROR_QUIET(done, errval);
+            ERROR_RETURN(-1);
         }
         buf += res;
         nbytes -= (size_t)res;
     }
 
-done:
-    return errval;
+    return 0;
 }
