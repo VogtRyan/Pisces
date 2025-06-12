@@ -37,8 +37,8 @@ static int use_provided_password(char *password, size_t *password_len,
                                  const char *provided_password);
 static int password_strlen(const char *provided, size_t *password_len);
 
-static int read_secret_input_line(const char *prompt, char *line,
-                                  size_t *line_len);
+static int read_secret_input_line(char *line, size_t *line_len,
+                                  const char *prompt);
 static int read_input_line(FILE *fp, char *line, size_t *line_len);
 
 int get_encryption_password(char *password, size_t *password_len,
@@ -55,10 +55,10 @@ int get_encryption_password(char *password, size_t *password_len,
         }
     }
     else {
-        if (read_secret_input_line(ENCRYPT_MESSAGE, input1, &len1)) {
+        if (read_secret_input_line(input1, &len1, ENCRYPT_MESSAGE)) {
             ERROR_QUIET(done, errval);
         }
-        if (read_secret_input_line(CONFIRM_MESSAGE, input2, &len2)) {
+        if (read_secret_input_line(input2, &len2, CONFIRM_MESSAGE)) {
             ERROR_QUIET(done, errval);
         }
         if (len1 != len2 || memcmp(input1, input2, len1) != 0) {
@@ -91,7 +91,7 @@ int get_decryption_password(char *password, size_t *password_len,
         }
     }
     else {
-        if (read_secret_input_line(DECRYPT_MESSAGE, input, &len)) {
+        if (read_secret_input_line(input, &len, DECRYPT_MESSAGE)) {
             ERROR_QUIET(done, errval);
         }
 
@@ -146,8 +146,8 @@ done:
     return errval;
 }
 
-static int read_secret_input_line(const char *prompt, char *line,
-                                  size_t *line_len)
+static int read_secret_input_line(char *line, size_t *line_len,
+                                  const char *prompt)
 {
     /*
      * The following function is adapted from the char* getpass(const char*)
