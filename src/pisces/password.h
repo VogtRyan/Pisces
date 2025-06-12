@@ -26,14 +26,15 @@
  * The password array must be at least PASSWORD_LENGTH_MAX long. Its contents
  * will NOT be NULL-terminated.
  *
- * If providedPassword is non-NULL, it is treated as the user's input (and
+ * If the provided password is non-NULL, it is treated as the user's input (and
  * confirmation). It must be NULL-terminated.
  *
- * Returns 0 on success, <0 on error, prints error messages.
+ * Returns 0 on success, <0 on error, and prints error messages. If the return
+ * is <0, it is guaranteed that the caller's memory is unchanged.
  */
-int get_encryption_password(char *password, size_t *passwordLen,
-                            const char *providedPassword);
-int get_decryption_password(char *password, size_t *passwordLen,
-                            const char *providedPassword);
+int get_encryption_password(char *password, size_t *password_len,
+                            const char *provided_password);
+int get_decryption_password(char *password, size_t *password_len,
+                            const char *provided_password);
 
 #endif

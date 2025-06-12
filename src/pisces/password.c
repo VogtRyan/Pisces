@@ -27,116 +27,107 @@
 #include <string.h>
 #include <termios.h>
 
-/*
- * Messages to display to the user prompting for a password.
- */
 #define ENCRYPT_MESSAGE "Enter a password to encrypt this file: "
 #define CONFIRM_MESSAGE "Reenter the password to encrypt this file: "
 #define DECRYPT_MESSAGE "Enter the password to decrypt this file: "
 
-/*
- * Copies the provided password into the password array and sets the value of
- * passwordLen. Returns 0 on success, -1 on error (and prints error messages).
- */
-static int use_provided_password(char *password, size_t *passwordLen,
-                                 const char *providedPassword);
+#define PASSWORD_TOO_LONG_MESSAGE "Password can be at most %d characters long"
 
-/*
- * Finds the length of the given NULL-terminated password and returns 0; or,
- * returns -1 if the provided password is too long (and prints error messages).
- * Essentially a portable substitute for strnlen(), for POSIX.1-2001
- * compatibility.
- */
-static int password_strlen(const char *provided, size_t *passwordLen);
+static int use_provided_password(char *password, size_t *password_len,
+                                 const char *provided_password);
+static int password_strlen(const char *provided, size_t *password_len);
 
-/*
- * The array userInput must be at least PASSWORD_LENGTH_MAX in size.
- * Returns 0 on success, -1 on error (and prints error messages).
- */
-static int get_secret_input(const char *prompt, char *userInput,
-                            size_t *passwordLen);
-static int read_secret_line(FILE *fp, char *line, size_t *len);
+static int read_secret_input_line(const char *prompt, char *line,
+                                  size_t *line_len);
+static int read_input_line(FILE *fp, char *line, size_t *line_len);
 
-int get_encryption_password(char *password, size_t *passwordLen,
-                            const char *providedPassword)
+int get_encryption_password(char *password, size_t *password_len,
+                            const char *provided_password)
 {
     char input1[PASSWORD_LENGTH_MAX];
     char input2[PASSWORD_LENGTH_MAX];
     size_t len1, len2;
-    int errVal = 0;
+    int errval = 0;
 
-    if (providedPassword != NULL) {
-        if (use_provided_password(password, passwordLen, providedPassword)) {
-            ERROR_QUIET(isErr, errVal);
+    if (provided_password != NULL) {
+        if (use_provided_password(password, password_len, provided_password)) {
+            ERROR_QUIET(done, errval);
         }
     }
     else {
-        if (get_secret_input(ENCRYPT_MESSAGE, input1, &len1)) {
-            ERROR_QUIET(isErr, errVal);
+        if (read_secret_input_line(ENCRYPT_MESSAGE, input1, &len1)) {
+            ERROR_QUIET(done, errval);
         }
-        if (get_secret_input(CONFIRM_MESSAGE, input2, &len2)) {
-            ERROR_QUIET(isErr, errVal);
+        if (read_secret_input_line(CONFIRM_MESSAGE, input2, &len2)) {
+            ERROR_QUIET(done, errval);
         }
         if (len1 != len2 || memcmp(input1, input2, len1) != 0) {
-            ERROR(isErr, errVal, "Passwords do not match");
+            ERROR(done, errval, "Passwords do not match");
         }
+
+        /* Only write to caller's memory if password is valid */
         memcpy(password, input1, len1);
-        *passwordLen = len1;
+        *password_len = len1;
     }
 
-isErr:
+done:
     scrub_memory(input1, PASSWORD_LENGTH_MAX);
     scrub_memory(input2, PASSWORD_LENGTH_MAX);
     scrub_memory(&len1, sizeof(size_t));
     scrub_memory(&len2, sizeof(size_t));
-    return errVal;
+    return errval;
 }
 
-int get_decryption_password(char *password, size_t *passwordLen,
-                            const char *providedPassword)
+int get_decryption_password(char *password, size_t *password_len,
+                            const char *provided_password)
 {
     char input[PASSWORD_LENGTH_MAX];
     size_t len;
-    int errVal = 0;
+    int errval = 0;
 
-    if (providedPassword != NULL) {
-        if (use_provided_password(password, passwordLen, providedPassword)) {
-            ERROR_QUIET(isErr, errVal);
+    if (provided_password != NULL) {
+        if (use_provided_password(password, password_len, provided_password)) {
+            ERROR_QUIET(done, errval);
         }
     }
     else {
-        if (get_secret_input(DECRYPT_MESSAGE, input, &len)) {
-            ERROR_QUIET(isErr, errVal);
+        if (read_secret_input_line(DECRYPT_MESSAGE, input, &len)) {
+            ERROR_QUIET(done, errval);
         }
+
+        /* Only write to caller's memory if password is valid */
         memcpy(password, input, len);
-        *passwordLen = len;
+        *password_len = len;
     }
 
-isErr:
+done:
     scrub_memory(input, PASSWORD_LENGTH_MAX);
     scrub_memory(&len, sizeof(size_t));
-    return errVal;
+    return errval;
 }
 
-static int use_provided_password(char *password, size_t *passwordLen,
-                                 const char *providedPassword)
+static int use_provided_password(char *password, size_t *password_len,
+                                 const char *provided_password)
 {
-    int errVal = 0;
+    int errval = 0;
 
-    if (password_strlen(providedPassword, passwordLen)) {
-        ERROR_QUIET(isErr, errVal);
+    if (password_strlen(provided_password, password_len)) {
+        ERROR_QUIET(done, errval);
     }
-    memcpy(password, providedPassword, *passwordLen);
 
-isErr:
-    return errVal;
+    /* Only write to caller's memory if password is valid */
+    memcpy(password, provided_password, *password_len);
+
+done:
+    return errval;
 }
 
-static int password_strlen(const char *provided, size_t *passwordLen)
+static int password_strlen(const char *provided, size_t *password_len)
 {
     size_t len = 0;
-    int errVal = 0;
+    int errval = 0;
 
+    /* Portable replacement for strnlen, for POSIX-1.2001 compatibility */
     while (len < PASSWORD_LENGTH_MAX) {
         if (provided[len] == '\0') {
             break;
@@ -144,18 +135,19 @@ static int password_strlen(const char *provided, size_t *passwordLen)
         len++;
     }
     if (provided[len] != '\0') {
-        ERROR(isErr, errVal, "Password can be at most %d characters long",
-              PASSWORD_LENGTH_MAX);
+        ERROR(done, errval, PASSWORD_TOO_LONG_MESSAGE, PASSWORD_LENGTH_MAX);
     }
-    *passwordLen = len;
 
-isErr:
+    /* Only write to caller's memory if password is valid */
+    *password_len = len;
+
+done:
     scrub_memory(&len, sizeof(size_t));
-    return errVal;
+    return errval;
 }
 
-static int get_secret_input(const char *prompt, char *userInput,
-                            size_t *passwordLen)
+static int read_secret_input_line(const char *prompt, char *line,
+                                  size_t *line_len)
 {
     /*
      * The following function is adapted from the char* getpass(const char*)
@@ -166,7 +158,7 @@ static int get_secret_input(const char *prompt, char *userInput,
     sigset_t sig, sigsave;
     struct termios term, termsave;
     FILE *fp;
-    int errVal = 0;
+    int errval = 0;
 
     fp = fopen(ctermid(NULL), "r+");
     if (fp == NULL) {
@@ -185,27 +177,26 @@ static int get_secret_input(const char *prompt, char *userInput,
     term.c_lflag &= (tcflag_t)(~(ECHO | ECHOE | ECHOK | ECHONL));
     tcsetattr(fileno(fp), TCSAFLUSH, &term);
 
-    if (read_secret_line(fp, userInput, passwordLen)) {
-        ERROR(isErr, errVal, "Password can be at most %d characters long",
-              PASSWORD_LENGTH_MAX);
+    if (read_input_line(fp, line, line_len)) {
+        ERROR(done, errval, PASSWORD_TOO_LONG_MESSAGE, PASSWORD_LENGTH_MAX);
     }
 
-isErr:
+done:
     tcsetattr(fileno(fp), TCSAFLUSH, &termsave);
     sigprocmask(SIG_SETMASK, &sigsave, NULL);
     fclose(fp);
-    return errVal;
+    return errval;
 }
 
-static int read_secret_line(FILE *fp, char *line, size_t *len)
+static int read_input_line(FILE *fp, char *line, size_t *line_len)
 {
     int c;
     int ret = 0;
 
-    *len = 0;
+    *line_len = 0;
     while ((c = getc(fp)) != EOF && c != '\n') {
-        if (*len < PASSWORD_LENGTH_MAX) {
-            line[(*len)++] = (char)c;
+        if (*line_len < PASSWORD_LENGTH_MAX) {
+            line[(*line_len)++] = (char)c;
         }
         else {
             ret = -1;
