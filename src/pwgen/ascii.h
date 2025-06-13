@@ -20,39 +20,22 @@
 #include <stddef.h>
 
 /*
- * Fills the result array with the requested number of unbiased characters from
- * the prinable ASCII set, excluding whitespace.
+ * The ASCII character set is the printable ASCII characters (33 to 126; the
+ * space at 32 is excluded).
+ *
+ * The alphanumeric character set is all the uppercase, lowercase, and numeric
+ * characters in the standard ASCII set.
+ *
+ * The numeric character set is the digits 0-9.
  */
-void get_ascii(char *result, size_t num);
 
-/*
- * Returns the number of bits of security offered by a get_ascii password of
- * the given length.
- */
-double bits_security_ascii(size_t num);
+void generate_pwd_ascii(char *pwd, size_t pwdlen);
+double bits_security_ascii(size_t pwdlen);
 
-/*
- * Fills the result array with the requested number of unbiased characters from
- * the set of uppercase, lowercase, and numeric characters in the standard
- * ASCII character set.
- */
-void get_alpha_num(char *result, size_t num);
+void generate_pwd_alpha_num(char *pwd, size_t pwdlen);
+double bits_security_alpha_num(size_t pwdlen);
 
-/*
- * Returns the number of bits of security offered by a get_alpha_num password
- * of the given length.
- */
-double bits_security_alpha_num(size_t num);
-
-/*
- * Fills the result array with the requested number of numeric characters.
- */
-void get_numeric(char *result, size_t num);
-
-/*
- * Returns the number of bits of security offered by a get_numeric password of
- * the given length.
- */
-double bits_security_numeric(size_t num);
+void generate_pwd_numeric(char *pwd, size_t pwdlen);
+double bits_security_numeric(size_t pwdlen);
 
 #endif

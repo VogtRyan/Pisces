@@ -20,16 +20,12 @@
 #include <stddef.h>
 
 /*
- * Fills the result array with the requested number of unbiased hexadecimal
- * bytes, produced using the default CPRNG implementation.
+ * The hex character set is: 0-9, A-F (or a-f).
  */
-void get_hex_lowercase(char *result, size_t num);
-void get_hex_uppercase(char *result, size_t num);
 
-/*
- * Returns the number of bits of security offered by a get_hex_* password
- * of the given length.
- */
-size_t bits_security_hex(size_t num);
+void generate_pwd_hex_lowercase(char *pwd, size_t pwdlen);
+void generate_pwd_hex_uppercase(char *pwd, size_t pwdlen);
+
+size_t bits_security_hex(size_t pwdlen);
 
 #endif

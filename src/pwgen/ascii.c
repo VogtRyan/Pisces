@@ -24,152 +24,148 @@
 #include <math.h>
 #include <stddef.h>
 
-void get_ascii(char *result, size_t num)
+void generate_pwd_ascii(char *pwd, size_t pwdlen)
 {
-    byte *randArray = NULL;
-    struct cprng *rng = NULL;
-    size_t remaining, toGenerate, i;
+    struct cprng *rng;
+    size_t gen_size, gen_size_max, i;
+    byte *rand_buf;
 
-    /* Allocate a temporary array to store raw random bytes */
-    remaining = num;
-    randArray = (byte *)malloc(num);
-    GUARD_ALLOC(randArray);
+    gen_size_max = pwdlen;
+    rand_buf = (byte *)malloc(gen_size_max);
+    GUARD_ALLOC(rand_buf);
     rng = cprng_alloc_default();
 
     /*
-     * Generate random bytes and convert to characters.  Since there are 94
-     * legal characters (ASCII 33 to 126 -- we omit the space at ASCII 32), we
-     * can use 94*2 = 188/256 possible values of a byte to generate a character
-     * without biasing the password.
+     * There are 94 legal characters (ASCII 33 to 126; space at 32 is omitted),
+     * so we can use 94*2 = 188/256 possible bytes values to generate an
+     * unbiased character.
      */
-    while (remaining > 0) {
-        toGenerate = remaining;
-        cprng_bytes(rng, randArray, toGenerate);
-        for (i = 0; i < toGenerate; i++) {
-            if (randArray[i] < 188) {
-                *result = (char)((int)randArray[i] % 94 + 33);
-                remaining--;
-                result++;
+    while (pwdlen > 0) {
+        gen_size = pwdlen;
+        cprng_bytes(rng, rand_buf, gen_size);
+        for (i = 0; i < gen_size; i++) {
+            if (rand_buf[i] < 188) {
+                *pwd = (char)((int)rand_buf[i] % 94 + 33);
+                pwdlen--;
+                pwd++;
             }
         }
     }
 
     cprng_free_scrub(rng);
-    scrub_memory(randArray, num);
-    free(randArray);
+    scrub_memory(rand_buf, gen_size_max);
+    free(rand_buf);
 }
 
-double bits_security_ascii(size_t num)
+double bits_security_ascii(size_t pwdlen)
 {
     /* log_2(94^n) == n * log_2(94) */
-    return num * log2(94);
+    return pwdlen * log2(94);
 }
 
-void get_alpha_num(char *result, size_t num)
+void generate_pwd_alpha_num(char *pwd, size_t pwdlen)
 {
-    byte *randArray = NULL;
-    struct cprng *rng = NULL;
-    size_t remaining, toGenerate, i;
+    struct cprng *rng;
+    size_t gen_size, gen_size_max, i;
+    byte *rand_buf;
 
-    /* Allocate a temporary array to store raw random bytes */
-    remaining = num;
-    randArray = (byte *)malloc(num);
-    GUARD_ALLOC(randArray);
+    gen_size_max = pwdlen;
+    rand_buf = (byte *)malloc(gen_size_max);
+    GUARD_ALLOC(rand_buf);
     rng = cprng_alloc_default();
 
     /*
-     * Generate random bytes and convert to characters.  Since there are 62
-     * legal characters, we can use 62*4 = 248/256 possible values of a byte to
-     * generate a character without biasing the password.
+     * There are 62 legal characters (26 + 26 + 10), we can use 62*4 = 248/256
+     * possible byte values to generate an unbiased character.
      */
-    while (remaining > 0) {
-        toGenerate = remaining;
-        cprng_bytes(rng, randArray, toGenerate);
-        for (i = 0; i < toGenerate; i++) {
-            if (randArray[i] >= 248) {
+    while (pwdlen > 0) {
+        gen_size = pwdlen;
+        cprng_bytes(rng, rand_buf, gen_size);
+        for (i = 0; i < gen_size; i++) {
+            if (rand_buf[i] >= 248) {
                 continue;
             }
-            if (randArray[i] < 104) {
+            if (rand_buf[i] < 104) {
                 /* Lower case letters */
-                *result = (char)((int)randArray[i] % 26 + 97);
+                *pwd = (char)((int)rand_buf[i] % 26 + 97);
             }
-            else if (randArray[i] < 208) {
+            else if (rand_buf[i] < 208) {
                 /* Upper case letters */
-                *result = (char)((int)randArray[i] % 26 + 65);
+                *pwd = (char)((int)rand_buf[i] % 26 + 65);
             }
             else {
                 /* Numbers */
-                *result = (char)((int)randArray[i] % 10 + 48);
+                *pwd = (char)((int)rand_buf[i] % 10 + 48);
             }
-            remaining--;
-            result++;
+            pwdlen--;
+            pwd++;
         }
     }
 
     cprng_free_scrub(rng);
-    scrub_memory(randArray, num);
-    free(randArray);
+    scrub_memory(rand_buf, gen_size_max);
+    free(rand_buf);
 }
 
-double bits_security_alpha_num(size_t num)
+double bits_security_alpha_num(size_t pwdlen)
 {
     /* log_2(62^n) == n * log_2(62) */
-    return num * log2(62);
+    return pwdlen * log2(62);
 }
 
-void get_numeric(char *result, size_t num)
+void generate_pwd_numeric(char *pwd, size_t pwdlen)
 {
-    byte *randArray;
     struct cprng *rng;
-    size_t rawSize, rawSizeMax, i;
+    size_t gen_size, gen_size_max, i;
+    byte *rand_buf;
 
-    /*
-     * Allocate a temporary array to store raw random bytes. We can potentially
-     * extract two random characters from each random byte.
-     */
-    rawSizeMax = num / 2;
-    if (num & 0x1) {
-        rawSizeMax++;
+    /* We can potentially extract two digits from each random byte */
+    gen_size_max = pwdlen / 2;
+    if (pwdlen & 0x1) {
+        gen_size_max++;
     }
-    randArray = (byte *)malloc(rawSizeMax);
-    GUARD_ALLOC(randArray);
+    rand_buf = (byte *)malloc(gen_size_max);
+    GUARD_ALLOC(rand_buf);
     rng = cprng_alloc_default();
 
     /*
-     * If any random byte is less than 200, we can extract two unbiased values
-     * in the range 0-9 from it: the ones digit, and the floored remainder
-     * when it's divided by 20.
+     * If any random byte is in the range [0, 199], we can extract two unbiased
+     * digits from it. One approach would be to take the ones digit and the
+     * tens digit. Slightly simpler, though, is to take the ones digit; then,
+     * to extract a second digit independent of the ones digit, consider which
+     * of the 10 groups of 20 the random byte falls into: [0,19],
+     * [20,39], ..., [180,199].
      *
-     * If the random byte is in the range [200, 249], we can extract one
-     * unbiased value from it: the ones digit.
+     * If the random byte is in the range [200, 249], we can extract only one
+     * unbiased digit from it: the ones digit.
      */
-    while (num > 0) {
-        rawSize = num / 2;
-        if (num & 0x1) {
-            rawSize++;
+    while (pwdlen > 0) {
+        gen_size = pwdlen / 2;
+        if (pwdlen & 0x1) {
+            gen_size++;
         }
-        cprng_bytes(rng, randArray, rawSize);
-        for (i = 0; i < rawSize; i++) {
-            if (randArray[i] < 250) {
-                *result = '0' + (char)(randArray[i] % 10);
-                result++;
-                num--;
+        cprng_bytes(rng, rand_buf, gen_size);
+        for (i = 0; i < gen_size; i++) {
+            if (rand_buf[i] < 250) {
+                *pwd = '0' + (char)(rand_buf[i] % 10);
+                pwd++;
+                pwdlen--;
             }
-            if (num > 0 && randArray[i] < 200) {
-                *result = '0' + (char)(randArray[i] / 20);
-                result++;
-                num--;
+            if (pwdlen > 0 && rand_buf[i] < 200) {
+                *pwd = '0' + (char)(rand_buf[i] / 20);
+                pwd++;
+                pwdlen--;
             }
         }
     }
 
     cprng_free_scrub(rng);
-    scrub_memory(randArray, rawSizeMax);
-    free(randArray);
+    scrub_memory(rand_buf, gen_size_max);
+    free(rand_buf);
 }
 
-double bits_security_numeric(size_t num)
+double bits_security_numeric(size_t pwdlen)
 {
     /* log_2(10^n) == n * log_2(10) */
-    return num * log2(10);
+    return pwdlen * log2(10);
 }

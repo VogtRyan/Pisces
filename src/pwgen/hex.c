@@ -21,75 +21,69 @@
 #include "common/scrub.h"
 #include "crypto/abstract/cprng.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-/*
- * Fills the result with the given number of hex characters, using tenChar as
- * the base character for values between 10 and 15.
- */
-static void get_hex_chars(char *result, size_t num, char tenChar);
+static void get_hex_chars(char *pwd, size_t pwdlen, char ten_char);
 
-void get_hex_lowercase(char *result, size_t num)
+void generate_pwd_hex_lowercase(char *pwd, size_t pwdlen)
 {
-    get_hex_chars(result, num, 'a');
+    get_hex_chars(pwd, pwdlen, 'a');
 }
 
-void get_hex_uppercase(char *result, size_t num)
+void generate_pwd_hex_uppercase(char *pwd, size_t pwdlen)
 {
-    get_hex_chars(result, num, 'A');
+    get_hex_chars(pwd, pwdlen, 'A');
 }
 
-size_t bits_security_hex(size_t num)
+size_t bits_security_hex(size_t pwdlen)
 {
-    ASSERT(num <= SIZE_MAX / 4, "Multiplication overflow");
-    return num * 4;
+    ASSERT(pwdlen <= SIZE_MAX / 4, "Multiplication overflow");
+    return pwdlen * 4;
 }
 
-static void get_hex_chars(char *result, size_t num, char tenChar)
+static void get_hex_chars(char *pwd, size_t pwdlen, char ten_char)
 {
-    byte *randArray = NULL;
-    struct cprng *rng = NULL;
+    struct cprng *rng;
+    size_t gen_size, i;
+    byte *rand_buf;
     byte current;
-    size_t rawSize;
-    int moveRaw, i;
+    bool move_raw;
 
-    /* Allocate a temporary array to store raw random bytes */
-    rawSize = num / 2;
-    if (num & 0x1) {
-        rawSize++;
+    gen_size = pwdlen / 2;
+    if (pwdlen & 0x1) {
+        gen_size++;
     }
-    randArray = (byte *)malloc(rawSize);
-    GUARD_ALLOC(randArray);
+    rand_buf = (byte *)malloc(gen_size);
+    GUARD_ALLOC(rand_buf);
 
-    /*
-     * Generate random bytes and convert to characters.  We get two unbiased
-     * hex characters for every byte generated.
-     */
+    /* Two unbiased hex characters for every random byte */
     rng = cprng_alloc_default();
-    cprng_bytes(rng, randArray, rawSize);
-    moveRaw = i = 0;
-    while (num > 0) {
-        current = (byte)(randArray[i] & 0x0F);
+    cprng_bytes(rng, rand_buf, gen_size);
+    i = 0;
+    move_raw = false;
+    while (pwdlen > 0) {
+        current = (byte)(rand_buf[i] & 0x0F);
         if (current <= (byte)9) {
-            *result = '0' + (char)current;
+            *pwd = '0' + (char)current;
         }
         else {
-            *result = tenChar + (char)current - (char)10;
+            *pwd = ten_char + (char)current - (char)10;
         }
-        result++;
-        num--;
-        if (moveRaw) {
+        pwd++;
+        pwdlen--;
+        if (move_raw) {
             i++;
-            moveRaw = 0;
+            move_raw = false;
         }
         else {
-            randArray[i] >>= 4;
-            moveRaw = 1;
+            rand_buf[i] >>= 4;
+            move_raw = true;
         }
     }
 
     cprng_free_scrub(rng);
-    scrub_memory(randArray, rawSize);
-    free(randArray);
+    scrub_memory(rand_buf, gen_size);
+    free(rand_buf);
 }

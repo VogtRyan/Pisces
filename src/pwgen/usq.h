@@ -20,33 +20,22 @@
 #include <stddef.h>
 
 /*
- * Fills the result array with the requested number of unbiased characters, all
- * of which can be typed simply on a U.S. QWERTY keyboard. That set of
- * characters comprises uppercase and lowercase letters, numbers, and symbol
- * characters that can be typed by holding down the shift key while pressing a
- * number key.
+ * The USQ Simple character set includes all the uppercase, lowercase, and
+ * numeric characters in the standard ASCII set. Additionally, it includes the
+ * ten symbols typeable by pressing "Shift" and a number key on a US QWERTY
+ * keyboard:
+ *
+ *     ! @ # $ % ^ & * ( )
+ *
+ * A USQ Enforced password comes from the USQ Simple character set, but is
+ * guaranteed to contain at least one lowercase letter, one uppercase letter,
+ * one number, and one symbol.
  */
-void get_usq_simple(char *result, size_t num);
 
-/*
- * Returns the number of bits of security offered by a get_usq_simple password
- * of the given length.
- */
-double bits_security_usq_simple(size_t num);
+void generate_pwd_usq_simple(char *pwd, size_t pwdlen);
+double bits_security_usq_simple(size_t pwdlen);
 
-/*
- * Fills the result array with the same types of characters used by
- * get_usq_simple(). But, results are guaranteed to contain at least one
- * uppercase character, at least one lowercase character, at least one number,
- * and at least one special character. These guarantees are made in a way as to
- * produce unbiased generated passwords.
- */
-void get_usq_simple_enforced(char *result, size_t num);
-
-/*
- * Returns the number of bits of security offered by a get_usq_simple_enforced
- * password of the given length.
- */
-double bits_security_usq_simple_enforced(size_t num);
+void generate_pwd_usq_simple_enforced(char *pwd, size_t pwdlen);
+double bits_security_usq_simple_enforced(size_t pwdlen);
 
 #endif
