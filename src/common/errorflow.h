@@ -114,21 +114,6 @@
 #endif
 
 #ifndef DEBUGGING
-#define ERROR_SET(flag, code)                                                 \
-    do {                                                                      \
-        flag = (code);                                                        \
-    } while (0)
-#else
-#define ERROR_SET(flag, code)                                                 \
-    do {                                                                      \
-        flag = (code);                                                        \
-        fprintf(ERROR_OUTPUT, "Error [%s:%d, code %d]\n", __FILE__, __LINE__, \
-                flag);                                                        \
-        fflush(ERROR_OUTPUT);                                                 \
-    } while (0)
-#endif
-
-#ifndef DEBUGGING
 #define FATAL_ERROR(...)                                                      \
     do {                                                                      \
         fprintf(ERROR_OUTPUT, "Fatal error: ");                               \

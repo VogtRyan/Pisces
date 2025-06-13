@@ -82,7 +82,7 @@ int chf_add(struct chf_ctx *chf, const byte *msg, size_t msg_len)
         return chf->errcode;
     }
     if (chf_ctx_add(chf, msg, msg_len)) {
-        ERROR_SET(chf->errcode, CHF_ERROR_MESSAGE_TOO_LONG);
+        chf->errcode = CHF_ERROR_MESSAGE_TOO_LONG;
     }
 
     return chf->errcode;
@@ -98,7 +98,7 @@ int chf_end(struct chf_ctx *chf, byte *digest)
         return chf->errcode;
     }
     if (chf_ctx_end(chf, digest)) {
-        ERROR_SET(chf->errcode, CHF_ERROR_MESSAGE_TOO_LONG);
+        chf->errcode = CHF_ERROR_MESSAGE_TOO_LONG;
     }
 
     return chf->errcode;

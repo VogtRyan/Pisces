@@ -126,12 +126,12 @@ done:
 int hmac_add(struct hmac_ctx *hmac, const byte *msg, size_t msg_len)
 {
     ASSERT(hmac->running, "HMAC context is not running");
+
     if (hmac->errcode) {
         return hmac->errcode;
     }
-
     if (chf_add(hmac->inner_ctx, msg, msg_len)) {
-        ERROR_SET(hmac->errcode, HMAC_ERROR_MESSAGE_TOO_LONG);
+        hmac->errcode = HMAC_ERROR_MESSAGE_TOO_LONG;
     }
 
     return hmac->errcode;
