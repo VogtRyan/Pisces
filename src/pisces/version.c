@@ -27,7 +27,7 @@ int pisces_set_version(int version)
 {
     if (version < PISCES_VERSION_EARLIEST_SUPPORTED ||
         version > PISCES_VERSION_NEWEST) {
-        ERROR_RETURN(-1);
+        return -1;
     }
     pisces_version = version;
     return 0;

@@ -28,35 +28,18 @@
 
 int open_input_file(const char *input_file)
 {
-    int in;
-
     if (input_file == NULL) {
         return STDIN_FILENO;
     }
-    else {
-        in = open(input_file, O_RDONLY);
-        if (in == -1) {
-            ERROR_RETURN(-1);
-        }
-        return in;
-    }
+    return open(input_file, O_RDONLY);
 }
 
 int open_output_file(const char *output_file)
 {
-    int out;
-
     if (output_file == NULL) {
         return STDOUT_FILENO;
     }
-    else {
-        out =
-            open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        if (out == -1) {
-            ERROR_RETURN(-1);
-        }
-        return out;
-    }
+    return open(output_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 }
 
 int read_exactly(int fd, byte *buf, size_t nbytes)
@@ -64,10 +47,10 @@ int read_exactly(int fd, byte *buf, size_t nbytes)
     size_t num_read = 0;
 
     if (read_up_to(fd, buf, nbytes, &num_read)) {
-        ERROR_RETURN(-1);
+        return -1;
     }
     if (num_read != nbytes) {
-        ERROR_RETURN(-1);
+        return -1;
     }
 
     return 0;
@@ -84,7 +67,7 @@ int read_up_to(int fd, byte *buf, size_t nbytes, size_t *num_read)
             break;
         }
         if (res < 0) {
-            ERROR_RETURN(-1);
+            return -1;
         }
         buf += res;
         nbytes -= (size_t)res;
@@ -101,7 +84,7 @@ int write_exactly(int fd, const byte *buf, size_t nbytes)
     while (nbytes > 0) {
         res = write(fd, buf, nbytes);
         if (res < 0) {
-            ERROR_RETURN(-1);
+            return -1;
         }
         buf += res;
         nbytes -= (size_t)res;
