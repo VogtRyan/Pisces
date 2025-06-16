@@ -39,8 +39,9 @@ int password_prompt_decryption(char *password, size_t *password_len);
 
 /*
  * Copies a provided password from another source into the password array.
- * Returns 0 on success, <0 if the password is not valid and prints error
- * messages.
+ * Returns 0 on success, <0 if the provided password is longer than
+ * PASSWORD_LENGTH_MAX bytes (not including the NULL terminator) and prints
+ * error messages.
  */
 int password_copy(char *password, size_t *password_len,
                   const char *provided_password);
