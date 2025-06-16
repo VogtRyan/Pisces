@@ -187,10 +187,9 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
 int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
 {
     size_t fake_output_len;
-    int errval;
+    int errval = 0;
 
     ASSERT(cipher->running, "Cannot end operation on non-running cipher");
-    errval = 0;
     cipher->running = false;
 
     if (output_len == NULL) {
