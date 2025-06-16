@@ -411,6 +411,7 @@ static void run_parsed_pbkdf2_test(chf_algorithm hashalg,
                                    size_t derived_key_len)
 {
     byte *actual;
+
     actual = calloc(1, derived_key_len);
     GUARD_ALLOC(actual);
 

@@ -45,14 +45,14 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
                 size_t salt_len, unsigned int iteration_count,
                 chf_algorithm alg)
 {
-    struct hmac_ctx *prf = NULL;
-    struct hmac_ctx *pwd_preprocessed = NULL;
-    struct hmac_ctx *pwd_salt_preprocessed = NULL;
+    struct hmac_ctx *prf;
+    struct hmac_ctx *pwd_preprocessed;
+    struct hmac_ctx *pwd_salt_preprocessed;
     byte u[HMAC_MAX_DIGEST_SIZE];
     byte i_msof[4];
     size_t octets_from_t, on_octet, hlen;
-    unsigned int j_minus_one;
     uint32_t i;
+    unsigned int j_minus_one;
     int res;
     int errval = 0;
 

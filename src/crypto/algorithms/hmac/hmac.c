@@ -26,25 +26,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * The two working buffers allocated inside the context are used to perform
+ * computations on key material. Allocating them inside the context causes
+ * hmac_free_scrub() to scrub them.
+ */
 struct hmac_ctx {
     struct chf_ctx *inner_ctx;
     struct chf_ctx *outer_ctx;
-    bool running;
-    int errcode;
-
-    /*
-     * These two working buffers allocated inside the context are used to
-     * perform computations on key material. Allocating them inside the context
-     * causes hmac_free_scrub() to scrub them.
-     */
     byte block_sized_buffer[CHF_MAX_BLOCK_SIZE];
     byte digest_sized_buffer[CHF_MAX_DIGEST_SIZE];
+    int errcode;
+    bool running;
 };
 
 struct hmac_ctx *hmac_alloc(chf_algorithm alg)
 {
-    struct hmac_ctx *ret =
-        (struct hmac_ctx *)calloc(1, sizeof(struct hmac_ctx));
+    struct hmac_ctx *ret;
+
+    ret = (struct hmac_ctx *)calloc(1, sizeof(struct hmac_ctx));
     GUARD_ALLOC(ret);
 
     ret->inner_ctx = chf_alloc(alg);
@@ -68,13 +68,14 @@ struct hmac_ctx *hmac_alloc(chf_algorithm alg)
 
 int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t key_len)
 {
-    byte *key_hash = hmac->digest_sized_buffer;
-    byte *pad = hmac->block_sized_buffer;
+    byte *key_hash, *pad;
     size_t block_size, i;
     int chfres;
     int errval = 0;
 
     hmac->running = true;
+    key_hash = hmac->digest_sized_buffer;
+    pad =  hmac->block_sized_buffer;
 
     /*
      * If the given key is longer than a block, replace it immediately with a
@@ -139,13 +140,15 @@ int hmac_add(struct hmac_ctx *hmac, const byte *msg, size_t msg_len)
 
 int hmac_end(struct hmac_ctx *hmac, byte *digest)
 {
-    byte *inner_digest = hmac->digest_sized_buffer;
+    byte *inner_digest;
     size_t digest_size;
     int chfres;
     int errval = 0;
 
     ASSERT(hmac->running, "HMAC context is not running");
     hmac->running = false;
+
+    inner_digest = hmac->digest_sized_buffer;
 
     if (hmac->errcode) {
         return hmac->errcode;
