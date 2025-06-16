@@ -27,174 +27,175 @@
 #include <string.h>
 #include <termios.h>
 
-#define ENCRYPT_MESSAGE "Enter a password to encrypt this file: "
-#define CONFIRM_MESSAGE "Reenter the password to encrypt this file: "
-#define DECRYPT_MESSAGE "Enter the password to decrypt this file: "
+#define MESSAGE_ENCRYPT ("Enter a password to encrypt this file: ")
+#define MESSAGE_CONFIRM ("Reenter the password to encrypt this file: ")
+#define MESSAGE_DECRYPT ("Enter the password to decrypt this file: ")
 
-#define PASSWORD_TOO_LONG_MESSAGE "Password can be at most %d characters long"
+#define MESSAGE_TOO_LONG ("Password can be at most %d characters long")
+#define MESSAGE_NO_MATCH ("Passwords do not match")
 
-static int use_provided_password(char *password, size_t *password_len,
-                                 const char *provided_password);
-static int password_strlen(const char *provided, size_t *password_len);
+static FILE *open_terminal(void);
+static void close_terminal(FILE *fp_terminal);
 
 static int read_secret_input_line(char *line, size_t *line_len,
-                                  const char *prompt);
-static int read_input_line(FILE *fp, char *line, size_t *line_len);
+                                  const char *prompt, FILE *fp_terminal);
+static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal);
 
-int get_encryption_password(char *password, size_t *password_len,
-                            const char *provided_password)
+int password_prompt_encryption(char *password, size_t *password_len)
 {
+    FILE *fp_terminal;
     char input1[PASSWORD_LENGTH_MAX];
     char input2[PASSWORD_LENGTH_MAX];
     size_t len1, len2;
     int errval = 0;
 
-    if (provided_password != NULL) {
-        if (use_provided_password(password, password_len, provided_password)) {
-            ERROR_QUIET(done, errval);
-        }
+    fp_terminal = open_terminal();
+    if (read_secret_input_line(input1, &len1, MESSAGE_ENCRYPT, fp_terminal)) {
+        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
-    else {
-        if (read_secret_input_line(input1, &len1, ENCRYPT_MESSAGE)) {
-            ERROR_QUIET(done, errval);
-        }
-        if (read_secret_input_line(input2, &len2, CONFIRM_MESSAGE)) {
-            ERROR_QUIET(done, errval);
-        }
-        if (len1 != len2 || memcmp(input1, input2, len1) != 0) {
-            ERROR(done, errval, "Passwords do not match");
-        }
+    if (read_secret_input_line(input2, &len2, MESSAGE_CONFIRM, fp_terminal)) {
+        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+    }
+    if (len1 != len2 || memcmp(input1, input2, len1) != 0) {
+        ERROR(done, errval, MESSAGE_NO_MATCH);
+    }
+    if (ferror(fp_terminal)) {
+        ERROR_QUIET(done, errval);
+    }
 
-        /* Only write to caller's memory if password is valid */
-        memcpy(password, input1, len1);
-        *password_len = len1;
-    }
+    memcpy(password, input1, len1);
+    *password_len = len1;
 
 done:
     scrub_memory(input1, PASSWORD_LENGTH_MAX);
     scrub_memory(input2, PASSWORD_LENGTH_MAX);
     scrub_memory(&len1, sizeof(size_t));
     scrub_memory(&len2, sizeof(size_t));
+    close_terminal(fp_terminal);
     return errval;
 }
 
-int get_decryption_password(char *password, size_t *password_len,
-                            const char *provided_password)
+int password_prompt_decryption(char *password, size_t *password_len)
 {
+    FILE *fp_terminal;
     char input[PASSWORD_LENGTH_MAX];
     size_t len;
     int errval = 0;
 
-    if (provided_password != NULL) {
-        if (use_provided_password(password, password_len, provided_password)) {
-            ERROR_QUIET(done, errval);
-        }
+    fp_terminal = open_terminal();
+    if (read_secret_input_line(input, &len, MESSAGE_DECRYPT, fp_terminal)) {
+        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
-    else {
-        if (read_secret_input_line(input, &len, DECRYPT_MESSAGE)) {
-            ERROR_QUIET(done, errval);
-        }
+    if (ferror(fp_terminal)) {
+        ERROR_QUIET(done, errval);
+    }
 
-        /* Only write to caller's memory if password is valid */
-        memcpy(password, input, len);
-        *password_len = len;
-    }
+    memcpy(password, input, len);
+    *password_len = len;
 
 done:
     scrub_memory(input, PASSWORD_LENGTH_MAX);
     scrub_memory(&len, sizeof(size_t));
+    close_terminal(fp_terminal);
     return errval;
 }
 
-static int use_provided_password(char *password, size_t *password_len,
-                                 const char *provided_password)
+int password_copy(char *password, size_t *password_len,
+                  const char *provided_password)
 {
-    int errval = 0;
-
-    if (password_strlen(provided_password, password_len)) {
-        ERROR_QUIET(done, errval);
-    }
-
-    /* Only write to caller's memory if password is valid */
-    memcpy(password, provided_password, *password_len);
-
-done:
-    return errval;
-}
-
-static int password_strlen(const char *provided, size_t *password_len)
-{
-    size_t len = 0;
+    size_t len;
     int errval = 0;
 
     /* Portable replacement for strnlen, for POSIX-1.2001 compatibility */
+    len = 0;
     while (len < PASSWORD_LENGTH_MAX) {
-        if (provided[len] == '\0') {
+        if (provided_password[len] == '\0') {
             break;
         }
         len++;
     }
-    if (provided[len] != '\0') {
-        ERROR(done, errval, PASSWORD_TOO_LONG_MESSAGE, PASSWORD_LENGTH_MAX);
+    if (provided_password[len] != '\0') {
+        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
 
-    /* Only write to caller's memory if password is valid */
+    memcpy(password, provided_password, len);
     *password_len = len;
 
 done:
-    scrub_memory(&len, sizeof(size_t));
     return errval;
 }
 
-static int read_secret_input_line(char *line, size_t *line_len,
-                                  const char *prompt)
+static FILE *open_terminal(void)
 {
-    /*
-     * The following function is adapted from the char* getpass(const char*)
-     * function from p.350 of "Advanced Programming in the UNIX Environment"
-     * by W. Richard Stevens (ISBN 0201563177)
-     */
-
-    sigset_t sig, sigsave;
-    struct termios term, termsave;
     FILE *fp;
-    int errval = 0;
 
     fp = fopen(ctermid(NULL), "r+");
     if (fp == NULL) {
         FATAL_ERROR("Could not open terminal for reading");
     }
-    fprintf(fp, "%s", prompt);
-    setbuf(fp, NULL);
+    return fp;
+}
+
+static void close_terminal(FILE *fp_terminal)
+{
+    int errflag;
+
+    errflag = ferror(fp_terminal);
+    fclose(fp_terminal);
+    if (errflag) {
+        FATAL_ERROR("Terminal stream error indicator set");
+    }
+}
+
+/*
+ * A return of 0 indicates only that the input password was not too long.
+ * Caller will still have to check ferror() to determine if EOF was encountered
+ * as an error condition instead of an actual EOF.
+ */
+static int read_secret_input_line(char *line, size_t *line_len,
+                                  const char *prompt, FILE *fp_terminal)
+{
+    /*
+     * The following function is adapted from the char* getpass(const char*)
+     * function from p.350 of "Advanced Programming in the UNIX Environment"
+     * by W. Richard Stevens (ISBN 0201563177).
+     */
+
+    struct termios term, termsave;
+    sigset_t sig, sigsave;
+    int ret;
+
+    fprintf(fp_terminal, "%s", prompt);
+    setbuf(fp_terminal, NULL);
 
     sigemptyset(&sig);
     sigaddset(&sig, SIGINT);
     sigaddset(&sig, SIGTSTP);
     sigprocmask(SIG_BLOCK, &sig, &sigsave);
 
-    tcgetattr(fileno(fp), &termsave);
+    tcgetattr(fileno(fp_terminal), &termsave);
     term = termsave;
     term.c_lflag &= (tcflag_t)(~(ECHO | ECHOE | ECHOK | ECHONL));
-    tcsetattr(fileno(fp), TCSAFLUSH, &term);
+    tcsetattr(fileno(fp_terminal), TCSAFLUSH, &term);
 
-    if (read_input_line(fp, line, line_len)) {
-        ERROR(done, errval, PASSWORD_TOO_LONG_MESSAGE, PASSWORD_LENGTH_MAX);
-    }
+    ret = read_input_line(line, line_len, fp_terminal);
 
-done:
-    tcsetattr(fileno(fp), TCSAFLUSH, &termsave);
+    tcsetattr(fileno(fp_terminal), TCSAFLUSH, &termsave);
     sigprocmask(SIG_SETMASK, &sigsave, NULL);
-    fclose(fp);
-    return errval;
+    return ret;
 }
 
-static int read_input_line(FILE *fp, char *line, size_t *line_len)
+static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal)
 {
     int c;
     int ret = 0;
 
     *line_len = 0;
-    while ((c = getc(fp)) != EOF && c != '\n') {
+    while (1) {
+        c = getc(fp_terminal);
+        if (c == EOF || c == '\n') {
+            break;
+        }
         if (*line_len < PASSWORD_LENGTH_MAX) {
             line[(*line_len)++] = (char)c;
         }
@@ -202,7 +203,7 @@ static int read_input_line(FILE *fp, char *line, size_t *line_len)
             ret = -1;
         }
     }
-    putc('\n', fp);
+    putc('\n', fp_terminal);
 
     scrub_memory(&c, sizeof(int));
     return ret;

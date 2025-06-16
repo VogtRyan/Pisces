@@ -53,15 +53,18 @@ int main(int argc, char **argv)
         ERROR_QUIET(done, errval);
     }
 
-    if (encrypt) {
-        if (get_encryption_password(password, &password_len,
-                                    provided_password)) {
+    if (provided_password != NULL) {
+        if (password_copy(password, &password_len, provided_password)) {
+            ERROR_QUIET(done, errval);
+        }
+    }
+    else if (encrypt) {
+        if (password_prompt_encryption(password, &password_len)) {
             ERROR_QUIET(done, errval);
         }
     }
     else {
-        if (get_decryption_password(password, &password_len,
-                                    provided_password)) {
+        if (password_prompt_decryption(password, &password_len)) {
             ERROR_QUIET(done, errval);
         }
     }
@@ -169,8 +172,7 @@ static int sanity_check_files(char *input_file, char *output_file)
         if (stat(output_file, &out_stat) == 0) {
             if (in_stat.st_dev == out_stat.st_dev &&
                 in_stat.st_ino == out_stat.st_ino) {
-                ERROR(done, errval,
-                      "Input file and output file are the same");
+                ERROR(done, errval, "Input file and output file are the same");
             }
         }
     }

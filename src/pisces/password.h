@@ -22,19 +22,27 @@
 #include <stddef.h>
 
 /*
- * Prompts the user to input a password (and, for encryption, to confirm it).
- * The password array must be at least PASSWORD_LENGTH_MAX long. Its contents
- * will NOT be NULL-terminated.
+ * These functions fill a password buffer that must be at least
+ * PASSWORD_LENGTH_MAX bytes long. Its contents will NOT be NULL-terminated.
  *
- * If the provided password is non-NULL, it is treated as the user's input (and
- * confirmation). It must be NULL-terminated.
- *
- * Returns 0 on success, <0 on error, and prints error messages. If the return
- * is <0, it is guaranteed that the caller's memory is unchanged.
+ * These functions guarantee that the caller's memory (the buffer and the size
+ * variable) will be modified only if the function succeeds.
  */
-int get_encryption_password(char *password, size_t *password_len,
-                            const char *provided_password);
-int get_decryption_password(char *password, size_t *password_len,
-                            const char *provided_password);
+
+/*
+ * Prompts the user for a password on the terminal. For encryption, the user is
+ * also asked to confirm their password. Returns 0 on success, <0 if no valid
+ * password is provided and prints error messages.
+ */
+int password_prompt_encryption(char *password, size_t *password_len);
+int password_prompt_decryption(char *password, size_t *password_len);
+
+/*
+ * Copies a provided password from another source into the password array.
+ * Returns 0 on success, <0 if the password is not valid and prints error
+ * messages.
+ */
+int password_copy(char *password, size_t *password_len,
+                  const char *provided_password);
 
 #endif
