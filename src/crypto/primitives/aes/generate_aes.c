@@ -201,8 +201,10 @@ static void build_sub_mix_table(const uint8_t *sbox,
 static void build_rcon_table(void)
 {
     uint8_t table[40];
-    uint8_t poly = 0x01;
+    uint8_t poly;
     int i;
+
+    poly = 0x01;
 
     put_big_end_32(table, ((uint32_t)poly) << 24);
     for (i = 1; i < 10; i++) {

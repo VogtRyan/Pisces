@@ -44,8 +44,9 @@ static void keccak_f(struct sha3_ctx *ctx, const byte *new_data);
 
 struct sha3_ctx *sha3_alloc(void)
 {
-    struct sha3_ctx *ret =
-        (struct sha3_ctx *)calloc(1, sizeof(struct sha3_ctx));
+    struct sha3_ctx *ret;
+
+    ret = (struct sha3_ctx *)calloc(1, sizeof(struct sha3_ctx));
     GUARD_ALLOC(ret);
     return ret;
 }
@@ -113,8 +114,8 @@ void sha3_add(struct sha3_ctx *ctx, const byte *bytes, size_t num_bytes)
 
 void sha3_end(struct sha3_ctx *ctx, byte *digest)
 {
-    size_t bytes_needed, to_copy, i;
     byte output[8];
+    size_t bytes_needed, to_copy, i;
 
     /*
      * Padding at the end of the message. The original Keccak specification set

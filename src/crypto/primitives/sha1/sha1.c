@@ -163,14 +163,15 @@ void sha1_free_scrub(struct sha1_ctx *ctx)
 
 static void sha1_process_block(struct sha1_ctx *ctx, const byte *block)
 {
-    uint32_t a = ctx->h[0];
-    uint32_t b = ctx->h[1];
-    uint32_t c = ctx->h[2];
-    uint32_t d = ctx->h[3];
-    uint32_t e = ctx->h[4];
+    uint32_t a, b, c, d, e, f, k, temp;
     uint32_t w[80];
-    uint32_t f, k, temp;
     int i;
+
+    a = ctx->h[0];
+    b = ctx->h[1];
+    c = ctx->h[2];
+    d = ctx->h[3];
+    e = ctx->h[4];
 
     for (i = 0; i < 16; i++) {
         w[i] = get_big_end_32(block + i * 4);

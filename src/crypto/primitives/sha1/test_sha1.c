@@ -31,9 +31,9 @@ TEST_PREAMBLE("SHA1");
  * multiple times.
  */
 struct sha1_plain_test {
-    size_t msg_repeats;
     const char *msg;
     const char *digest;
+    size_t msg_repeats;
 };
 
 /*
@@ -65,18 +65,18 @@ static const struct sha1_plain_test plain_tests[] = {
      * vector labelled ShortMsg, Len=0 (0 bytes).
      */
     {
-        .msg_repeats = 0,
         .msg = "",
         .digest = "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709",
+        .msg_repeats = 0,
     },
 
     /*
      * RFC 3174, Section 7.3, TEST1. Input text is "abc".
      */
     {
-        .msg_repeats = 1,
         .msg = "616263",
         .digest = "A9993E364706816ABA3E25717850C26C9CD0D89D",
+        .msg_repeats = 1,
     },
 
     /*
@@ -84,10 +84,10 @@ static const struct sha1_plain_test plain_tests[] = {
      * "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq".
      */
     {
-        .msg_repeats = 1,
         .msg = "6162636462636465636465666465666765666768666768696768696A68696A"
                "6B696A6B6C6A6B6C6D6B6C6D6E6C6D6E6F6D6E6F706E6F7071",
         .digest = "84983E441C3BD26EBAAE4AA1F95129E5E54670F1",
+        .msg_repeats = 1,
     },
 
     /*
@@ -95,9 +95,9 @@ static const struct sha1_plain_test plain_tests[] = {
      * times.
      */
     {
-        .msg_repeats = 1000000,
         .msg = "61",
         .digest = "34AA973CD4C4DAA4F61EEB2BDBAD27316534016F",
+        .msg_repeats = 1000000,
     },
 
     /*
@@ -106,11 +106,11 @@ static const struct sha1_plain_test plain_tests[] = {
      * repeated 10 times.
      */
     {
-        .msg_repeats = 10,
         .msg = "3031323334353637303132333435363730313233343536373031323334"
                "3536373031323334353637303132333435363730313233343536373031"
                "323334353637",
         .digest = "DEA356A2CDDD90C7A7ECEDC5EBB563934F460452",
+        .msg_repeats = 10,
     },
 
     /*
@@ -118,9 +118,9 @@ static const struct sha1_plain_test plain_tests[] = {
      * example vector labelled ShortMsg, Len=24 (3 bytes).
      */
     {
-        .msg_repeats = 1,
         .msg = "DF4BD2",
         .digest = "BF36ED5D74727DFD5D7854EC6B1D49468D8EE8AA",
+        .msg_repeats = 1,
     },
 
     /*
@@ -128,11 +128,11 @@ static const struct sha1_plain_test plain_tests[] = {
      * example vector labelled ShortMsg, Len=512 (64 bytes).
      */
     {
-        .msg_repeats = 1,
         .msg = "45927E32DDF801CAF35E18E7B5078B7F5435278212EC6BB99DF884F49B"
                "327C6486FEAE46BA187DC1CC9145121E1492E6B06E9007394DC33B7748"
                "F86AC3207CFE",
         .digest = "A70CFBFE7563DD0E665C7C6715A96A8D756950C0",
+        .msg_repeats = 1,
     },
 
     /*
@@ -140,7 +140,6 @@ static const struct sha1_plain_test plain_tests[] = {
      * example vector labelled LongMsg, Len=1304 (163 bytes).
      */
     {
-        .msg_repeats = 1,
         .msg = "7C9C67323A1DF1ADBFE5CEB415EAEF0155ECE2820F4D50C1EC22CBA492"
                "8AC656C83FE585DB6A78CE40BC42757ABA7E5A3F582428D6CA68D0C397"
                "8336A6EFB729613E8D9979016204BFD921322FDD5222183554447DE5E6"
@@ -148,6 +147,7 @@ static const struct sha1_plain_test plain_tests[] = {
                "CD45D4F31E388E4FAFD7FC6495F37CA5CBAB7F54D586463DA4BFEAA3BA"
                "E09F7B8E9239D832B4F0A733AA609CC1F8D4",
         .digest = "D8FD6A91EF3B6CED05B98358A99107C1FAC8C807",
+        .msg_repeats = 1,
     },
 };
 

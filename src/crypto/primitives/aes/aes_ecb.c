@@ -709,8 +709,9 @@ static const uint32_t RCON[10] = {
 
 struct aes_ecb_ctx *aes_ecb_alloc(void)
 {
-    struct aes_ecb_ctx *ret =
-        (struct aes_ecb_ctx *)calloc(1, sizeof(struct aes_ecb_ctx));
+    struct aes_ecb_ctx *ret;
+
+    ret = (struct aes_ecb_ctx *)calloc(1, sizeof(struct aes_ecb_ctx));
     GUARD_ALLOC(ret);
     return ret;
 }
@@ -790,8 +791,10 @@ void aes_ecb_encrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output)
 {
     uint32_t col0, col1, col2, col3;
     uint32_t tmp0, tmp1, tmp2;
-    uint32_t *rk = ctx->rk;
+    uint32_t *rk;
     size_t i;
+
+    rk = ctx->rk;
 
     /* AddRoundKey() before any rounds begin */
     /* clang-format off */
@@ -829,8 +832,10 @@ void aes_ecb_decrypt(struct aes_ecb_ctx *ctx, const byte *block, byte *output)
 {
     uint32_t col0, col1, col2, col3;
     uint32_t tmp0, tmp1, tmp2;
-    uint32_t *rk = ctx->dk;
+    uint32_t *rk;
     size_t i;
+
+    rk = ctx->dk;
 
     /* AddRoundKey() before any rounds begin */
     /* clang-format off */
