@@ -26,14 +26,16 @@
 #include <stdlib.h>
 
 struct kdf {
-    unsigned int iteration_count;
     chf_algorithm chf_alg;
+    unsigned int iteration_count;
     int errcode;
 };
 
 struct kdf *kdf_alloc(kdf_algorithm alg)
 {
-    struct kdf *ret = (struct kdf *)calloc(1, sizeof(struct kdf));
+    struct kdf *ret;
+
+    ret = (struct kdf *)calloc(1, sizeof(struct kdf));
     GUARD_ALLOC(ret);
 
     switch (alg) {
@@ -60,11 +62,13 @@ int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
                const char *password, size_t password_len, const byte *salt,
                size_t salt_len)
 {
-    int pbkdf2Ret =
+    int pbkdf2_ret;
+
+    pbkdf2_ret =
         pbkdf2_hmac(derived_key, derived_key_len, password, password_len, salt,
                     salt_len, fn->iteration_count, fn->chf_alg);
 
-    switch (pbkdf2Ret) {
+    switch (pbkdf2_ret) {
     case 0:
         fn->errcode = 0;
         break;

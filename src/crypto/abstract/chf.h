@@ -21,12 +21,12 @@
 
 #include <stddef.h>
 
-#define CHF_MAX_DIGEST_SIZE (64)
 #define CHF_MAX_BLOCK_SIZE  (144)
-
-typedef enum { CHF_ALG_SHA1, CHF_ALG_SHA3_512 } chf_algorithm;
+#define CHF_MAX_DIGEST_SIZE (64)
 
 #define CHF_ERROR_MESSAGE_TOO_LONG (-1)
+
+typedef enum { CHF_ALG_SHA1, CHF_ALG_SHA3_512 } chf_algorithm;
 
 struct chf_ctx;
 

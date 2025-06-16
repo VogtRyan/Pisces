@@ -27,29 +27,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
+#define MIN(a, b)       ((a) < (b) ? (a) : (b))
 #define UNUSED(varname) (void)(varname)
 
 /*
  * This abstract context contains a struct aes_cbc_ctx *, instead of a void *,
- * because AES-CBC is the only primitive supported in this implementation.
+ * because AES-CBC is the only primitive supported. The key_size field is used
+ * as a proxy for an abstract type field.
  */
 struct cipher_ctx {
     struct aes_cbc_ctx *ctx;
-    size_t key_size;
-    bool padded;
-    cipher_direction direction;
-    byte iv0[CIPHER_MAX_IV_SIZE];
     byte input_block[CIPHER_MAX_BLOCK_SIZE];
-    size_t amnt_input;
+    byte iv0[CIPHER_MAX_IV_SIZE];
     byte output_block[CIPHER_MAX_BLOCK_SIZE];
-    bool has_output;
+    size_t amnt_input;
+    size_t key_size;
+    cipher_direction direction;
+    int errcode;
     bool direction_set;
+    bool has_output;
     bool iv_set;
     bool key_set;
+    bool padded;
     bool running;
-    int errcode;
 };
 
 static size_t process_block(struct cipher_ctx *cipher, const byte *input,
@@ -57,7 +57,9 @@ static size_t process_block(struct cipher_ctx *cipher, const byte *input,
 
 struct cipher_ctx *cipher_alloc(cipher_algorithm alg)
 {
-    struct cipher_ctx *ret = calloc(1, sizeof(struct cipher_ctx));
+    struct cipher_ctx *ret;
+
+    ret = calloc(1, sizeof(struct cipher_ctx));
     GUARD_ALLOC(ret);
 
     switch (alg) {
@@ -90,6 +92,7 @@ void cipher_set_direction(struct cipher_ctx *cipher,
     ASSERT(direction == CIPHER_DIRECTION_ENCRYPT ||
                direction == CIPHER_DIRECTION_DECRYPT,
            "Invalid cipher direction");
+
     cipher->direction = direction;
     cipher->direction_set = true;
 }
@@ -97,6 +100,7 @@ void cipher_set_direction(struct cipher_ctx *cipher,
 void cipher_set_key(struct cipher_ctx *cipher, const byte *key)
 {
     ASSERT(cipher->running == false, "Cannot set key on running cipher");
+
     aes_cbc_set_key(cipher->ctx, key, cipher->key_size);
     cipher->key_set = true;
 }
@@ -104,6 +108,7 @@ void cipher_set_key(struct cipher_ctx *cipher, const byte *key)
 void cipher_set_iv(struct cipher_ctx *cipher, const byte *iv)
 {
     ASSERT(cipher->running == false, "Cannot set IV on running cipher");
+
     memcpy(cipher->iv0, iv, AES_CBC_IV_SIZE);
     cipher->iv_set = true;
 }
@@ -122,8 +127,8 @@ void cipher_start(struct cipher_ctx *cipher)
 void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
                 byte *output, size_t *output_len)
 {
-    size_t to_fill_block, add_to_cipher;
-    size_t fake_output_len, added_to_output;
+    size_t add_to_cipher, added_to_output, to_fill_block;
+    size_t fake_output_len;
 
     ASSERT(cipher->running, "Cannot add data to non-running cipher");
     ASSERT(input_len <= CIPHER_ADD_MAX_INPUT_LEN,
@@ -182,9 +187,10 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
 int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
 {
     size_t fake_output_len;
-    int errval = 0;
+    int errval;
 
     ASSERT(cipher->running, "Cannot end operation on non-running cipher");
+    errval = 0;
     cipher->running = false;
 
     if (output_len == NULL) {

@@ -27,12 +27,12 @@
 #include <stdlib.h>
 
 struct chf_ctx {
-    chf_algorithm type;
     void *ctx;
-    bool running;
-    int errcode;
+    chf_algorithm type;
     size_t digest_size;
     size_t block_size;
+    int errcode;
+    bool running;
 };
 
 static inline void chf_ctx_alloc(struct chf_ctx *chf);
@@ -46,7 +46,9 @@ static inline void chf_ctx_free_scrub(struct chf_ctx *chf);
 
 struct chf_ctx *chf_alloc(chf_algorithm alg)
 {
-    struct chf_ctx *ret = (struct chf_ctx *)calloc(1, sizeof(struct chf_ctx));
+    struct chf_ctx *ret;
+
+    ret = (struct chf_ctx *)calloc(1, sizeof(struct chf_ctx));
     GUARD_ALLOC(ret);
 
     switch (alg) {

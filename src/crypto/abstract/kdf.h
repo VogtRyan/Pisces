@@ -27,11 +27,11 @@ typedef enum {
     KDF_ALG_PBKDF2_HMAC_SHA1_1024
 } kdf_algorithm;
 
+struct kdf;
+
 #define KDF_ERROR_PASSWORD_TOO_LONG    (-1)
 #define KDF_ERROR_SALT_TOO_LONG        (-2)
 #define KDF_ERROR_DERIVED_KEY_TOO_LONG (-3)
-
-struct kdf;
 
 /*
  * Allocates a new cryptographic key derivation function. Must be freed with
