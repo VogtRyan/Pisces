@@ -126,11 +126,11 @@ static size_t cipher_block_ceiling(size_t bytes,
 int encrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
-    struct cprng *rng = NULL;
+    struct cprng *rng;
+    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
+    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
     byte salt[CIPHER_MAX_KEY_SIZE];
-    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
-    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
     int errval = 0;
@@ -179,10 +179,10 @@ done:
 int decrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
+    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
+    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
     byte salt[CIPHER_MAX_KEY_SIZE];
-    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
-    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
     int in = -1;
     int out = -1;
     int errval = 0;
@@ -230,10 +230,14 @@ done:
 
 static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
-    struct cipher_ctx *cipher = NULL;
-    byte magic_version;
+    struct cipher_ctx *cipher;
     size_t key_salt_len, iv_len;
+    byte magic_version;
     int errval = 0;
+
+    cipher = pisces_unpadded_cipher_alloc();
+    key_salt_len = cipher_key_size(cipher);
+    iv_len = cipher_iv_size(cipher);
 
     magic_version = (byte)pisces_get_version();
     if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
@@ -243,10 +247,6 @@ static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
     if (write_exactly(fd, &magic_version, 1)) {
         ERROR(done, errval, "Could not write magic-byte version");
     }
-
-    cipher = pisces_unpadded_cipher_alloc();
-    key_salt_len = cipher_key_size(cipher);
-    iv_len = cipher_iv_size(cipher);
 
     if (write_exactly(fd, salt, key_salt_len)) {
         ERROR(done, errval, "Could not write salt");
@@ -265,11 +265,15 @@ done:
 
 static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
-    struct cipher_ctx *cipher = NULL;
+    struct cipher_ctx *cipher;
     byte magic_prefix[PISCES_MAGIC_PREFIX_LEN];
-    byte magic_version;
     size_t key_salt_len, iv_len;
+    byte magic_version;
     int errval = 0;
+
+    cipher = pisces_unpadded_cipher_alloc();
+    key_salt_len = cipher_key_size(cipher);
+    iv_len = cipher_iv_size(cipher);
 
     if (read_exactly(fd, magic_prefix, PISCES_MAGIC_PREFIX_LEN)) {
         ERROR(done, errval, "Could not read magic-byte prefix");
@@ -284,10 +288,6 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
         ERROR(done, errval, "Unsupported Pisces version: %d",
               (int)magic_version);
     }
-
-    cipher = pisces_unpadded_cipher_alloc();
-    key_salt_len = cipher_key_size(cipher);
-    iv_len = cipher_iv_size(cipher);
 
     if (read_exactly(fd, salt, key_salt_len)) {
         ERROR(done, errval, "Could not read salt");
@@ -307,11 +307,11 @@ done:
 static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
                          struct cprng *rng)
 {
-    struct chf_ctx *chf = NULL;
-    struct cipher_ctx *cipher = NULL;
+    struct chf_ctx *chf;
+    struct cipher_ctx *cipher;
+    byte encrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
     byte random_data[PISCES_MAX_RANDOM_SIZE];
     byte random_hash[CHF_MAX_DIGEST_SIZE];
-    byte encrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
     size_t random_len, hash_len, total_len;
     size_t bytes_encrypted1, bytes_encrypted2;
     int errval = 0;
@@ -361,11 +361,11 @@ done:
 
 static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
 {
-    struct chf_ctx *chf = NULL;
-    struct cipher_ctx *cipher = NULL;
-    byte encrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
-    byte decrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
+    struct chf_ctx *chf;
+    struct cipher_ctx *cipher;
     byte computed_hash[CHF_MAX_DIGEST_SIZE];
+    byte decrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
+    byte encrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
     size_t random_len, hash_len, total_len;
     size_t decrypted_len;
     int errval = 0;
@@ -426,12 +426,12 @@ done:
 
 static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
 {
-    struct chf_ctx *chf = NULL;
-    struct cipher_ctx *cipher = NULL;
-    byte input[INPUT_BYTES_READ_AT_ONCE];
-    byte hash[CHF_MAX_DIGEST_SIZE];
+    struct chf_ctx *chf;
+    struct cipher_ctx *cipher;
     byte enc_data[INPUT_BYTES_READ_AT_ONCE + CHF_MAX_DIGEST_SIZE +
                   CIPHER_MAX_BLOCK_SIZE];
+    byte hash[CHF_MAX_DIGEST_SIZE];
+    byte input[INPUT_BYTES_READ_AT_ONCE];
     size_t hash_len, bytes_read, bytes_encrypted;
     int errval = 0;
 
@@ -507,14 +507,14 @@ done:
 
 static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
 {
-    struct chf_ctx *chf = NULL;
-    struct cipher_ctx *cipher = NULL;
-    struct holdbuf *hb = NULL;
-    byte input[INPUT_BYTES_READ_AT_ONCE];
-    byte dec_data[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
-    byte data_from_hb[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
-    byte stored_hash[CHF_MAX_DIGEST_SIZE];
+    struct chf_ctx *chf;
+    struct cipher_ctx *cipher;
+    struct holdbuf *hb;
     byte computed_hash[CHF_MAX_DIGEST_SIZE];
+    byte data_from_hb[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
+    byte dec_data[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
+    byte input[INPUT_BYTES_READ_AT_ONCE];
+    byte stored_hash[CHF_MAX_DIGEST_SIZE];
     size_t hash_len, bytes_read, bytes_decrypted, bytes_from_hb;
     int errval = 0;
 
@@ -641,8 +641,8 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
 static int password_to_key(byte *derived_key, const char *password,
                            size_t password_len, const byte *salt)
 {
-    struct cipher_ctx *cipher = NULL;
-    struct kdf *fn = NULL;
+    struct cipher_ctx *cipher;
+    struct kdf *fn;
     size_t key_salt_len;
     int errval = 0;
 
