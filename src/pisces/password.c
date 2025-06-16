@@ -60,6 +60,11 @@ int password_prompt_encryption(char *password, size_t *password_len)
         ERROR(done, errval, MESSAGE_NO_MATCH);
     }
     if (ferror(fp_terminal)) {
+        /*
+         * close_terminal() is responsible for handling the error. But, we
+         * cannot copy into the caller's memory if close_terminal() is going to
+         * see the terminal's error flag.
+         */
         ERROR_QUIET(done, errval);
     }
 
