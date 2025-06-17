@@ -313,7 +313,7 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
     byte random_data[PISCES_MAX_RANDOM_SIZE];
     byte random_hash[CHF_MAX_DIGEST_SIZE];
     size_t random_len, hash_len, total_len;
-    size_t bytes_encrypted1, bytes_encrypted2;
+    size_t bytes_encrypted1, bytes_encrypted2, bytes_encrypted3;
     int errval = 0;
 
     chf = pisces_chf_alloc();
@@ -342,10 +342,12 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
                encrypted_imprint + bytes_encrypted1, &bytes_encrypted2);
     if (cipher_end(cipher,
                    encrypted_imprint + bytes_encrypted1 + bytes_encrypted2,
-                   NULL)) {
+                   &bytes_encrypted3)) {
         ERROR(done, errval, "Could not encrypt imprint data - %s",
               cipher_error(cipher));
     }
+    ASSERT(bytes_encrypted1 + bytes_encrypted2 + bytes_encrypted3 == total_len,
+           "Amount of encrypted data does not match imprint size");
 
     if (write_exactly(fd, encrypted_imprint, total_len)) {
         ERROR(done, errval, "Could not write encrypted imprint");
@@ -367,7 +369,7 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
     byte decrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
     byte encrypted_imprint[PISCES_MAX_IMPRINT_SIZE];
     size_t random_len, hash_len, total_len;
-    size_t decrypted_len;
+    size_t decrypted_len1, decrypted_len2;
     int errval = 0;
 
     chf = pisces_chf_alloc();
@@ -380,21 +382,20 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
         ERROR(done, errval, "Could not read encrypted imprint");
     }
 
-    /*
-     * Decrypt the entire imprint. We do not need the size filled in by
-     * cipher_end(), because we know the size of the imprint the cipher context
-     * will give us (if there is no error).
-     */
+    /* Decrypt the entire imprint at once. */
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
     cipher_set_iv(cipher, imprint_iv);
     cipher_set_key(cipher, key);
     cipher_start(cipher);
     cipher_add(cipher, encrypted_imprint, total_len, decrypted_imprint,
-               &decrypted_len);
-    if (cipher_end(cipher, decrypted_imprint + decrypted_len, NULL)) {
+               &decrypted_len1);
+    if (cipher_end(cipher, decrypted_imprint + decrypted_len1,
+                   &decrypted_len2)) {
         ERROR(done, errval, "Could not decrypt imprint data - %s",
               cipher_error(cipher));
     }
+    ASSERT(decrypted_len1 + decrypted_len2 == total_len,
+           "Amount of decrypted data does not match imprint size");
 
     /* Hash only the first part of the decrypted imprint (the random data) */
     if (chf_single(chf, decrypted_imprint, random_len, computed_hash)) {
