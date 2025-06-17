@@ -33,7 +33,9 @@ struct holdbuf {
 
 struct holdbuf *holdbuf_alloc(size_t stop_size)
 {
-    struct holdbuf *ret = calloc(1, sizeof(struct holdbuf));
+    struct holdbuf *ret;
+
+    ret = calloc(1, sizeof(struct holdbuf));
     GUARD_ALLOC(ret);
 
     ret->buf = calloc(1, stop_size);
@@ -91,16 +93,13 @@ void holdbuf_give(struct holdbuf *hb, const byte *input, size_t input_len,
 
 int holdbuf_end(struct holdbuf *hb, byte *output)
 {
-    int errval = 0;
-
     if (hb->in_buf != hb->stop_size) {
-        ERROR_CODE(done, errval, HOLDBUF_ERROR_INSUFFICIENT_DATA);
+        return HOLDBUF_ERROR_INSUFFICIENT_DATA;
     }
+
     memcpy(output, hb->buf, hb->in_buf);
     hb->in_buf = 0;
-
-done:
-    return errval;
+    return 0;
 }
 
 void holdbuf_free_scrub(struct holdbuf *hb)

@@ -44,7 +44,7 @@ int open_output_file(const char *output_file)
 
 int read_exactly(int fd, byte *buf, size_t nbytes)
 {
-    size_t num_read = 0;
+    size_t num_read;
 
     if (read_up_to(fd, buf, nbytes, &num_read)) {
         return -1;

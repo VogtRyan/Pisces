@@ -41,9 +41,9 @@ static void usage(void);
 int main(int argc, char **argv)
 {
     char password[PASSWORD_LENGTH_MAX];
-    size_t password_len;
     char *provided_password;
     char *input_file, *output_file;
+    size_t password_len;
     bool encrypt;
     int errval = 0;
 
