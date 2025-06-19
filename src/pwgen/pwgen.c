@@ -92,7 +92,7 @@ done:
         scrub_memory(password, pwdlen);
         free(password);
     }
-    return errval;
+    return (errval ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 static void generate_password(char *password, size_t pwdlen, gen_fn gfn)
@@ -300,5 +300,5 @@ done:
 static void usage(void)
 {
     fprintf(stderr, "usage: pwgen [-adeHhnpsv] [-l length]\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
 }

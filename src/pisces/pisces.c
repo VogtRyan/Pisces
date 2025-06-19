@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 done:
     scrub_memory(password, PASSWORD_LENGTH_MAX);
     scrub_memory(&password_len, sizeof(size_t));
-    return errval;
+    return (errval ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 static void parse_command_line(int argc, char **argv, bool *encrypt,
