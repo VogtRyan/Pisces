@@ -36,52 +36,34 @@ static bool is_stdin_stdout(const char *cmdline_arg);
 
 static int sanity_check_files(char *input_file, char *output_file);
 
+static int fill_password(char *password, size_t *password_len,
+                         const char *cmdline_password, bool encrypt);
+static int run_cipher_op(const char *input_file, const char *output_file,
+                         const char *password, size_t password_len,
+                         bool encrypt);
+
 static void usage(void);
 
 int main(int argc, char **argv)
 {
     char password[PASSWORD_LENGTH_MAX];
-    char *provided_password;
+    char *cmdline_password;
     char *input_file, *output_file;
     size_t password_len;
     bool encrypt;
-    int errval = 0;
+    int errval;
 
     parse_command_line(argc, argv, &encrypt, &input_file, &output_file,
-                       &provided_password);
+                       &cmdline_password);
     if (sanity_check_files(input_file, output_file)) {
-        ERROR_QUIET(done, errval);
+        return EXIT_FAILURE;
+    }
+    if (fill_password(password, &password_len, cmdline_password, encrypt)) {
+        return EXIT_FAILURE;
     }
 
-    if (provided_password != NULL) {
-        if (password_copy(password, &password_len, provided_password)) {
-            ERROR_QUIET(done, errval);
-        }
-    }
-    else if (encrypt) {
-        if (password_prompt_encryption(password, &password_len)) {
-            ERROR_QUIET(done, errval);
-        }
-    }
-    else {
-        if (password_prompt_decryption(password, &password_len)) {
-            ERROR_QUIET(done, errval);
-        }
-    }
-
-    if (encrypt) {
-        pisces_set_version(PISCES_VERSION_NEWEST);
-        if (encrypt_file(input_file, output_file, password, password_len)) {
-            ERROR_QUIET(done, errval);
-        }
-    }
-    else {
-        if (decrypt_file(input_file, output_file, password, password_len)) {
-            ERROR_QUIET(done, errval);
-        }
-    }
-
-done:
+    errval = run_cipher_op(input_file, output_file, password, password_len,
+                           encrypt);
     scrub_memory(password, PASSWORD_LENGTH_MAX);
     scrub_memory(&password_len, sizeof(size_t));
     return (errval ? EXIT_FAILURE : EXIT_SUCCESS);
@@ -179,6 +161,38 @@ static int sanity_check_files(char *input_file, char *output_file)
 
 done:
     return errval;
+}
+
+static int fill_password(char *password, size_t *password_len,
+                         const char *cmdline_password, bool encrypt)
+{
+    /*
+     * The password buffer and length will not be written to unless the
+     * function call below succeeds. There is no need to scrub memory on
+     * failure.
+     */
+    if (cmdline_password != NULL) {
+        return password_copy(password, password_len, cmdline_password);
+    }
+    else if (encrypt) {
+        return password_prompt_encryption(password, password_len);
+    }
+    else {
+        return password_prompt_decryption(password, password_len);
+    }
+}
+
+static int run_cipher_op(const char *input_file, const char *output_file,
+                         const char *password, size_t password_len,
+                         bool encrypt)
+{
+    if (encrypt) {
+        pisces_set_version(PISCES_VERSION_NEWEST);
+        return encrypt_file(input_file, output_file, password, password_len);
+    }
+    else {
+        return decrypt_file(input_file, output_file, password, password_len);
+    }
 }
 
 static void usage(void)
