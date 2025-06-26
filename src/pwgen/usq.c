@@ -62,7 +62,7 @@ void generate_pwd_usq_simple_enforced(char *pwd, size_t pwdlen)
  * To compute the number of bits of security for enforced passwords of length
  * n >= 4, first compute
  *   v(n) = the number of valid, enforced passwords of length n
- * Bits of security will be equal to log_2(v(n)).
+ * The number of bits of security will be equal to log_2(v(n)).
  *
  * Let U ("universal") be the set of all USQ simple passwords of length n,
  * whether they are valid, enforced passwords or not. |U| = 72^n.
@@ -128,8 +128,9 @@ void generate_pwd_usq_simple_enforced(char *pwd, size_t pwdlen)
  * Note: v(n) > 0 for all integers n >= 4, so log_2(v(n)) is well-defined for
  * n >= 4.
  *
- * Computing log_2(v(n)) directly would overflow for large n, so move the
- * computation into log space.
+ * Computing log_2(v(n)) directly from v(n) would overflow for large n.
+ * Specifically, pow(72.0, n) overflows an IEEE 754 binary64 double when
+ * n >= 166. So, move the computation into log space.
  *
  * Denote each term of v(n) as a_i = (c_i) * (b_i)^n
  *   a_0 = ( 1) * (72)^n
