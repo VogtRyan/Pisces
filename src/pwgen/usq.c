@@ -59,44 +59,70 @@ void generate_pwd_usq_simple_enforced(char *pwd, size_t pwdlen)
 }
 
 /*
- * Computing the number of bits of security for enforced passwords:
+ * To compute the number of bits of security for enforced passwords of length
+ * n >= 4, first compute
+ *   v(n) = the number of valid, enforced passwords of length n
+ * Bits of security will be equal to log_2(v(n)).
  *
- * Denote n = password length, n >= 4.
+ * Let U ("universal") be the set of all USQ simple passwords of length n,
+ * whether they are valid, enforced passwords or not. |U| = 72^n.
  *
- * Define sets:
- *   P = capital letters (26)
- *   Q = lowercase letters (26)
- *   R = numbers (10)
- *   S = symbols (10)
+ * Let D ("discarded") be the set of all USQ simple passwords of length n that
+ * are not valid, enforced passwords.
  *
- * Number of USQ simple passwords, without any enforcement that they contain
- * one character from each set: 72^n
+ * v(n) = |U| - |D|
+ *      = 72^n - |D|
  *
- * Invalid passwords, because they lack characters from one set:
- *   Passwords without P = (72-26)^n = 46^n
- *   Passwords without Q = (72-26)^n = 46^n
- *   Passwords without R = (72-10)^n = 62^n
- *   Passwords without S = (72-10)^n = 62^n
- *   Sum = 2*62^n + 2*46^n
+ * Define subsets of D based on why passwords were discarded as invalid:
+ *   P = passwords without any of the 26 capital letters
+ *   Q = passwords without any of the 26 lowercase letters
+ *   R = passwords without any of the 10 numbers
+ *   S = passwords without any of the 10 symbols
  *
- * Invalid passwords, because they lack characters from two sets:
- *   Passwords without P/Q = (72-26-26)^n = 20^n
- *   Passwords without P/R = (72-26-10)^n = 36^n
- *   Passwords without P/S = (72-26-10)^n = 36^n
- *   Passwords without Q/R = (72-26-10)^n = 36^n
- *   Passwords without Q/S = (72-26-10)^n = 36^n
- *   Passwords without R/S = (72-10-10)^n = 52^n
- *   Sum = 52^n + 4*36^n + 20^n
+ * All discarded passwords belong to at least one of P, Q, R, or S, meaning
+ *   D = (P) U (Q) U (R) U (S)
  *
- * Invalid passwords, because they lack characters from three sets:
- *   Passwords without P/Q/R = (72-26-26-10)^n = 10^n
- *   Passwords without P/Q/S = (72-26-26-10)^n = 10^n
- *   Passwords without P/R/S = (72-26-10-10)^n = 26^n
- *   Passwords without Q/R/S = (72-26-10-10)^n = 26^n
- *   Sum = 2*26^n + 2*10^n
+ * Compute |D| using the inclusion-exclusion principle:
+ *   |D| = Sum_{subset} - Sum_{two-way} + Sum_{three-way} - |P & Q & R & S|
+ * where:
+ *   Sum_{subset}    = sum of sizes of the four subsets
+ *   Sum_{two-way}   = sum of sizes of all the two-way intersections
+ *   Sum_{three-way} = sum of sizes of all the three-way intersections
+ *   |P & Q & R & S| = size of the four-way intersection
  *
- * Number of valid passwords, per the inclusion-exclusion principle:
- * v(n) = 72^n - (2*62^n + 2*46^n) + (52^n + 4*36^n + 20^n) - (2*26^n + 2*10^n)
+ * Single subsets:
+ *   |P| = (72-26)^n = 46^n
+ *   |Q| = (72-26)^n = 46^n
+ *   |R| = (72-10)^n = 62^n
+ *   |S| = (72-10)^n = 62^n
+ *   Sum_{subset} = 2*62^n + 2*46^n
+ *
+ * Two-way intersections:
+ *   |P & Q| = (72-26-26)^n = 20^n
+ *   |P & R| = (72-26-10)^n = 36^n
+ *   |P & S| = (72-26-10)^n = 36^n
+ *   |Q & R| = (72-26-10)^n = 36^n
+ *   |Q & S| = (72-26-10)^n = 36^n
+ *   |R & S| = (72-10-10)^n = 52^n
+ *   Sum_{two-way} = 52^n + 4*36^n + 20^n
+ *
+ * Three-way intersections:
+ *   |P & Q & R| = (72-26-26-10)^n = 10^n
+ *   |P & Q & S| = (72-26-26-10)^n = 10^n
+ *   |P & R & S| = (72-26-10-10)^n = 26^n
+ *   |Q & R & S| = (72-26-10-10)^n = 26^n
+ *   Sum_{three-way} = 2*26^n + 2*10^n
+ *
+ * Four-way intersection:
+ *   |P & Q & R & S| = 0
+ * because no simple password lacks all four character types.
+ *
+ * |D| = Sum_{subset} - Sum_{two-way} + Sum_{three-way} - |P & Q & R & S|
+ *     = (2*62^n + 2*46^n) - (52^n + 4*36^n + 20^n) + (2*26^n + 2*10^n) - (0)
+ *     = 2*62^n - 52^n + 2*46^n - 4*36^n + 2*26^n - 20^n + 2*10^n
+ *
+ * v(n) = |U| - |D|
+ *      = 72^n - (2*62^n - 52^n + 2*46^n - 4*36^n + 2*26^n - 20^n + 2*10^n)
  *      = 72^n - 2*62^n + 52^n - 2*46^n + 4*36^n - 2*26^n + 20^n - 2*10^n
  *
  * Note: v(n) > 0 for all integers n >= 4, so log_2(v(n)) is well-defined for
@@ -108,7 +134,11 @@ void generate_pwd_usq_simple_enforced(char *pwd, size_t pwdlen)
  * Denote each term of v(n) as a_i = (c_i) * (b_i)^n
  *   a_0 = ( 1) * (72)^n
  *   a_1 = (-2) * (62)^n
- *   [...]
+ *   a_2 = ( 1) * (52)^n
+ *   a_3 = (-2) * (46)^n
+ *   a_4 = ( 4) * (36)^n
+ *   a_5 = (-2) * (26)^n
+ *   a_6 = ( 1) * (20)^n
  *   a_7 = (-2) * (10)^n
  *
  * Rewrite in log space: a_i = (c_i) * 2^(n * log_2(b_i))
@@ -125,7 +155,9 @@ void generate_pwd_usq_simple_enforced(char *pwd, size_t pwdlen)
  *
  * So, v(n) = sum_{i}[c_i * 2^(x_i)]
  *
- * Denote x_max = max(x_i) = n * log_2(72) = x_0
+ * Denote x_max = max_{i}(x_i)
+ *              = n * log_2(72)
+ *              = x_0
  *
  * Factor 2^(x_max) out of the sum:
  * v(n) = 2^{x_max} * sum_{i}[c_i * 2^(x_i - x_max)]
