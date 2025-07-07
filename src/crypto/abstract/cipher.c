@@ -195,7 +195,6 @@ int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
     if (output_len == NULL) {
         output_len = &fake_output_len;
     }
-    *output_len = 0;
 
     /* Encrypt or decrypt a final block if necessary */
     if (cipher->padded && cipher->direction == CIPHER_DIRECTION_ENCRYPT) {
@@ -214,15 +213,16 @@ int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
          * output buffer, but nothing left to process in the input buffer.
          */
         if (cipher->amnt_input != 0) {
-            ERROR_CODE(done, errval,
-                       CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
+            ERROR_GOTO_SILENT_VAL(done, errval,
+                                  CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
         }
         else if (cipher->has_output == false) {
-            ERROR_CODE(done, errval, CIPHER_ERROR_NO_BLOCK_TO_DEPAD);
+            ERROR_GOTO_SILENT_VAL(done, errval,
+                                  CIPHER_ERROR_NO_BLOCK_TO_DEPAD);
         }
         if (pkcs7_padding_remove(cipher->output_block, AES_CBC_BLOCK_SIZE,
                                  output, output_len)) {
-            ERROR_CODE(done, errval, CIPHER_ERROR_INVALID_PAD_DATA);
+            ERROR_GOTO_SILENT_VAL(done, errval, CIPHER_ERROR_INVALID_PAD_DATA);
         }
     }
     else if (cipher->amnt_input != 0) {
@@ -232,7 +232,8 @@ int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
          * process any data (a partial block) that might be left in the input
          * buffer.
          */
-        ERROR_CODE(done, errval, CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
+        ERROR_GOTO_SILENT_VAL(done, errval,
+                              CIPHER_ERROR_INPUT_SIZE_NOT_BLOCK_MULTIPLE);
     }
 
 done:
