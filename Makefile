@@ -223,7 +223,8 @@ ${BINDIR}/pwgen: ${PWGEN_OBJS}
 ##
 
 clean:
-	find src -name '*.o' -exec rm -f {} ';'
+	-find ./src/ -name '*.o' -exec rm -f {} + 2>/dev/null
+	-rm -f ./bin/* 2>/dev/null
 
 ##
 # Deps: build inference prerequisites for .c.o
