@@ -61,7 +61,7 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
     res = alloc_hmacs(password, password_len, salt, salt_len, alg, &prf,
                       &pwd_preprocessed, &pwd_salt_preprocessed);
     if (res) {
-        ERROR_CODE(done, errval, res);
+        ERROR_GOTO_SILENT_VAL(done, errval, res);
     }
     hlen = hmac_digest_size(prf);
 
@@ -70,7 +70,7 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
      * ranging from 1 to at most 2^32-1. No block may be indexed by i == 0.
      */
     if (would_overflow_counter_before_completion(derived_key_len, hlen)) {
-        ERROR_CODE(done, errval, PBKDF2_ERROR_DERIVED_KEY_TOO_LONG);
+        ERROR_GOTO_SILENT_VAL(done, errval, PBKDF2_ERROR_DERIVED_KEY_TOO_LONG);
     }
 
     /*
@@ -93,7 +93,7 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
              * To the prf context, we added the salt then one 32-bit integer.
              * If this computation fails, it is because the salt is too long.
              */
-            ERROR_CODE(done, errval, PBKDF2_ERROR_SALT_TOO_LONG);
+            ERROR_GOTO_SILENT_VAL(done, errval, PBKDF2_ERROR_SALT_TOO_LONG);
         }
 
         /*
@@ -148,12 +148,12 @@ static int alloc_hmacs(const char *password, size_t password_len,
     *pwd_salt_preprocessed = hmac_alloc(alg);
 
     if (hmac_start(*pwd_preprocessed, (const byte *)password, password_len)) {
-        ERROR_CODE(done, errval, PBKDF2_ERROR_PASSWORD_TOO_LONG);
+        ERROR_GOTO_SILENT_VAL(done, errval, PBKDF2_ERROR_PASSWORD_TOO_LONG);
     }
 
     hmac_copy(*pwd_salt_preprocessed, *pwd_preprocessed);
     if (hmac_add(*pwd_salt_preprocessed, salt, salt_len)) {
-        ERROR_CODE(done, errval, PBKDF2_ERROR_SALT_TOO_LONG);
+        ERROR_GOTO_SILENT_VAL(done, errval, PBKDF2_ERROR_SALT_TOO_LONG);
     }
 
 done:
