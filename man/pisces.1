@@ -125,14 +125,14 @@ When
 is used to encrypt a file, the user enters a one-line password (or passphrase)
 that will later be used to decrypt the file. That password is transformed into
 an encryption key,
-.Ms K ,
+.Sy K ,
 using a key derivation function,
-.Ms KDF .
-.Ms KDF
+.Sy KDF .
+.Sy KDF
 will salt the password using a randomly generated salt,
-.Ms S ,
+.Sy S ,
 with length equal to the length of the key
-.Ms K .
+.Sy K .
 .Pp
 The first element placed into
 .Ar output_file
@@ -144,141 +144,141 @@ version of the
 utility uses the Pisces version 5 specifications, so the single byte
 .Li 0x05
 will be output. The next component in the header is the salt,
-.Ms S .
+.Sy S .
 That will be followed by two randomly generated initialization vectors, denoted
-.Ms I
+.Sy I
 and
-.Ms J .
+.Sy J .
 .Pp
 Following the header, an imprint is placed into
 .Ar output_file .
 When
 .Nm
 is used to decrypt the file, and a user enters password
-.Ms P'
+.Sy P'
 which gets transformed using the stored salt
-.Ms S
+.Sy S
 into a key
-.Ms K' ,
+.Sy K' ,
 the imprint makes it possible to check quickly whether
-.Ms K'
+.Sy K'
 was the key used to encrypt that file. However, given the imprint, it is not
 feasible to compute the key
-.Ms K
+.Sy K
 that was used in the original encryption. Specifically, some random data
-.Ms R
+.Sy R
 is generated. Then, a cryptographic hash of
-.Ms R
+.Sy R
 is computed,
-.Ms H(R) ,
+.Sy H(R) ,
 and these data are concatenated:
-.Ms R\ ||\ H(R) .
+.Sy R\ ||\ H(R) .
 The imprint is an encrypted version of this concatenation using the key
-.Ms K
+.Sy K
 and the initialization vector
-.Ms I :
-.Ms E[K,\ I](R\ ||\ H(R)) .
+.Sy I :
+.Sy E[K,\ I](R\ ||\ H(R)) .
 .Pp
 For the imprint, the size of
-.Ms R
+.Sy R
 is chosen such that it is at least as large as the output of
-.Ms H ,
+.Sy H ,
 and at least as large as both the block size and key size of
-.Ms E .
+.Sy E .
 Furthermore, the size of
-.Ms R
+.Sy R
 is chosen such that the length of
-.Ms R
+.Sy R
 plus the length of the output of
-.Ms H
+.Sy H
 is a multiple of the block size of
-.Ms E .
+.Sy E .
 Because of this size choice, no padding is used during the encryption
 operation for the imprint.
 .Pp
 Next, the key
-.Ms K
+.Sy K
 and the second initialization vector,
-.Ms J ,
+.Sy J ,
 are used as parameters to the encryption algorithm
-.Ms E
+.Sy E
 to encrypt the contents of
 .Ar input_file .
 If
-.Ms C
+.Sy C
 represents the contents of
 .Ar input_file ,
 then
-.Ms E[K,\ J](C\ ||\ H(C))
+.Sy E[K,\ J](C\ ||\ H(C))
 is output to
 .Ar output_file .
 Because the length of
-.Ms C
+.Sy C
 is indeterminate, PKCS #7 padding is used this time in
-.Ms E .
+.Sy E .
 .Sh VERSION 5 SPECIFICATIONS
 .Bl -tag -width Ds
-.It E
+.It Sy E
 256-bit AES in CBC mode
 .Tp
-.It H
+.It Sy H
 SHA3-512
-.It KDF
+.It Sy KDF
 PBKDF2, using HMAC-SHA3-512 as the generator, with 16384 iterations
 .El
 .Pp
 As such,
-.Ms I
+.Sy I
 and
-.Ms J
+.Sy J
 are 128 bits each,
-.Ms K
+.Sy K
 is 256 bits,
-.Ms R
+.Sy R
 is 512 bits, and
-.Ms S
+.Sy S
 is 256 bits.
 .Sh VERSION 4 SPECIFICATIONS
 .Bl -tag -width Ds
-.It E
+.It Sy E
 256-bit AES in CBC mode
-.It H
+.It Sy H
 SHA1
-.It KDF
+.It Sy KDF
 PBKDF2, using HMAC-SHA1 as the generator, with 4096 iterations
 .El
 .Pp
 As such,
-.Ms I
+.Sy I
 and
-.Ms J
+.Sy J
 were 128 bits each,
-.Ms K
+.Sy K
 was 256 bits,
-.Ms R
+.Sy R
 was 352 bits, and
-.Ms S
+.Sy S
 was 256 bits.
 .Sh VERSION 3 SPECIFICATIONS
 .Bl -tag -width Ds
-.It E
+.It Sy E
 128-bit AES in CBC mode
-.It H
+.It Sy H
 SHA1
-.It KDF
+.It Sy KDF
 PBKDF2, using HMAC-SHA1 as the generator, with 1024 iterations
 .El
 .Pp
 As such,
-.Ms I
+.Sy I
 and
-.Ms J
+.Sy J
 were 128 bits each,
-.Ms K
+.Sy K
 was 128 bits,
-.Ms R
+.Sy R
 was 224 bits, and
-.Ms S
+.Sy S
 was 128 bits.
 .Sh HISTORY
 Versions 1 and 2 of
