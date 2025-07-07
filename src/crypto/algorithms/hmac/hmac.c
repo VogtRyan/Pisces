@@ -71,11 +71,11 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t key_len)
     byte *key_hash, *pad;
     size_t block_size, i;
     int chfres;
-    int errval = 0;
 
     hmac->running = true;
+    hmac->errcode = 0;
     key_hash = hmac->digest_sized_buffer;
-    pad =  hmac->block_sized_buffer;
+    pad = hmac->block_sized_buffer;
 
     /*
      * If the given key is longer than a block, replace it immediately with a
@@ -88,7 +88,7 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t key_len)
     block_size = chf_block_size(hmac->inner_ctx);
     if (key_len > block_size) {
         if (chf_single(hmac->inner_ctx, key, key_len, key_hash)) {
-            ERROR_CODE(done, errval, HMAC_ERROR_KEY_TOO_LONG);
+            return (hmac->errcode = HMAC_ERROR_KEY_TOO_LONG);
         }
         key = key_hash;
         key_len = chf_digest_size(hmac->inner_ctx);
@@ -119,9 +119,7 @@ int hmac_start(struct hmac_ctx *hmac, const byte *key, size_t key_len)
     chfres = chf_add(hmac->outer_ctx, pad, block_size);
     ASSERT(chfres == 0, "HMAC outer context CHF initialization failed");
 
-done:
-    hmac->errcode = errval;
-    return errval;
+    return 0;
 }
 
 int hmac_add(struct hmac_ctx *hmac, const byte *msg, size_t msg_len)
@@ -132,10 +130,9 @@ int hmac_add(struct hmac_ctx *hmac, const byte *msg, size_t msg_len)
         return hmac->errcode;
     }
     if (chf_add(hmac->inner_ctx, msg, msg_len)) {
-        hmac->errcode = HMAC_ERROR_MESSAGE_TOO_LONG;
+        return (hmac->errcode = HMAC_ERROR_MESSAGE_TOO_LONG);
     }
-
-    return hmac->errcode;
+    return 0;
 }
 
 int hmac_end(struct hmac_ctx *hmac, byte *digest)
@@ -143,12 +140,9 @@ int hmac_end(struct hmac_ctx *hmac, byte *digest)
     byte *inner_digest;
     size_t digest_size;
     int chfres;
-    int errval = 0;
 
     ASSERT(hmac->running, "HMAC context is not running");
     hmac->running = false;
-
-    inner_digest = hmac->digest_sized_buffer;
 
     if (hmac->errcode) {
         return hmac->errcode;
@@ -158,9 +152,10 @@ int hmac_end(struct hmac_ctx *hmac, byte *digest)
      * The outer key pad (K_0 xor opad) is already in the outer context, so we
      * only need to append the inner context's digest to it.
      */
+    inner_digest = hmac->digest_sized_buffer;
     digest_size = chf_digest_size(hmac->inner_ctx);
     if (chf_end(hmac->inner_ctx, inner_digest)) {
-        ERROR_CODE(done, errval, HMAC_ERROR_MESSAGE_TOO_LONG);
+        return (hmac->errcode = HMAC_ERROR_MESSAGE_TOO_LONG);
     }
     chf_add(hmac->outer_ctx, inner_digest, digest_size);
     chfres = chf_end(hmac->outer_ctx, digest);
@@ -173,10 +168,7 @@ int hmac_end(struct hmac_ctx *hmac, byte *digest)
      * make a hash function fail from taking too large an input.
      */
     ASSERT(chfres == 0, "HMAC outer-context CHF computation failed");
-
-done:
-    hmac->errcode = errval;
-    return errval;
+    return 0;
 }
 
 int hmac_single(struct hmac_ctx *hmac, const byte *key, size_t key_len,
