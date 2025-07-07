@@ -137,15 +137,14 @@ static bool is_stdin_stdout(const char *cmdline_arg)
 static int sanity_check_files(char *input_file, char *output_file)
 {
     struct stat in_stat, out_stat;
-    int errval = 0;
 
     /* Check that we can operate on the type of input file */
     if (input_file != NULL) {
         if (stat(input_file, &in_stat)) {
-            ERROR(done, errval, "Could not stat input file: %s", input_file);
+            ERROR_RETURN("Could not stat input file: %s", input_file);
         }
         if (S_ISDIR(in_stat.st_mode)) {
-            ERROR(done, errval, "Cannot operate on directories");
+            ERROR_RETURN("Cannot operate on directories");
         }
     }
 
@@ -154,13 +153,12 @@ static int sanity_check_files(char *input_file, char *output_file)
         if (stat(output_file, &out_stat) == 0) {
             if (in_stat.st_dev == out_stat.st_dev &&
                 in_stat.st_ino == out_stat.st_ino) {
-                ERROR(done, errval, "Input file and output file are the same");
+                ERROR_RETURN("Input file and output file are the same");
             }
         }
     }
 
-done:
-    return errval;
+    return 0;
 }
 
 static int fill_password(char *password, size_t *password_len,
@@ -197,7 +195,7 @@ static int run_cipher_op(const char *input_file, const char *output_file,
 
 static void usage(void)
 {
-    fprintf(stderr,
+    fprintf(ERROR_OUTPUT,
             "usage: pisces [-dev] [-p password] input_file output_file\n");
     exit(EXIT_FAILURE);
 }
