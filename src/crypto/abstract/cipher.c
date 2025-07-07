@@ -195,6 +195,7 @@ int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
     if (output_len == NULL) {
         output_len = &fake_output_len;
     }
+    *output_len = 0;
 
     /* Encrypt or decrypt a final block if necessary */
     if (cipher->padded && cipher->direction == CIPHER_DIRECTION_ENCRYPT) {
