@@ -51,13 +51,13 @@ int password_prompt_encryption(char *password, size_t *password_len)
 
     fp_terminal = open_terminal();
     if (read_secret_input_line(input1, &len1, MESSAGE_ENCRYPT, fp_terminal)) {
-        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+        ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
     if (read_secret_input_line(input2, &len2, MESSAGE_CONFIRM, fp_terminal)) {
-        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+        ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
     if (len1 != len2 || memcmp(input1, input2, len1) != 0) {
-        ERROR(done, errval, MESSAGE_NO_MATCH);
+        ERROR_GOTO(done, errval, MESSAGE_NO_MATCH);
     }
     if (ferror(fp_terminal)) {
         /*
@@ -65,7 +65,7 @@ int password_prompt_encryption(char *password, size_t *password_len)
          * cannot copy into the caller's memory if close_terminal() is going to
          * see the terminal's error flag.
          */
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
 
     memcpy(password, input1, len1);
@@ -89,10 +89,10 @@ int password_prompt_decryption(char *password, size_t *password_len)
 
     fp_terminal = open_terminal();
     if (read_secret_input_line(input, &len, MESSAGE_DECRYPT, fp_terminal)) {
-        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+        ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
     if (ferror(fp_terminal)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
 
     memcpy(password, input, len);
@@ -109,7 +109,6 @@ int password_copy(char *password, size_t *password_len,
                   const char *provided_password)
 {
     size_t len;
-    int errval = 0;
 
     /* Portable replacement for strnlen, for POSIX-1.2001 compatibility */
     len = 0;
@@ -120,14 +119,12 @@ int password_copy(char *password, size_t *password_len,
         len++;
     }
     if (provided_password[len] != '\0') {
-        ERROR(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+        ERROR_RETURN(MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
 
     memcpy(password, provided_password, len);
     *password_len = len;
-
-done:
-    return errval;
+    return 0;
 }
 
 static FILE *open_terminal(void)

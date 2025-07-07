@@ -59,7 +59,7 @@
     } while (0)
 
 #ifndef DEBUGGING
-#define ERROR(target, flag, ...)                                              \
+#define ERROR_GOTO(target, flag, ...)                                         \
     do {                                                                      \
         flag = -1;                                                            \
         fprintf(ERROR_OUTPUT, "Error: ");                                     \
@@ -69,7 +69,7 @@
         goto target;                                                          \
     } while (0)
 #else
-#define ERROR(target, flag, ...)                                              \
+#define ERROR_GOTO(target, flag, ...)                                         \
     do {                                                                      \
         flag = -1;                                                            \
         fprintf(ERROR_OUTPUT, "Error [%s:%d]: ", __FILE__, __LINE__);         \
@@ -81,35 +81,55 @@
 #endif
 
 #ifndef DEBUGGING
-#define ERROR_CODE(target, flag, code)                                        \
+#define ERROR_GOTO_SILENT(target, flag)                                       \
     do {                                                                      \
-        flag = (code);                                                        \
+        flag = -1;                                                            \
         goto target;                                                          \
     } while (0)
 #else
-#define ERROR_CODE(target, flag, code)                                        \
+#define ERROR_GOTO_SILENT(target, flag)                                       \
     do {                                                                      \
-        flag = (code);                                                        \
-        fprintf(ERROR_OUTPUT, "Error [%s:%d, code %d]\n", __FILE__, __LINE__, \
-                flag);                                                        \
+        flag = -1;                                                            \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d, silent]\n", __FILE__, __LINE__); \
         fflush(ERROR_OUTPUT);                                                 \
         goto target;                                                          \
     } while (0)
 #endif
 
 #ifndef DEBUGGING
-#define ERROR_QUIET(target, flag)                                             \
+#define ERROR_GOTO_SILENT_VAL(target, flag, code)                             \
     do {                                                                      \
-        flag = -1;                                                            \
+        flag = (code);                                                        \
         goto target;                                                          \
     } while (0)
 #else
-#define ERROR_QUIET(target, flag)                                             \
+#define ERROR_GOTO_SILENT_VAL(target, flag, code)                             \
     do {                                                                      \
-        flag = -1;                                                            \
-        fprintf(ERROR_OUTPUT, "Error [%s:%d, quiet]\n", __FILE__, __LINE__);  \
+        flag = (code);                                                        \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d, code %d]\n", __FILE__, __LINE__, \
+                code);                                                        \
         fflush(ERROR_OUTPUT);                                                 \
         goto target;                                                          \
+    } while (0)
+#endif
+
+#ifndef DEBUGGING
+#define ERROR_RETURN(...)                                                     \
+    do {                                                                      \
+        fprintf(ERROR_OUTPUT, "Error: ");                                     \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
+        fprintf(ERROR_OUTPUT, "\n");                                          \
+        fflush(ERROR_OUTPUT);                                                 \
+        return -1;                                                            \
+    } while (0)
+#else
+#define ERROR_RETURN(...)                                                     \
+    do {                                                                      \
+        fprintf(ERROR_OUTPUT, "Error [%s:%d]: ", __FILE__, __LINE__);         \
+        fprintf(ERROR_OUTPUT, __VA_ARGS__);                                   \
+        fprintf(ERROR_OUTPUT, "\n");                                          \
+        fflush(ERROR_OUTPUT);                                                 \
+        return -1;                                                            \
     } while (0)
 #endif
 

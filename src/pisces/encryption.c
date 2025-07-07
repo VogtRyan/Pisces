@@ -139,29 +139,29 @@ int encrypt_file(const char *input_file, const char *output_file,
     rng = cprng_alloc_default();
     generate_salt_ivs(salt, imprint_iv, body_iv, rng);
     if (password_to_key(key, password, password_len, salt)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
 
     in = open_input_file(input_file);
     if (in == -1) {
-        ERROR(done, errval, "Could not open input file: %s",
-              (input_file == NULL ? "standard input" : input_file));
+        ERROR_GOTO(done, errval, "Could not open input file: %s",
+                   (input_file == NULL ? "standard input" : input_file));
     }
 
     out = open_output_file(output_file);
     if (out == -1) {
-        ERROR(done, errval, "Could not open output file: %s",
-              (output_file == NULL ? "standard output" : output_file));
+        ERROR_GOTO(done, errval, "Could not open output file: %s",
+                   (output_file == NULL ? "standard output" : output_file));
     }
 
     if (write_header(out, salt, imprint_iv, body_iv)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
     if (write_imprint(out, key, imprint_iv, rng)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
     if (encrypt_body(in, out, key, body_iv)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
 
 done:
@@ -189,18 +189,18 @@ int decrypt_file(const char *input_file, const char *output_file,
 
     in = open_input_file(input_file);
     if (in == -1) {
-        ERROR(done, errval, "Could not open input file: %s",
-              (input_file == NULL ? "standard input" : input_file));
+        ERROR_GOTO(done, errval, "Could not open input file: %s",
+                   (input_file == NULL ? "standard input" : input_file));
     }
 
     if (read_header(in, salt, imprint_iv, body_iv)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
     if (password_to_key(key, password, password_len, salt)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
     if (read_imprint(in, key, imprint_iv)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
 
     /*
@@ -209,12 +209,12 @@ int decrypt_file(const char *input_file, const char *output_file,
      */
     out = open_output_file(output_file);
     if (out == -1) {
-        ERROR(done, errval, "Could not open output file: %s",
-              (output_file == NULL ? "standard output" : output_file));
+        ERROR_GOTO(done, errval, "Could not open output file: %s",
+                   (output_file == NULL ? "standard output" : output_file));
     }
 
     if (decrypt_body(in, out, key, body_iv)) {
-        ERROR_QUIET(done, errval);
+        ERROR_GOTO_SILENT(done, errval);
     }
 
 done:
@@ -242,20 +242,20 @@ static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
     magic_version = (byte)pisces_get_version();
     if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
                       PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR(done, errval, "Could not write magic-byte prefix");
+        ERROR_GOTO(done, errval, "Could not write magic-byte prefix");
     }
     if (write_exactly(fd, &magic_version, 1)) {
-        ERROR(done, errval, "Could not write magic-byte version");
+        ERROR_GOTO(done, errval, "Could not write magic-byte version");
     }
 
     if (write_exactly(fd, salt, key_salt_len)) {
-        ERROR(done, errval, "Could not write salt");
+        ERROR_GOTO(done, errval, "Could not write salt");
     }
     if (write_exactly(fd, imprint_iv, iv_len)) {
-        ERROR(done, errval, "Could not write imprint IV");
+        ERROR_GOTO(done, errval, "Could not write imprint IV");
     }
     if (write_exactly(fd, body_iv, iv_len)) {
-        ERROR(done, errval, "Could not write body IV");
+        ERROR_GOTO(done, errval, "Could not write body IV");
     }
 
 done:
@@ -276,27 +276,27 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
     iv_len = cipher_iv_size(cipher);
 
     if (read_exactly(fd, magic_prefix, PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR(done, errval, "Could not read magic-byte prefix");
+        ERROR_GOTO(done, errval, "Could not read magic-byte prefix");
     }
     if (memcmp(magic_prefix, PISCES_MAGIC_PREFIX, PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR(done, errval, MESSAGE_CANNOT_DECRYPT);
+        ERROR_GOTO(done, errval, MESSAGE_CANNOT_DECRYPT);
     }
     if (read_exactly(fd, &magic_version, 1)) {
-        ERROR(done, errval, "Could not read magic-byte version");
+        ERROR_GOTO(done, errval, "Could not read magic-byte version");
     }
     if (pisces_set_version((int)magic_version)) {
-        ERROR(done, errval, "Unsupported Pisces version: %d",
-              (int)magic_version);
+        ERROR_GOTO(done, errval, "Unsupported Pisces version: %d",
+                   (int)magic_version);
     }
 
     if (read_exactly(fd, salt, key_salt_len)) {
-        ERROR(done, errval, "Could not read salt");
+        ERROR_GOTO(done, errval, "Could not read salt");
     }
     if (read_exactly(fd, imprint_iv, iv_len)) {
-        ERROR(done, errval, "Could not read imprint IV");
+        ERROR_GOTO(done, errval, "Could not read imprint IV");
     }
     if (read_exactly(fd, body_iv, iv_len)) {
-        ERROR(done, errval, "Could not read body IV");
+        ERROR_GOTO(done, errval, "Could not read body IV");
     }
 
 done:
@@ -327,8 +327,8 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
      */
     cprng_bytes(rng, random_data, random_len);
     if (chf_single(chf, random_data, random_len, random_hash)) {
-        ERROR(done, errval, "Could not hash random imprint data - %s",
-              chf_error(chf));
+        ERROR_GOTO(done, errval, "Could not hash random imprint data - %s",
+                   chf_error(chf));
     }
 
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
@@ -343,14 +343,14 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
     if (cipher_end(cipher,
                    encrypted_imprint + bytes_encrypted1 + bytes_encrypted2,
                    &bytes_encrypted3)) {
-        ERROR(done, errval, "Could not encrypt imprint data - %s",
-              cipher_error(cipher));
+        ERROR_GOTO(done, errval, "Could not encrypt imprint data - %s",
+                   cipher_error(cipher));
     }
     ASSERT(bytes_encrypted1 + bytes_encrypted2 + bytes_encrypted3 == total_len,
            "Amount of encrypted data does not match imprint size");
 
     if (write_exactly(fd, encrypted_imprint, total_len)) {
-        ERROR(done, errval, "Could not write encrypted imprint");
+        ERROR_GOTO(done, errval, "Could not write encrypted imprint");
     }
 
 done:
@@ -379,7 +379,7 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
 
     /* Read the entire imprint */
     if (read_exactly(fd, encrypted_imprint, total_len)) {
-        ERROR(done, errval, "Could not read encrypted imprint");
+        ERROR_GOTO(done, errval, "Could not read encrypted imprint");
     }
 
     /* Decrypt the entire imprint at once. */
@@ -391,16 +391,17 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
                &decrypted_len1);
     if (cipher_end(cipher, decrypted_imprint + decrypted_len1,
                    &decrypted_len2)) {
-        ERROR(done, errval, "Could not decrypt imprint data - %s",
-              cipher_error(cipher));
+        ERROR_GOTO(done, errval, "Could not decrypt imprint data - %s",
+                   cipher_error(cipher));
     }
     ASSERT(decrypted_len1 + decrypted_len2 == total_len,
            "Amount of decrypted data does not match imprint size");
 
     /* Hash only the first part of the decrypted imprint (the random data) */
     if (chf_single(chf, decrypted_imprint, random_len, computed_hash)) {
-        ERROR(done, errval, "Could not compute hash of decrypted imprint - %s",
-              chf_error(chf));
+        ERROR_GOTO(done, errval,
+                   "Could not compute hash of decrypted imprint - %s",
+                   chf_error(chf));
     }
 
     /*
@@ -414,7 +415,7 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
      * of placing the imprint in the encrypted file.
      */
     if (memcmp(computed_hash, decrypted_imprint + random_len, hash_len) != 0) {
-        ERROR(done, errval, MESSAGE_CANNOT_DECRYPT);
+        ERROR_GOTO(done, errval, MESSAGE_CANNOT_DECRYPT);
     }
 
 done:
@@ -454,21 +455,23 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
      */
     while (1) {
         if (read_up_to(in, input, INPUT_BYTES_READ_AT_ONCE, &bytes_read)) {
-            ERROR(done, errval, "Could not read bytes to encrypt from input");
+            ERROR_GOTO(done, errval,
+                       "Could not read bytes to encrypt from input");
         }
         if (bytes_read == 0) {
             break;
         }
 
         if (chf_add(chf, input, bytes_read)) {
-            ERROR(done, errval,
-                  "Could not generate hash of input contents - %s",
-                  chf_error(chf));
+            ERROR_GOTO(done, errval,
+                       "Could not generate hash of input contents - %s",
+                       chf_error(chf));
         }
 
         cipher_add(cipher, input, bytes_read, enc_data, &bytes_encrypted);
         if (write_exactly(out, enc_data, bytes_encrypted)) {
-            ERROR(done, errval, "Could not write encrypted data to output");
+            ERROR_GOTO(done, errval,
+                       "Could not write encrypted data to output");
         }
     }
 
@@ -477,8 +480,9 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
      * so the hash computation can be finalized.
      */
     if (chf_end(chf, hash)) {
-        ERROR(done, errval, "Could not generate hash of input contents - %s",
-              chf_error(chf));
+        ERROR_GOTO(done, errval,
+                   "Could not generate hash of input contents - %s",
+                   chf_error(chf));
     }
 
     /*
@@ -488,14 +492,14 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
      */
     cipher_add(cipher, hash, hash_len, enc_data, &bytes_encrypted);
     if (write_exactly(out, enc_data, bytes_encrypted)) {
-        ERROR(done, errval, "Could not write encrypted data to output");
+        ERROR_GOTO(done, errval, "Could not write encrypted data to output");
     }
     if (cipher_end(cipher, enc_data, &bytes_encrypted)) {
-        ERROR(done, errval, "Could not encrypt input contents - %s",
-              cipher_error(cipher));
+        ERROR_GOTO(done, errval, "Could not encrypt input contents - %s",
+                   cipher_error(cipher));
     }
     if (write_exactly(out, enc_data, bytes_encrypted)) {
-        ERROR(done, errval, "Could not write encrypted data to output");
+        ERROR_GOTO(done, errval, "Could not write encrypted data to output");
     }
 
 done:
@@ -539,7 +543,8 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
      */
     while (1) {
         if (read_up_to(in, input, INPUT_BYTES_READ_AT_ONCE, &bytes_read)) {
-            ERROR(done, errval, "Could not read bytes to decrypt from input");
+            ERROR_GOTO(done, errval,
+                       "Could not read bytes to decrypt from input");
         }
         if (bytes_read == 0) {
             break;
@@ -550,13 +555,14 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
                      &bytes_from_hb);
 
         if (chf_add(chf, data_from_hb, bytes_from_hb)) {
-            ERROR(done, errval,
-                  "Could not compute hash for decrypted data - %s",
-                  chf_error(chf));
+            ERROR_GOTO(done, errval,
+                       "Could not compute hash for decrypted data - %s",
+                       chf_error(chf));
         }
 
         if (write_exactly(out, data_from_hb, bytes_from_hb)) {
-            ERROR(done, errval, "Could not write decrypted data to output");
+            ERROR_GOTO(done, errval,
+                       "Could not write decrypted data to output");
         }
     }
 
@@ -565,16 +571,17 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
      * file contents that have been decrypted.
      */
     if (cipher_end(cipher, dec_data, &bytes_decrypted)) {
-        ERROR(done, errval, "Could not decrypt input contents - %s",
-              cipher_error(cipher));
+        ERROR_GOTO(done, errval, "Could not decrypt input contents - %s",
+                   cipher_error(cipher));
     }
     holdbuf_give(hb, dec_data, bytes_decrypted, data_from_hb, &bytes_from_hb);
     if (chf_add(chf, data_from_hb, bytes_from_hb)) {
-        ERROR(done, errval, "Could not compute hash for decrypted data - %s",
-              chf_error(chf));
+        ERROR_GOTO(done, errval,
+                   "Could not compute hash for decrypted data - %s",
+                   chf_error(chf));
     }
     if (write_exactly(out, data_from_hb, bytes_from_hb)) {
-        ERROR(done, errval, "Could not write decrypted data to output");
+        ERROR_GOTO(done, errval, "Could not write decrypted data to output");
     }
 
     /*
@@ -582,11 +589,13 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
      * file contents, as provided by the input file.
      */
     if (holdbuf_end(hb, stored_hash)) {
-        ERROR(done, errval, "Could not get stored hash value from buffer");
+        ERROR_GOTO(done, errval,
+                   "Could not get stored hash value from buffer");
     }
     if (chf_end(chf, computed_hash)) {
-        ERROR(done, errval, "Could not compute hash for decrypted data - %s",
-              chf_error(chf));
+        ERROR_GOTO(done, errval,
+                   "Could not compute hash for decrypted data - %s",
+                   chf_error(chf));
     }
 
     /*
@@ -594,7 +603,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
      * succeeding, we can safely conclude there was file corruption.
      */
     if (memcmp(stored_hash, computed_hash, hash_len) != 0) {
-        ERROR(done, errval, "Data integrity check failed on input file");
+        ERROR_GOTO(done, errval, "Data integrity check failed on input file");
     }
 
 done:
@@ -653,7 +662,7 @@ static int password_to_key(byte *derived_key, const char *password,
 
     if (kdf_derive(fn, derived_key, key_salt_len, password, password_len, salt,
                    key_salt_len)) {
-        ERROR(done, errval, "Could not derive key - %s", kdf_error(fn));
+        ERROR_GOTO(done, errval, "Could not derive key - %s", kdf_error(fn));
     }
 
 done:

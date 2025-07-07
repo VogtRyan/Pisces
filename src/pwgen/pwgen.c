@@ -43,7 +43,8 @@ typedef enum {
 #define DEFAULT_GEN_FN (GEN_FN_USQ_ENFORCED)
 #define DEFAULT_LENGTH (24)
 
-static void generate_password(char *pwd, size_t pwdlen, gen_fn gfn);
+static void generate_password(size_t pwdlen, gen_fn gfn);
+static void run_gen_fn(char *password, size_t pwdlen, gen_fn gfn);
 
 static void describe_gen_fn(size_t pwdlen, gen_fn gfn);
 static void print_description_decimal(const char *gfn_name, size_t pwdlen,
@@ -58,6 +59,7 @@ static void parse_command_line(int argc, char **argv, gen_fn *gfn,
 static void set_generation_fn(gen_fn *gfn, bool *gfn_set, gen_fn new_gfn);
 static void set_length_value(size_t *pwdlen, char *cmdline_arg);
 static int parse_length_value(size_t *pwdlen, char *cmdline_arg);
+static int sanity_check_length(gen_fn gfn, size_t pwdlen);
 
 static void usage(void);
 
@@ -66,36 +68,39 @@ int main(int argc, char **argv)
     gen_fn gfn;
     size_t pwdlen;
     bool describe;
-    char *password = NULL;
-    int errval = 0;
 
     parse_command_line(argc, argv, &gfn, &pwdlen, &describe);
-    if (gfn == GEN_FN_USQ_ENFORCED && pwdlen < 4) {
-        ERROR(done, errval,
-              "An \"enforced\" password must have at least four characters");
+    if (sanity_check_length(gfn, pwdlen)) {
+        return EXIT_FAILURE;
     }
-
-    ASSERT(pwdlen + 1 > pwdlen, "Allocation computation overflow");
-    password = (char *)calloc(pwdlen + 1, sizeof(char));
-    GUARD_ALLOC(password);
 
     if (describe) {
         describe_gen_fn(pwdlen, gfn);
     }
     else {
-        generate_password(password, pwdlen, gfn);
-        printf("%s\n", password);
+        generate_password(pwdlen, gfn);
     }
-
-done:
-    if (password != NULL) {
-        scrub_memory(password, pwdlen);
-        free(password);
-    }
-    return (errval ? EXIT_FAILURE : EXIT_SUCCESS);
+    scrub_memory(&pwdlen, sizeof(size_t));
+    return EXIT_SUCCESS;
 }
 
-static void generate_password(char *password, size_t pwdlen, gen_fn gfn)
+static void generate_password(size_t pwdlen, gen_fn gfn)
+{
+    char *password;
+
+    ASSERT(pwdlen + 1 > pwdlen, "Allocation computation overflow");
+    password = (char *)calloc(pwdlen + 1, sizeof(char));
+    GUARD_ALLOC(password);
+
+    run_gen_fn(password, pwdlen, gfn);
+
+    printf("%s\n", password);
+    scrub_memory(password, pwdlen);
+    scrub_memory(&pwdlen, sizeof(size_t));
+    free(password);
+}
+
+static void run_gen_fn(char *password, size_t pwdlen, gen_fn gfn)
 {
     switch (gfn) {
     case GEN_FN_ALPHA_NUM:
@@ -273,32 +278,38 @@ static int parse_length_value(size_t *pwdlen, char *cmdline_arg)
 {
     long lval;
     char *ep;
-    int errval = 0;
 
     errno = 0;
     lval = strtol(cmdline_arg, &ep, 10);
     if (cmdline_arg[0] == '\0' || *ep != '\0') {
-        ERROR(done, errval, "Invalid length: \'%s\'", cmdline_arg);
+        ERROR_RETURN("Invalid length: \'%s\'", cmdline_arg);
     }
     else if (errno == ERANGE && (lval == LONG_MAX || lval == LONG_MIN)) {
-        ERROR(done, errval, "Length out of range: \'%s\'", cmdline_arg);
+        ERROR_RETURN("Length out of range: \'%s\'", cmdline_arg);
     }
     else if (lval > PASSWORD_LENGTH_MAX) {
-        ERROR(done, errval, "Length must be no greater than %d: \'%s\'",
-              PASSWORD_LENGTH_MAX, cmdline_arg);
+        ERROR_RETURN("Length must be no greater than %d: \'%s\'",
+                     PASSWORD_LENGTH_MAX, cmdline_arg);
     }
     else if (lval <= 0) {
-        ERROR(done, errval, "Length must be greater than zero: \'%s\'",
-              cmdline_arg);
+        ERROR_RETURN("Length must be greater than zero: \'%s\'", cmdline_arg);
     }
 
     *pwdlen = (size_t)lval;
-done:
-    return errval;
+    return 0;
+}
+
+static int sanity_check_length(gen_fn gfn, size_t pwdlen)
+{
+    if (gfn == GEN_FN_USQ_ENFORCED && pwdlen < 4) {
+        ERROR_RETURN(
+            "An \"enforced\" password must have at least four characters");
+    }
+    return 0;
 }
 
 static void usage(void)
 {
-    fprintf(stderr, "usage: pwgen [-adeHhnpsv] [-l length]\n");
+    fprintf(ERROR_OUTPUT, "usage: pwgen [-adeHhnpsv] [-l length]\n");
     exit(EXIT_FAILURE);
 }
