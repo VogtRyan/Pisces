@@ -155,8 +155,8 @@ For the imprint, the size of $R$ is chosen such that it is at least as large as
 the output of $\textnormal{H}$, and at least as large as both the block size
 and key size of  $\textnormal{E}$. Furthermore, the size of $R$ is chosen such
 that the length of $R$ plus the  length of the output of $\textnormal{H}$ is a
-multiple of the block size of $\textnormal{E}$.  Because of this size choice,
-no padding is used during the encryption operation for the imprint.
+multiple of the block size of $\textnormal{E}$. Because of this size choice, no
+padding is used during the encryption operation for the imprint.
 
 Next, the key $K$ and the second initialization vector, $J$, are used as
 parameters to the encryption algorithm $\textnormal{E}$ to encrypt the contents

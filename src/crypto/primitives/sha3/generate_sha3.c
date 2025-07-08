@@ -70,7 +70,7 @@ static void generate_keccak_f(void)
     printf("    uint64_t i;\n");
 
     /*
-     * Grab the new data.  Let A[x,y] be the internal state of SHA-3, where
+     * Grab the new data. Let A[x,y] be the internal state of SHA-3, where
      * 0 <= x, y <= 4, and each element of A[x,y] is a 64-bit "lane" (integer).
      * The first step is to xor in the new data arriving to the hash state.
      *

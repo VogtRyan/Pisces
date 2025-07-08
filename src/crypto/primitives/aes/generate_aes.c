@@ -108,7 +108,7 @@ void print_bytes(const uint8_t *bytes, size_t num_bytes);
 /*
  * Generates and prints the contents of the S-Boxes and the
  * SubBytes()-MixColumns() tables and round constant table defined in this
- * source file, provided that S_BOX_ENC is already defined.  The contents of
+ * source file, provided that S_BOX_ENC is already defined. The contents of
  * the encryption S-Box can be found in FIPS-197.
  */
 int main(void)

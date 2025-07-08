@@ -90,23 +90,23 @@ static inline uint32_t inv_mix_column(uint32_t col);
  * InvSubBytes() transformations.
  *
  * SUB_MIX_ENC_POS0, ..., SUB_MIX_ENC_POS3: The SubBytes() and MixColumns()
- * transformations implemented together as four xor'd table lookups.  Let b0,
+ * transformations implemented together as four xor'd table lookups. Let b0,
  * b1, b2, and b3 be the top, second, third, and bottom bytes in a column of
- * the AES state respectively.  Then
+ * the AES state respectively. Then
  * SUB_MIX_ENC_POS0[b0] ^ ... ^ SUB_MIX_ENC_POS3[b3] represents the new
  * contents of the column after both SubBytes() and MixColumns() have been
  * applied.
  *
  * MIX_DEC_POS0, ..., MIX_DEC_POS3: The InvMixColumns() transformation
- * implemented as four xor'd table lookups.  Let b0, b1, b2, and b3 be the top,
+ * implemented as four xor'd table lookups. Let b0, b1, b2, and b3 be the top,
  * second, third, and bottom bytes in a column of the AES state respectively.
  * Then MIX_DEC_POS0[b0] ^ ... ^ MIX_DEC_POS3[b3] represents the new contents
  * of the column after InvMixColumns() has been applied.
  *
  * SUB_MIX_DEC_POS0, ..., SUB_MIX_DEC_POS3: The InvSubBytes() and
  * InvMixColumns() transformations implemented together as four xor'd table
- * lookups.  Let b0, b1, b2, and b3 be the top, second, third, and bottom bytes
- * in a column of the AES state respectively.  Then
+ * lookups. Let b0, b1, b2, and b3 be the top, second, third, and bottom bytes
+ * in a column of the AES state respectively. Then
  * SUB_MIX_DEC_POS0[b0] ^ ... ^ SUB_MIX_DEC_POS3[b3] represents the new
  * contents of the column after both InvSubBytes() and InvMixColumns() have
  * been applied.

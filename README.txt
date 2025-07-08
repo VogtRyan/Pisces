@@ -174,8 +174,8 @@ key K and the initialization vector I: E[K, I](R || H(R)).
 For the imprint, the size of R is chosen such that it is at least as large as 
 the output of H, and at least as large as both the block size and key size of 
 E. Furthermore, the size of R is chosen such that the length of R plus the 
-length of the output of H is a multiple of the block size of E.  Because of
-this size choice, no padding is used during the encryption operation for the 
+length of the output of H is a multiple of the block size of E. Because of this
+size choice, no padding is used during the encryption operation for the
 imprint.
 
 Next, the key K and the second initialization vector, J, are used as
