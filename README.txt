@@ -125,7 +125,7 @@ See the pisces.1 man page for more details.
 5. Example Pwgen Usage
 
 To generate a 24-character password guaranteed to contain at least one
-uppercase letter, one lowercase letter, one number, and one special character:
+uppercase letter, one lowercase letter, one digit, and one special character:
 
     $ pwgen
 
