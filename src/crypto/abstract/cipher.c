@@ -210,8 +210,9 @@ int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
     }
     else if (cipher->padded && cipher->direction == CIPHER_DIRECTION_DECRYPT) {
         /*
-         * Decryption with padding requires a complete decrypted block in the
-         * output buffer, but nothing left to process in the input buffer.
+         * Decryption with padding requires exactly one decrypted block in the
+         * output buffer that we can depad, and nothing left to process in the
+         * input buffer.
          */
         if (cipher->amnt_input != 0) {
             ERROR_GOTO_SILENT_VAL(done, errval,
@@ -297,6 +298,12 @@ static size_t process_block(struct cipher_ctx *cipher, const byte *input,
         ret = AES_CBC_BLOCK_SIZE;
     }
     else if (cipher->padded) {
+        /*
+         * Specifically in the case of decrypting padded data, we maintain an
+         * output buffer. That output buffer stores the most recently
+         * decrypted block. If that block is the last block decrypted, we can
+         * depad it from the output buffer before writing it out.
+         */
         if (cipher->has_output) {
             memcpy(output, cipher->output_block, AES_CBC_BLOCK_SIZE);
             ret = AES_CBC_BLOCK_SIZE;
