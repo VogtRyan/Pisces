@@ -84,8 +84,7 @@ void cipher_set_iv(struct cipher_ctx *cipher, const byte *iv);
 void cipher_start(struct cipher_ctx *cipher);
 
 /*
- * Encrypts or decrypts the given data, and stores the number of bytes output
- * in output_len if it is non-NULL. The input can be at most
+ * Encrypts or decrypts the given data. The input can be at most
  * CIPHER_ADD_MAX_INPUT_LEN bytes long.
  *
  * The number of output bytes is guaranteed to be between 0 and input_len+b-1,
@@ -98,12 +97,9 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
                 byte *output, size_t *output_len);
 
 /*
- * Finalizes the encryption or decryption operation, and stores the number of
- * bytes output in output_len if it is non-NULL.
- *
- * The number of output bytes is guaranteed to be between 0 and b, where b is
- * the block size of the cipher (itself guaranteed to be no larger than
- * CIPHER_MAX_BLOCK_SIZE).
+ * Finalizes the encryption or decryption operation. The number of output
+ * bytes is guaranteed to be between 0 and b, where b is the block size of the
+ * cipher (itself guaranteed to be no larger than CIPHER_MAX_BLOCK_SIZE).
  *
  * Returns 0 on success, <0 on error. In order of precedence from highest to
  * lowest, possible error returns are:

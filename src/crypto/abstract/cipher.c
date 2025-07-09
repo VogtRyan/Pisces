@@ -128,15 +128,11 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
                 byte *output, size_t *output_len)
 {
     size_t add_to_cipher, added_to_output, to_fill_block;
-    size_t fake_output_len;
 
     ASSERT(cipher->running, "Cannot add data to non-running cipher");
     ASSERT(input_len <= CIPHER_ADD_MAX_INPUT_LEN,
            "Cipher maximum single-input data length exceeded");
 
-    if (output_len == NULL) {
-        output_len = &fake_output_len;
-    }
     *output_len = 0;
 
     /* Process the input block-by-block */
@@ -186,15 +182,11 @@ void cipher_add(struct cipher_ctx *cipher, const byte *input, size_t input_len,
 
 int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len)
 {
-    size_t fake_output_len;
     int errval = 0;
 
     ASSERT(cipher->running, "Cannot end operation on non-running cipher");
     cipher->running = false;
 
-    if (output_len == NULL) {
-        output_len = &fake_output_len;
-    }
     *output_len = 0;
 
     /* Encrypt or decrypt a final block if necessary */
