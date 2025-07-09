@@ -79,8 +79,11 @@ void generate_pwd_usq_simple_enforced(char *pwd, size_t pwdlen)
  *   R = passwords without any of the 10 numbers
  *   S = passwords without any of the 10 symbols
  *
+ * Use <union> to represent the set-union operation, and use & to represent the
+ * set-intersection operation.
+ *
  * All discarded passwords belong to at least one of P, Q, R, or S, meaning
- *   D = (P) U (Q) U (R) U (S)
+ *   D = P <union> Q <union> R <union> S
  *
  * Compute |D| using the inclusion-exclusion principle:
  *   |D| = Sum_{subset} - Sum_{two-way} + Sum_{three-way} - |P & Q & R & S|
