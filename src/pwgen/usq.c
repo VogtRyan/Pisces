@@ -25,7 +25,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-static void fill_usq_simple(char *result, size_t num, struct cprng *rng);
+static void fill_usq_simple(char *pwd, size_t pwdlen, struct cprng *rng);
 static bool has_upper_lower_num_special(const char *pwd, size_t pwdlen);
 
 void generate_pwd_usq_simple(char *pwd, size_t pwdlen)

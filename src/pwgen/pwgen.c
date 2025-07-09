@@ -167,26 +167,26 @@ static void describe_gen_fn(size_t pwdlen, gen_fn gfn)
     }
 }
 
-static void print_description_decimal(const char *name, size_t pwdlen,
+static void print_description_decimal(const char *gfn_name, size_t pwdlen,
                                       double bits_sec)
 {
     double trunc;
 
-    print_description_prefix(name, pwdlen);
+    print_description_prefix(gfn_name, pwdlen);
     trunc = floor(bits_sec * 1000) / 1000;
     printf("%.3lf\n", trunc);
 }
 
-static void print_description_whole(const char *name, size_t pwdlen,
+static void print_description_whole(const char *gfn_name, size_t pwdlen,
                                     size_t bits_sec)
 {
-    print_description_prefix(name, pwdlen);
+    print_description_prefix(gfn_name, pwdlen);
     printf("%zu\n", bits_sec);
 }
 
-static void print_description_prefix(const char *name, size_t pwdlen)
+static void print_description_prefix(const char *gfn_name, size_t pwdlen)
 {
-    printf("Method: %s\n", name);
+    printf("Method: %s\n", gfn_name);
     printf("Length: %zu\n", pwdlen);
     printf("Bits of security: ");
 }
