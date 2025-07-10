@@ -92,7 +92,7 @@ static void build_rcon_table(void);
  * Treats the two given bytes as a polynomials over GF(2^8) and multiplies them
  * together, mod m(x) = x^8 + x^4 + x^3 + x + 1.
  */
-static uint8_t muly_polys(uint8_t poly_a, uint8_t poly_b);
+static uint8_t mult_polys(uint8_t poly_a, uint8_t poly_b);
 
 /*
  * Treats the given byte as a polynomial over GF(2^8) and multiplies that
@@ -184,11 +184,11 @@ static void build_sub_mix_table(const uint8_t *sbox,
     for (i = 0; i < 256; i++) {
         for (j = 0; j < 4; j++) {
             if (sbox == NULL) {
-                table[i * 4 + j] = muly_polys(
+                table[i * 4 + j] = mult_polys(
                     (uint8_t)i, polynomials[(j + 4 - poly_rotation) % 4]);
             }
             else {
-                table[i * 4 + j] = muly_polys(
+                table[i * 4 + j] = mult_polys(
                     sbox[i], polynomials[(j + 4 - poly_rotation) % 4]);
             }
         }
@@ -215,7 +215,7 @@ static void build_rcon_table(void)
     print_table(table, 10, 4, 5, "RCON", "uint32_t");
 }
 
-static uint8_t muly_polys(uint8_t poly_a, uint8_t poly_b)
+static uint8_t mult_polys(uint8_t poly_a, uint8_t poly_b)
 {
     uint8_t ret = 0;
 
