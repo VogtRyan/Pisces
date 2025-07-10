@@ -21,7 +21,9 @@
 
 #include <stddef.h>
 
+#ifndef RDEV_DEVICE_NAME
 #define RDEV_DEVICE_NAME ("/dev/random")
+#endif
 
 /*
  * Returns a file descriptor for reading from the random device in /dev/.
