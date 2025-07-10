@@ -32,8 +32,9 @@ struct aes_cbc_ctx {
 
 struct aes_cbc_ctx *aes_cbc_alloc(void)
 {
-    struct aes_cbc_ctx *ret =
-        (struct aes_cbc_ctx *)calloc(1, sizeof(struct aes_cbc_ctx));
+    struct aes_cbc_ctx *ret;
+
+    ret = (struct aes_cbc_ctx *)calloc(1, sizeof(struct aes_cbc_ctx));
     GUARD_ALLOC(ret);
     ret->ecb_ctx = aes_ecb_alloc();
     return ret;
@@ -71,6 +72,7 @@ void aes_cbc_encrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output)
      * In CBC mode, the IV size is equal to the block size.
      */
     size_t i;
+
     for (i = 0; i < AES_CBC_BLOCK_SIZE; i++) {
         ctx->iv[i] ^= block[i];
     }
@@ -87,6 +89,7 @@ void aes_cbc_decrypt(struct aes_cbc_ctx *ctx, const byte *block, byte *output)
      * In CBC mode, the IV size is equal to the block size.
      */
     size_t i;
+
     aes_ecb_decrypt(ctx->ecb_ctx, block, output);
     for (i = 0; i < AES_CBC_BLOCK_SIZE; i++) {
         output[i] ^= ctx->iv[i];
