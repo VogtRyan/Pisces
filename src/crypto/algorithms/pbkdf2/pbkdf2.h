@@ -36,7 +36,7 @@
  *
  * Returns 0 on success, <0 on error (in order of precedence from highest to
  * lowest: PBKDF2_ERROR_PASSWORD_TOO_LONG, PBKDF2_ERROR_SALT_TOO_LONG,
- * PBKDF2_ERROR_DERIVED_KEY_TOO_LONG)
+ * PBKDF2_ERROR_DERIVED_KEY_TOO_LONG).
  */
 int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
                 const char *password, size_t password_len, const byte *salt,
