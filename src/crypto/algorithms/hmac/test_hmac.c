@@ -265,8 +265,8 @@ static const struct hmac_test official_tests[] = {
  * Custom test vectors. These tests are not official, but they have been
  * verified against two other independent implementations of HMAC:
  *
- * - LibreSSL 3.9.0 libcrypto implementation of HMAC in C
- * - BouncyCastle 1.78.1 implementation of HMAC in Java
+ * - LibreSSL 4.1.0 libcrypto implementation of HMAC in C
+ * - BouncyCastle 1.81 implementation of HMAC in Java
  */
 static const struct hmac_test custom_tests[] = {
     /* HMAC-SHA1, empty key and message */
