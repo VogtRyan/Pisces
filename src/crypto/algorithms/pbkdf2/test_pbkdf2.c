@@ -339,10 +339,14 @@ static const struct pbkdf2_test custom_tests[] = {
      * PBKDF2-HMAC-SHA3-512, "random" password and "random" salt, both 2.5
      * times the block size; derived key 2.5 times the digest size.
      *
-     * The "random" data are the first 720 hexadecimal digits of pi -- the
-     * first 360 as the password, the next 360 as the salt. These digits were
-     * computed using the Bailey-Borwein-Plouffe (BBP) formula, and are the
-     * same as those used in the Blowfish P-array and first S-box.
+     * The "random" data are actually the first 720 hexadecimal digits of the
+     * fractional part of pi. The first 360 digits are used as the password,
+     * and the next 360 as the salt. For clarity, in hexadecimal,
+     * pi = 3.243F6A8885...
+     *
+     * These digits were computed using the Bailey-Borwein-Plouffe (BBP)
+     * formula, and are the same as those used in the Blowfish P-array and
+     * first S-box.
      */
     {
         .hashalg = CHF_ALG_SHA3_512,
