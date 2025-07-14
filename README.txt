@@ -36,18 +36,13 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 2. About Pisces
 
-Pisces is an open-source, password-based encryption program for Unix (macOS,
-Linux, OpenBSD, etc.). There are three key goals that Pisces meets:
+Pisces is a command-line UNIX utility that encrypts arbitrarily large files
+using password-based encryption. It performs constant-time password
+verification during decryption, and it verifies the integrity of decrypted
+files in linear time.
 
-(1) Providing a simple command-line interface for encrypting and decrypting
-    files using password-based encryption;
-(2) Ensuring data integrity of encrypted files upon decryption (i.e., Pisces
-    recognizes whether an encrypted file has been modified); and,
-(3) Quickly determining (i.e., without attempting to decrypt the entire file)
-    whether an incorrect password has been given to decrypt an encrypted file.
-
-Pisces also includes Pwgen, a command-line utility for generating
-cryptographically secure, unbiased random passwords.
+Pisces includes Pwgen, a command-line utility for generating cryptographically
+secure, unbiased random passwords.
 
 Pisces is designed to work out of the box, with no dependencies other than
 basic C compiler tools.
