@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define INPUT_BYTES_READ_AT_ONCE (4096)
+#define INPUT_BYTES_READ_AT_ONCE (65536)
 
 #define MESSAGE_CANNOT_DECRYPT                                                \
     "Cannot decrypt input file.  Either:\n"                                   \
