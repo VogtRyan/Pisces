@@ -131,7 +131,7 @@ int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
 
 done:
     free_hmacs(&prf, &pwd_preprocessed, &pwd_salt_preprocessed);
-    scrub_memory(u, HMAC_MAX_DIGEST_SIZE);
+    scrub_memory(u, sizeof(u));
     return errval;
 }
 

@@ -72,10 +72,10 @@ int password_prompt_encryption(char *password, size_t *password_len)
     *password_len = len1;
 
 done:
-    scrub_memory(input1, PASSWORD_LENGTH_MAX);
-    scrub_memory(input2, PASSWORD_LENGTH_MAX);
-    scrub_memory(&len1, sizeof(size_t));
-    scrub_memory(&len2, sizeof(size_t));
+    scrub_memory(input1, sizeof(input1));
+    scrub_memory(input2, sizeof(input2));
+    scrub_memory(&len1, sizeof(len1));
+    scrub_memory(&len2, sizeof(len2));
     close_terminal(fp_terminal);
     return errval;
 }
@@ -99,8 +99,8 @@ int password_prompt_decryption(char *password, size_t *password_len)
     *password_len = len;
 
 done:
-    scrub_memory(input, PASSWORD_LENGTH_MAX);
-    scrub_memory(&len, sizeof(size_t));
+    scrub_memory(input, sizeof(input));
+    scrub_memory(&len, sizeof(len));
     close_terminal(fp_terminal);
     return errval;
 }
@@ -207,6 +207,6 @@ static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal)
     }
     putc('\n', fp_terminal);
 
-    scrub_memory(&c, sizeof(int));
+    scrub_memory(&c, sizeof(c));
     return ret;
 }

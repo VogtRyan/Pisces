@@ -172,7 +172,7 @@ done:
         close(out);
     }
     cprng_free_scrub(rng);
-    scrub_memory(key, CIPHER_MAX_KEY_SIZE);
+    scrub_memory(key, sizeof(key));
     return errval;
 }
 
@@ -224,7 +224,7 @@ done:
     if (out != -1) {
         close(out);
     }
-    scrub_memory(key, CIPHER_MAX_KEY_SIZE);
+    scrub_memory(key, sizeof(key));
     return errval;
 }
 
@@ -356,8 +356,8 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
 done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
-    scrub_memory(random_data, PISCES_MAX_RANDOM_SIZE);
-    scrub_memory(random_hash, CHF_MAX_DIGEST_SIZE);
+    scrub_memory(random_data, sizeof(random_data));
+    scrub_memory(random_hash, sizeof(random_hash));
     return errval;
 }
 
@@ -421,8 +421,8 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
 done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
-    scrub_memory(decrypted_imprint, PISCES_MAX_IMPRINT_SIZE);
-    scrub_memory(computed_hash, CHF_MAX_DIGEST_SIZE);
+    scrub_memory(decrypted_imprint, sizeof(decrypted_imprint));
+    scrub_memory(computed_hash, sizeof(computed_hash));
     return errval;
 }
 
@@ -505,8 +505,8 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
 done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
-    scrub_memory(input, INPUT_BYTES_READ_AT_ONCE);
-    scrub_memory(hash, CHF_MAX_DIGEST_SIZE);
+    scrub_memory(input, sizeof(input));
+    scrub_memory(hash, sizeof(hash));
     return errval;
 }
 
@@ -610,11 +610,10 @@ done:
     chf_free_scrub(chf);
     cipher_free_scrub(cipher);
     holdbuf_free_scrub(hb);
-    scrub_memory(dec_data, INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
-    scrub_memory(data_from_hb,
-                 INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE);
-    scrub_memory(stored_hash, CHF_MAX_DIGEST_SIZE);
-    scrub_memory(computed_hash, CHF_MAX_DIGEST_SIZE);
+    scrub_memory(dec_data, sizeof(dec_data));
+    scrub_memory(data_from_hb, sizeof(data_from_hb));
+    scrub_memory(stored_hash, sizeof(stored_hash));
+    scrub_memory(computed_hash, sizeof(computed_hash));
     return errval;
 }
 

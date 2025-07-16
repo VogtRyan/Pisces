@@ -64,8 +64,8 @@ int main(int argc, char **argv)
 
     errval = run_cipher_op(input_file, output_file, password, password_len,
                            encrypt);
-    scrub_memory(password, PASSWORD_LENGTH_MAX);
-    scrub_memory(&password_len, sizeof(size_t));
+    scrub_memory(password, sizeof(password));
+    scrub_memory(&password_len, sizeof(password_len));
     return (errval ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 

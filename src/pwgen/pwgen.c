@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     else {
         generate_password(pwdlen, gfn);
     }
-    scrub_memory(&pwdlen, sizeof(size_t));
+    scrub_memory(&pwdlen, sizeof(pwdlen));
     return EXIT_SUCCESS;
 }
 
@@ -96,7 +96,7 @@ static void generate_password(size_t pwdlen, gen_fn gfn)
 
     printf("%s\n", password);
     scrub_memory(password, pwdlen);
-    scrub_memory(&pwdlen, sizeof(size_t));
+    scrub_memory(&pwdlen, sizeof(pwdlen));
     free(password);
 }
 
