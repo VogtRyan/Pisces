@@ -12,7 +12,7 @@ password verification during decryption
 7. [Historical Details](#historical-details)
 8. [Additional Build Targets](#additional-build-targets)
 
-Version: 5.3.0-devel (projected 2025 release)
+Version: 5.3.0 (16 July 2025)
 
 ## Copyright and License
 
