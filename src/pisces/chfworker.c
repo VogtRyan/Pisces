@@ -28,14 +28,19 @@
 #include <string.h>
 
 #define COMMAND_NONE             (0)
-#define COMMAND_START            (1)
-#define COMMAND_ADD              (2)
+#define COMMAND_CHF_START        (1)
+#define COMMAND_CHF_ADD          (2)
 #define COMMAND_TERMINATE_THREAD (3)
 
+/*
+ * When input_buf_size == 0, the worker operates single threaded and executes
+ * commands immediately. Otherwise, input_buf can buffer message data for a
+ * single CHF add command. A worker can buffer at most one command.
+ */
 struct chf_worker {
     struct chf_ctx *ctx;
     byte *input_buf;
-    pthread_t worker;
+    pthread_t helper;
     pthread_cond_t command_change;
     pthread_mutex_t mtx;
     size_t input_len;
@@ -66,13 +71,13 @@ struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx, size_t input_buf_size)
     chfw->input_buf_size = input_buf_size;
 
     if (pthread_mutex_init(&(chfw->mtx), NULL)) {
-        FATAL_ERROR("Could not initialize pthread mutex");
+        FATAL_ERROR("Could not initialize chfworker mutex");
     }
     if (pthread_cond_init(&(chfw->command_change), NULL)) {
-        FATAL_ERROR("Could not initialize pthread condition variable");
+        FATAL_ERROR("Could not initialize chfworker condition variable");
     }
-    if (pthread_create(&(chfw->worker), NULL, helper_thread_main, chfw)) {
-        FATAL_ERROR("Could not create pthread");
+    if (pthread_create(&(chfw->helper), NULL, helper_thread_main, chfw)) {
+        FATAL_ERROR("Could not create chfworker helper thread");
     }
 
     return chfw;
@@ -91,8 +96,14 @@ void chf_worker_start(struct chf_worker *chfw)
         pthread_cond_wait(&(chfw->command_change), &(chfw->mtx));
     }
 
+    /*
+     * Reset the error code immediately, to make the behaviour of
+     * chf_worker_error() consistent with chf_worker_start() having been
+     * called -- otherwise, we would have to block in chf_worker_error() on
+     * the queued CHF start command executing.
+     */
     chfw->errcode = 0;
-    chfw->command = COMMAND_START;
+    chfw->command = COMMAND_CHF_START;
     pthread_cond_signal(&(chfw->command_change));
 
     pthread_mutex_unlock(&(chfw->mtx));
@@ -109,28 +120,22 @@ int chf_worker_add(struct chf_worker *chfw, const byte *msg, size_t msg_len)
     ASSERT(msg_len <= chfw->input_buf_size,
            "chf_worker_add message length too large: %zu", msg_len);
 
-    /*
-     * Enqueue at most one chf_start or chf_add command at a time, blocking
-     * until any commands already in the queue are complete.
-     */
+    /* Block on computation until we can enqueue the CHF add command */
     pthread_mutex_lock(&(chfw->mtx));
     while (chfw->command != COMMAND_NONE) {
         pthread_cond_wait(&(chfw->command_change), &(chfw->mtx));
     }
 
     /*
-     * Return the result of any previous call to chf_add(). The only error that
-     * chf_add() can return is that the input message is too long. We can delay
-     * reporting that error condition, and the caller will still eventually see
-     * it -- either from the next call to chf_worker_add(), or from
-     * chf_worker_end().
+     * Return the result of any previous call to chf_add(), which delays error
+     * reporting by one CHF add command or until chf_worker_end() is called.
      */
     ret = chfw->errcode;
 
     if (chfw->errcode == 0) {
         memcpy(chfw->input_buf, msg, msg_len);
         chfw->input_len = msg_len;
-        chfw->command = COMMAND_ADD;
+        chfw->command = COMMAND_CHF_ADD;
         pthread_cond_signal(&(chfw->command_change));
     }
 
@@ -151,11 +156,6 @@ int chf_worker_end(struct chf_worker *chfw, byte *digest)
         pthread_cond_wait(&(chfw->command_change), &(chfw->mtx));
     }
 
-    /*
-     * Because we are in a single-producer, single-consumer model, we can
-     * assume that no more data is being input to the hash operation once we
-     * get the command-change signal above.
-     */
     if (chfw->errcode == 0) {
         chfw->errcode = chf_end(chfw->ctx, digest);
     }
@@ -179,9 +179,6 @@ const char *chf_worker_error(struct chf_worker *chfw)
     }
 
     pthread_mutex_lock(&(chfw->mtx));
-    while (chfw->command != COMMAND_NONE) {
-        pthread_cond_wait(&(chfw->command_change), &(chfw->mtx));
-    }
 
     switch (chfw->errcode) {
     case CHF_ERROR_MESSAGE_TOO_LONG:
@@ -212,12 +209,13 @@ void chf_worker_free_scrub(struct chf_worker *chfw)
         pthread_mutex_unlock(&(chfw->mtx));
 
         /*
-         * The main thread does not need the worker to indicate the termination
-         * task is complete (by resetting the command varaible and signalling).
-         * The termination command is given nowhere but here, and the worker
-         * thread is guaranteed to terminate upon receiving it.
+         * The helper thread does not need to indicate the termination command
+         * is complete (by resetting the command varaible and signalling). The
+         * termination command is given nowhere but here, and the helper thread
+         * is guaranteed to terminate upon receiving it. The main thread can
+         * just wait for the helper to terminate.
          */
-        pthread_join(chfw->worker, NULL);
+        pthread_join(chfw->helper, NULL);
 
         pthread_cond_destroy(&(chfw->command_change));
         pthread_mutex_destroy(&(chfw->mtx));
@@ -247,14 +245,9 @@ static void *helper_thread_main(void *chfw_arg)
         pthread_mutex_unlock(&(chfw->mtx));
 
         if (chfw->command == COMMAND_TERMINATE_THREAD) {
-            /*
-             * No need to indicate to the main thread that we have completed
-             * the termination command. A deadlock could occur only if the main
-             * thread tries to queue a command after calling chf_worker_free().
-             */
             break;
         }
-        else if (chfw->command == COMMAND_START) {
+        else if (chfw->command == COMMAND_CHF_START) {
             chf_start(chfw->ctx);
             errcode = 0;
         }
