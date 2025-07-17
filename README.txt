@@ -59,7 +59,8 @@ To install Pisces on most systems, run:
 Systems that do not support arc4random_buf() will need to use /dev/random as
 the cryptographic pseudorandom number generator instead. To do so, run:
 
-    $ make CPRNG=dev clean default
+    $ make clean
+    $ make CPRNG=dev
     $ sudo make install
 
 Two binaries, pisces and pwgen, will be installed in /usr/local/bin/. The two
