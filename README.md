@@ -221,6 +221,13 @@ explicitly using:
 ```
     $ make test
 ```
+By default, Pisces runs multithreaded. Pisces can instead be built to run
+single-threaded, to improve performance on single-processor machines or to
+constrain Pisces' resource usage. To do so, set the `THREADS` variable to
+`single`:
+```
+    $ make THREADS=single
+```
 Any build target can be built in strict mode, to make the compiler treat all
 warnings as errors, by setting the `BUILD` variable to `strict`:
 ```
