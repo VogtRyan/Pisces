@@ -45,12 +45,11 @@ struct chf_worker {
     int errcode;
 };
 
-static void *worker_main(void *chfw_arg);
+static void *helper_thread_main(void *chfw_arg);
 
 struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx, size_t input_buf_size)
 {
     struct chf_worker *chfw;
-    int ptret;
 
     chfw = (struct chf_worker *)calloc(1, sizeof(struct chf_worker));
     GUARD_ALLOC(chfw);
@@ -66,16 +65,13 @@ struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx, size_t input_buf_size)
     GUARD_ALLOC(chfw->input_buf);
     chfw->input_buf_size = input_buf_size;
 
-    ptret = pthread_mutex_init(&(chfw->mtx), NULL);
-    if (ptret != 0) {
+    if (pthread_mutex_init(&(chfw->mtx), NULL)) {
         FATAL_ERROR("Could not initialize pthread mutex");
     }
-    ptret = pthread_cond_init(&(chfw->command_change), NULL);
-    if (ptret != 0) {
+    if (pthread_cond_init(&(chfw->command_change), NULL)) {
         FATAL_ERROR("Could not initialize pthread condition variable");
     }
-    ptret = pthread_create(&(chfw->worker), NULL, worker_main, chfw);
-    if (ptret != 0) {
+    if (pthread_create(&(chfw->worker), NULL, helper_thread_main, chfw)) {
         FATAL_ERROR("Could not create pthread");
     }
 
@@ -89,7 +85,7 @@ void chf_worker_start(struct chf_worker *chfw)
         return;
     }
 
-    /* Clear the queue by blocking on computation in the worker thread */
+    /* Clear the queue by blocking on computation in the helper thread */
     pthread_mutex_lock(&(chfw->mtx));
     while (chfw->command != COMMAND_NONE) {
         pthread_cond_wait(&(chfw->command_change), &(chfw->mtx));
@@ -115,7 +111,7 @@ int chf_worker_add(struct chf_worker *chfw, const byte *msg, size_t msg_len)
 
     /*
      * Enqueue at most one chf_start or chf_add command at a time, blocking
-     * until any commands already enqueued are complete.
+     * until any commands already in the queue are complete.
      */
     pthread_mutex_lock(&(chfw->mtx));
     while (chfw->command != COMMAND_NONE) {
@@ -123,10 +119,11 @@ int chf_worker_add(struct chf_worker *chfw, const byte *msg, size_t msg_len)
     }
 
     /*
-     * Return the result of the previous call to chf_add(). The only error that
-     * can be be returned is the input message being too long, so the error
-     * will eventually be returned correctly to the caller -- either here or
-     * in chf_worker_end().
+     * Return the result of any previous call to chf_add(). The only error that
+     * chf_add() can return is that the input message is too long. We can delay
+     * reporting that error condition, and the caller will still eventually see
+     * it -- either from the next call to chf_worker_add(), or from
+     * chf_worker_end().
      */
     ret = chfw->errcode;
 
@@ -235,7 +232,7 @@ void chf_worker_free_scrub(struct chf_worker *chfw)
     free(chfw);
 }
 
-static void *worker_main(void *chfw_arg)
+static void *helper_thread_main(void *chfw_arg)
 {
     struct chf_worker *chfw;
     int errcode;
