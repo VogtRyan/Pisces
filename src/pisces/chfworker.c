@@ -99,8 +99,8 @@ void chf_worker_start(struct chf_worker *chfw)
     /*
      * Reset the error code immediately, to make the behaviour of
      * chf_worker_error() consistent with chf_worker_start() having been
-     * called -- otherwise, we would have to block in chf_worker_error() on
-     * the queued CHF start command executing.
+     * called -- otherwise, we would have to block in chf_worker_error() until
+     * the queued CHF start command executes.
      */
     chfw->errcode = 0;
     chfw->command = COMMAND_CHF_START;
@@ -209,11 +209,8 @@ void chf_worker_free_scrub(struct chf_worker *chfw)
         pthread_mutex_unlock(&(chfw->mtx));
 
         /*
-         * The helper thread does not need to indicate the termination command
-         * is complete (by resetting the command varaible and signalling). The
-         * termination command is given nowhere but here, and the helper thread
-         * is guaranteed to terminate upon receiving it. The main thread can
-         * just wait for the helper to terminate.
+         * The helper thread does not signal to indicate the termination
+         * command is complete; it just terminates.
          */
         pthread_join(chfw->helper, NULL);
 
