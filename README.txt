@@ -59,7 +59,7 @@ To install Pisces on most systems, run:
 Systems that do not support arc4random_buf() will need to use /dev/random as
 the cryptographic pseudorandom number generator instead. To do so, run:
 
-    $ make CPRNG=dev
+    $ make CPRNG=dev clean default
     $ sudo make install
 
 Two binaries, pisces and pwgen, will be installed in /usr/local/bin/. The two
@@ -68,7 +68,6 @@ corresponding man pages will be installed in /usr/local/man/man1/.
 The installation location can be modified by setting the PREFIX variable during
 the "make install" build step:
 
-    $ make
     $ make PREFIX=~/pisces install
 
 That will install the binaries in ~/pisces/bin/ and the man pages in
@@ -243,7 +242,7 @@ By default, Pisces runs multithreaded. Pisces can instead be built to run
 single-threaded, to improve performance on single-processor machines or to
 constrain Pisces' resource usage. To do so, set the THREADS variable to single:
 
-    $ make THREADS=single
+    $ make THREADS=single clean all
 
 Any build target can be built in strict mode, to make the compiler treat all
 warnings as errors, by setting the BUILD variable to strict:
