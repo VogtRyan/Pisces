@@ -14,9 +14,10 @@
 
 .POSIX:
 
-CC    = cc
-BUILD = release
-CPRNG = arc4random
+CC      = cc
+BUILD   = release
+CPRNG   = arc4random
+THREADS = multi
 
 PREFIX         = /usr/local
 INSTALL_BIN    = ${PREFIX}/bin
@@ -28,19 +29,25 @@ INSTALL_MAN    = ${PREFIX}/man/man1
 #   family of functions
 CFLAGS.COMMON = -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200112L
 
+CFLAGS.BUILD.debug   = -O0 -g -DDEBUGGING
 CFLAGS.BUILD.release = -O2
 CFLAGS.BUILD.strict  = -O2 -Werror
-CFLAGS.BUILD.debug   = -O0 -g -DDEBUGGING
 
 CFLAGS.CPRNG.arc4random =
-CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
+CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM #
 
+CFLAGS.MAX_THREADS.multi  =
+CFLAGS.MAX_THREADS.single = -DPISCES_MAX_THREADS=1 #
+
+IGNORE_FAILED_TESTS.BUILD.debug   = -
 IGNORE_FAILED_TESTS.BUILD.release =
 IGNORE_FAILED_TESTS.BUILD.strict  =
-IGNORE_FAILED_TESTS.BUILD.debug   = -
 IGNORE_FAILED_TESTS               = ${IGNORE_FAILED_TESTS.BUILD.${BUILD}}
 
-CFLAGS  = ${CFLAGS.COMMON} ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
+CF2 = ${CFLAGS.CPRNG.${CPRNG}}
+CF3 = ${CFLAGS.MAX_THREADS.${THREADS}}
+CF4 = ${CFLAGS.BUILD.${BUILD}}
+CFLAGS = ${CFLAGS.COMMON} ${CF2}${CF3}${CF4}
 LDFLAGS = ${CFLAGS}
 
 BINDIR = ./bin
