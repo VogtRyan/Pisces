@@ -330,8 +330,8 @@ src/crypto/random/rdev.o: src/crypto/random/rdev.c \
 src/crypto/random/rarc4.o: src/crypto/random/rarc4.c \
   src/crypto/random/rarc4.h src/common/bytetype.h src/common/errorflow.h
 src/pisces/chfworker.o: src/pisces/chfworker.c src/pisces/chfworker.h \
-  src/common/bytetype.h src/crypto/abstract/chf.h src/common/config.h \
-  src/common/errorflow.h src/common/scrub.h
+  src/common/bytetype.h src/crypto/abstract/chf.h src/common/errorflow.h \
+  src/common/scrub.h
 src/pisces/password.o: src/pisces/password.c src/pisces/password.h \
   src/common/config.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h

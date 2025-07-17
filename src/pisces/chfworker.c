@@ -17,7 +17,6 @@
 #include "chfworker.h"
 
 #include "common/bytetype.h"
-#include "common/config.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
 #include "crypto/abstract/chf.h"
