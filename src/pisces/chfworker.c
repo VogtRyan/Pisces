@@ -33,7 +33,7 @@
 #define COMMAND_TERMINATE_THREAD (3)
 
 /*
- * When input_buf_size == 0, the worker operates single threaded and executes
+ * When input_buf_size == 0, the worker operates single-threaded and executes
  * commands immediately. Otherwise, input_buf can buffer message data for a
  * single CHF add command. A worker can buffer at most one command.
  */
