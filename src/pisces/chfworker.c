@@ -241,15 +241,18 @@ static void *helper_thread_main(void *chfw_arg)
         }
         pthread_mutex_unlock(&(chfw->mtx));
 
-        if (chfw->command == COMMAND_TERMINATE_THREAD) {
-            break;
-        }
-        else if (chfw->command == COMMAND_CHF_START) {
+        switch (chfw->command) {
+        case COMMAND_CHF_START:
             chf_start(chfw->ctx);
             errcode = 0;
-        }
-        else {
+            break;
+        case COMMAND_CHF_ADD:
             errcode = chf_add(chfw->ctx, chfw->input_buf, chfw->input_len);
+            break;
+        case COMMAND_TERMINATE_THREAD:
+            return NULL;
+        default:
+            ASSERT_NEVER_REACH("Invalid CHF worker command");
         }
 
         pthread_mutex_lock(&(chfw->mtx));
@@ -258,6 +261,4 @@ static void *helper_thread_main(void *chfw_arg)
         pthread_cond_signal(&(chfw->command_change));
         pthread_mutex_unlock(&(chfw->mtx));
     }
-
-    return NULL;
 }
