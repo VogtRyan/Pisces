@@ -32,9 +32,8 @@
 #define COMMAND_TERMINATE_THREAD (3)
 
 /*
- * When input_buf_size == 0, the worker operates single-threaded and executes
- * commands immediately. Otherwise, input_buf can buffer message data for a
- * single CHF add command. A worker can buffer at most one command.
+ * When input_buf_size > 0, the worker can buffer up to one command for a
+ * helper thread to execute.
  */
 struct chf_worker {
     struct chf_ctx *ctx;
@@ -99,7 +98,7 @@ void chf_worker_start(struct chf_worker *chfw)
      * Reset the error code immediately, to make the behaviour of
      * chf_worker_error() consistent with chf_worker_start() having been
      * called -- otherwise, we would have to block in chf_worker_error() until
-     * the queued CHF start command executes.
+     * the queued CHF-start command executes.
      */
     chfw->errcode = 0;
     chfw->command = COMMAND_CHF_START;
@@ -119,15 +118,17 @@ int chf_worker_add(struct chf_worker *chfw, const byte *msg, size_t msg_len)
     ASSERT(msg_len <= chfw->input_buf_size,
            "chf_worker_add message length too large: %zu", msg_len);
 
-    /* Block on computation until we can enqueue the CHF add command */
+    /* Block on computation until we can enqueue the CHF-add command */
     pthread_mutex_lock(&(chfw->mtx));
     while (chfw->command != COMMAND_NONE) {
         pthread_cond_wait(&(chfw->command_change), &(chfw->mtx));
     }
 
     /*
-     * Return the result of any previous call to chf_add(), which delays error
-     * reporting by one CHF add command or until chf_worker_end() is called.
+     * Return the result of the previous CHF-add command, if the helper thread
+     * has completed one since since chf_worker_start() was called. This delays
+     * error reporting to the caller by one CHF-add command, or until
+     * chf_worker_end() is called.
      */
     ret = chfw->errcode;
 

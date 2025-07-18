@@ -30,11 +30,11 @@ struct chf_worker;
  * the CHF context, and no further calls should be made directly on it.
  *
  * If input_buf_size is greater than 0, the worker will spawn a helper thread
- * to execute queued CHF commands, instead of executing queued commands
- * immediately. In this case, the maximum message size chf_worker_add() can
- * accept will be input_buf_size. The worker will operate under a
- * single-producer, single-consumer model with a finite-sized queue that blocks
- * when full.
+ * to execute queued CHF commands instead of executing them immediately, and
+ * the maximum message size chf_worker_add() can accept will be input_buf_size.
+ * The worker will operate under a single-producer, single-consumer model with
+ * a finite-sized queue that blocks when full, meaning only one thread can call
+ * chf_worker_* functions on a given chf_worker.
  */
 struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx,
                                     size_t input_buf_size);
@@ -74,18 +74,15 @@ size_t chf_worker_digest_size(const struct chf_worker *chfw);
 
 /*
  * Returns a human-readable description of the most recent error that has
- * occurred while executing a CHF add or end command. Because commands can
- * execute in the background in a multithreaded environment, chf_worker_error()
- * may report an error prior to chf_worker_add() or chf_worker_end() returning
- * an error code.
+ * occurred while executing an add or end command. This function may report an
+ * error prior to chf_worker_add() or chf_worker_end() returning an error code.
  */
 const char *chf_worker_error(struct chf_worker *chfw);
 
 /*
- * Frees a worker allocated with chf_worker_alloc(), securely scrubs its
- * memory, and terminates its helper thread if it spawned one. Also frees the
- * CHF context that the worker took ownership of and securely scrubs its
- * memory. Calling with NULL is a no-op.
+ * Frees a worker allocated with chf_worker_alloc(), plus the CHF context it
+ * took ownership of, and securely scrubs their memory. Calling with NULL is a
+ * no-op.
  */
 void chf_worker_free_scrub(struct chf_worker *chfw);
 
