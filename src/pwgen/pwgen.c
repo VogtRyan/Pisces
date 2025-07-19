@@ -23,6 +23,7 @@
 #include "common/scrub.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
