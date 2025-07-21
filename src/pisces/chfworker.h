@@ -33,7 +33,7 @@ struct chf_worker;
  * to execute queued CHF commands instead of executing them immediately, and
  * the maximum message size chf_worker_add() can accept will be input_buf_size.
  * The worker will operate under a single-producer, single-consumer model with
- * a finite-sized queue that blocks when full, meaning only one thread can call
+ * a finite-sized queue that blocks when full, so only one thread can call
  * chf_worker_* functions on a given chf_worker.
  */
 struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx,
@@ -41,19 +41,20 @@ struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx,
 
 /*
  * Clears the queue of any commands, clears any errors the worker has
- * encountered, then enqueues a command to start a new hash operation.
+ * encountered, then enqueues a CHF-start command to start a new hash
+ * operation.
  */
 void chf_worker_start(struct chf_worker *chfw);
 
 /*
- * Enqueues a command to append the given bytes to the message being hashed.
- * If the worker was allocated with a non-zero buffer size, msg_len must be
- * less than or equal to that buffer size.
+ * Enqueues a CHF-add command to append the given bytes to the message being
+ * hashed. If the worker was allocated with a non-zero buffer size, msg_len
+ * must be less than or equal to that buffer size.
  *
- * Returns the result of the most recently completed CHF add command: 0 on
+ * Returns the result of the most recently completed CHF-add command: 0 on
  * success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG). Because the newly queued
- * add command might not be complete by the time this function returns, error
- * reporting of CHF_ERROR_MESSAGE_TOO_LONG may be delayed until either a
+ * CHF-add command might not be complete by the time this function returns,
+ * error reporting of CHF_ERROR_MESSAGE_TOO_LONG may be delayed until either a
  * subsequent chf_worker_add() call or the call to chf_worker_end().
  */
 int chf_worker_add(struct chf_worker *chfw, const byte *msg, size_t msg_len);
@@ -74,8 +75,9 @@ size_t chf_worker_digest_size(const struct chf_worker *chfw);
 
 /*
  * Returns a human-readable description of the most recent error that has
- * occurred while executing an add or end command. This function may report an
- * error prior to chf_worker_add() or chf_worker_end() returning an error code.
+ * occurred while executing a CHF-add command or chf_worker_end(). This
+ * function may report an error prior to chf_worker_add() or chf_worker_end()
+ * returning an error code if a CHF-add command is completed asynchronously.
  */
 const char *chf_worker_error(struct chf_worker *chfw);
 
