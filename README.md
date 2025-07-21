@@ -2,6 +2,11 @@
 Password-based encryption for arbitrarily large files, with constant-time
 password verification during decryption
 
+**This is a development branch, and the entire Pisces 6 standard is still
+under active development. This code should not, under any circumstances, be
+used to encrypt actual data (if you ever want to see it again). For production
+purposes, use Pisces 5 in the main branch.**
+
 **Table of Contents:**
 1. [Copyright and License](#copyright-and-license)
 2. [About Pisces](#about-pisces)
@@ -12,7 +17,7 @@ password verification during decryption
 7. [Historical Details](#historical-details)
 8. [Additional Build Targets](#additional-build-targets)
 
-Version: 5.4.0 (21 July 2025)
+Version: 6.0.0-devel (projected 2025 release)
 
 ## Copyright and License
 
