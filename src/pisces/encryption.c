@@ -17,12 +17,14 @@
 #include "encryption.h"
 
 #include "common/bytetype.h"
+#include "common/config.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
 #include "crypto/abstract/chf.h"
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/cprng.h"
 #include "crypto/abstract/kdf.h"
+#include "pisces/chfworker.h"
 #include "pisces/holdbuf.h"
 #include "pisces/iowrap.h"
 #include "pisces/version.h"
@@ -428,7 +430,7 @@ done:
 
 static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
 {
-    struct chf_ctx *chf;
+    struct chf_worker *chfw;
     struct cipher_ctx *cipher;
     byte enc_data[INPUT_BYTES_READ_AT_ONCE + CHF_MAX_DIGEST_SIZE +
                   CIPHER_MAX_BLOCK_SIZE];
@@ -437,9 +439,14 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
     size_t hash_len, bytes_read, bytes_encrypted;
     int errval = 0;
 
-    chf = pisces_chf_alloc();
-    hash_len = chf_digest_size(chf);
-    chf_start(chf);
+    if (PISCES_MAX_THREADS > 1) {
+        chfw = chf_worker_alloc(pisces_chf_alloc(), sizeof(input));
+    }
+    else {
+        chfw = chf_worker_alloc(pisces_chf_alloc(), 0);
+    }
+    hash_len = chf_worker_digest_size(chfw);
+    chf_worker_start(chfw);
 
     cipher = pisces_padded_cipher_alloc();
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
@@ -462,10 +469,10 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
             break;
         }
 
-        if (chf_add(chf, input, bytes_read)) {
+        if (chf_worker_add(chfw, input, bytes_read)) {
             ERROR_GOTO(done, errval,
                        "Could not generate hash of input contents - %s",
-                       chf_error(chf));
+                       chf_worker_error(chfw));
         }
 
         cipher_add(cipher, input, bytes_read, enc_data, &bytes_encrypted);
@@ -479,10 +486,10 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
      * All of the input file contents have been run through the hash context,
      * so the hash computation can be finalized.
      */
-    if (chf_end(chf, hash)) {
+    if (chf_worker_end(chfw, hash)) {
         ERROR_GOTO(done, errval,
                    "Could not generate hash of input contents - %s",
-                   chf_error(chf));
+                   chf_worker_error(chfw));
     }
 
     /*
@@ -503,7 +510,7 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
     }
 
 done:
-    chf_free_scrub(chf);
+    chf_worker_free_scrub(chfw);
     cipher_free_scrub(cipher);
     scrub_memory(input, sizeof(input));
     scrub_memory(hash, sizeof(hash));
@@ -512,7 +519,7 @@ done:
 
 static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
 {
-    struct chf_ctx *chf;
+    struct chf_worker *chfw;
     struct cipher_ctx *cipher;
     struct holdbuf *hb;
     byte computed_hash[CHF_MAX_DIGEST_SIZE];
@@ -523,9 +530,14 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
     size_t hash_len, bytes_read, bytes_decrypted, bytes_from_hb;
     int errval = 0;
 
-    chf = pisces_chf_alloc();
-    chf_start(chf);
-    hash_len = chf_digest_size(chf);
+    if (PISCES_MAX_THREADS > 1) {
+        chfw = chf_worker_alloc(pisces_chf_alloc(), sizeof(data_from_hb));
+    }
+    else {
+        chfw = chf_worker_alloc(pisces_chf_alloc(), 0);
+    }
+    hash_len = chf_worker_digest_size(chfw);
+    chf_worker_start(chfw);
 
     cipher = pisces_padded_cipher_alloc();
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
@@ -554,10 +566,10 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
         holdbuf_give(hb, dec_data, bytes_decrypted, data_from_hb,
                      &bytes_from_hb);
 
-        if (chf_add(chf, data_from_hb, bytes_from_hb)) {
+        if (chf_worker_add(chfw, data_from_hb, bytes_from_hb)) {
             ERROR_GOTO(done, errval,
                        "Could not compute hash for decrypted data - %s",
-                       chf_error(chf));
+                       chf_worker_error(chfw));
         }
 
         if (write_exactly(out, data_from_hb, bytes_from_hb)) {
@@ -575,10 +587,10 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
                    cipher_error(cipher));
     }
     holdbuf_give(hb, dec_data, bytes_decrypted, data_from_hb, &bytes_from_hb);
-    if (chf_add(chf, data_from_hb, bytes_from_hb)) {
+    if (chf_worker_add(chfw, data_from_hb, bytes_from_hb)) {
         ERROR_GOTO(done, errval,
                    "Could not compute hash for decrypted data - %s",
-                   chf_error(chf));
+                   chf_worker_error(chfw));
     }
     if (write_exactly(out, data_from_hb, bytes_from_hb)) {
         ERROR_GOTO(done, errval, "Could not write decrypted data to output");
@@ -592,10 +604,10 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
         ERROR_GOTO(done, errval,
                    "Could not get stored hash value from buffer");
     }
-    if (chf_end(chf, computed_hash)) {
+    if (chf_worker_end(chfw, computed_hash)) {
         ERROR_GOTO(done, errval,
                    "Could not compute hash for decrypted data - %s",
-                   chf_error(chf));
+                   chf_worker_error(chfw));
     }
 
     /*
@@ -607,7 +619,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
     }
 
 done:
-    chf_free_scrub(chf);
+    chf_worker_free_scrub(chfw);
     cipher_free_scrub(cipher);
     holdbuf_free_scrub(hb);
     scrub_memory(dec_data, sizeof(dec_data));

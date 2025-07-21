@@ -14,9 +14,10 @@
 
 .POSIX:
 
-CC    = cc
-BUILD = release
-CPRNG = arc4random
+CC      = cc
+BUILD   = release
+CPRNG   = arc4random
+THREADS = multi
 
 PREFIX         = /usr/local
 INSTALL_BIN    = ${PREFIX}/bin
@@ -28,19 +29,25 @@ INSTALL_MAN    = ${PREFIX}/man/man1
 #   family of functions
 CFLAGS.COMMON = -Wall -Wextra -Wpedantic -std=c99 -D_POSIX_C_SOURCE=200112L
 
+CFLAGS.BUILD.debug   = -O0 -g -DDEBUGGING
 CFLAGS.BUILD.release = -O2
 CFLAGS.BUILD.strict  = -O2 -Werror
-CFLAGS.BUILD.debug   = -O0 -g -DDEBUGGING
 
 CFLAGS.CPRNG.arc4random =
-CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM # Use /dev/random instead
+CFLAGS.CPRNG.dev        = -DPISCES_NO_ARC4RANDOM #
 
+CFLAGS.MAX_THREADS.multi  =
+CFLAGS.MAX_THREADS.single = -DPISCES_MAX_THREADS=1 #
+
+IGNORE_FAILED_TESTS.BUILD.debug   = -
 IGNORE_FAILED_TESTS.BUILD.release =
 IGNORE_FAILED_TESTS.BUILD.strict  =
-IGNORE_FAILED_TESTS.BUILD.debug   = -
 IGNORE_FAILED_TESTS               = ${IGNORE_FAILED_TESTS.BUILD.${BUILD}}
 
-CFLAGS  = ${CFLAGS.COMMON} ${CFLAGS.CPRNG.${CPRNG}}${CFLAGS.BUILD.${BUILD}}
+CF2 = ${CFLAGS.CPRNG.${CPRNG}}
+CF3 = ${CFLAGS.MAX_THREADS.${THREADS}}
+CF4 = ${CFLAGS.BUILD.${BUILD}}
+CFLAGS = ${CFLAGS.COMMON} ${CF2}${CF3}${CF4}
 LDFLAGS = ${CFLAGS}
 
 BINDIR = ./bin
@@ -199,12 +206,13 @@ PISCES_OBJS = src/pisces/pisces.o src/crypto/abstract/chf.o \
   src/crypto/algorithms/pkcs7/pkcs7_padding.o \
   src/crypto/primitives/aes/aes_cbc.o src/crypto/primitives/aes/aes_ecb.o \
   src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o \
-  src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pisces/encryption.o \
-  src/pisces/holdbuf.o src/pisces/iowrap.o src/pisces/password.o \
-  src/pisces/version.o
+  src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pisces/chfworker.o \
+  src/pisces/encryption.o src/pisces/holdbuf.o src/pisces/iowrap.o \
+  src/pisces/password.o src/pisces/version.o
+PISCES_LIBS = -pthread
 
 ${BINDIR}/pisces: ${PISCES_OBJS}
-	${CC} ${LDFLAGS} -o $@ ${PISCES_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${PISCES_OBJS} ${PISCES_LIBS}
 
 ##
 # pwgen/
@@ -321,6 +329,9 @@ src/crypto/random/rdev.o: src/crypto/random/rdev.c \
   src/crypto/random/rdev.h src/common/bytetype.h src/common/errorflow.h
 src/crypto/random/rarc4.o: src/crypto/random/rarc4.c \
   src/crypto/random/rarc4.h src/common/bytetype.h src/common/errorflow.h
+src/pisces/chfworker.o: src/pisces/chfworker.c src/pisces/chfworker.h \
+  src/common/bytetype.h src/crypto/abstract/chf.h src/common/errorflow.h \
+  src/common/scrub.h
 src/pisces/password.o: src/pisces/password.c src/pisces/password.h \
   src/common/config.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h
@@ -333,10 +344,11 @@ src/pisces/version.o: src/pisces/version.c src/pisces/version.h \
   src/crypto/abstract/cipher.h src/crypto/abstract/kdf.h \
   src/common/errorflow.h
 src/pisces/encryption.o: src/pisces/encryption.c src/pisces/encryption.h \
-  src/common/bytetype.h src/common/errorflow.h src/common/scrub.h \
-  src/crypto/abstract/chf.h src/crypto/abstract/cipher.h \
-  src/crypto/abstract/cprng.h src/crypto/abstract/kdf.h \
-  src/pisces/holdbuf.h src/pisces/iowrap.h src/pisces/version.h
+  src/common/bytetype.h src/common/config.h src/common/errorflow.h \
+  src/common/scrub.h src/crypto/abstract/chf.h \
+  src/crypto/abstract/cipher.h src/crypto/abstract/cprng.h \
+  src/crypto/abstract/kdf.h src/pisces/chfworker.h src/pisces/holdbuf.h \
+  src/pisces/iowrap.h src/pisces/version.h
 src/pisces/pisces.o: src/pisces/pisces.c src/pisces/encryption.h \
   src/pisces/password.h src/common/config.h src/pisces/version.h \
   src/crypto/abstract/chf.h src/common/bytetype.h \
