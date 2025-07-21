@@ -18,7 +18,7 @@
 #define PISCES_COMMON_CONFIG_H_
 
 /* Shared between pisces and pwgen */
-#define IMPLEMENTATION_VERSION "5.4.0-devel"
+#define IMPLEMENTATION_VERSION "5.4.0"
 #define PASSWORD_LENGTH_MAX    (1024)
 
 /* Must be positive, and setting to 1 disables multithreading */
