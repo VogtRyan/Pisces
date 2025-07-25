@@ -188,15 +188,16 @@ While the current version of Pisces will only produce version 6 encrypted
 files, it is still able to decrypt files produced by every version of Pisces
 that has been publicly released, specifically versions 3, 4, 5, and 6.
 
-Starting with Pisces version 5, the cryptographic hash function H could accept
-file contents C of any size as input. So, from Pisces 5 onward, the Pisces
-file format has supported arbitrarily large input files.
+Since Pisces version 5, the cryptographic hash function $\textnormal{H}$ has
+been able to process file contents $\textnormal{C}$ of any length. So from
+Pisces 5 onward, the Pisces file format has supported arbitrarily large input
+files.
 
 In Pisces version 5,
 
-- $\textnormal{E}$ is 256-bit AES in CBC mode;
-- $\textnormal{H}$ is SHA3-512; and,
-- $\textnormal{KDF}$ is PBKDF2, using HMAC-SHA3-512 as the generator, with
+- $\textnormal{E}$ was 256-bit AES in CBC mode;
+- $\textnormal{H}$ was SHA3-512; and,
+- $\textnormal{KDF}$ was PBKDF2, using HMAC-SHA3-512 as the generator, with
 16384 iterations.
 - $R$ was 512 bits in length; $I$ and $J$ were 128 bits in length; and, $S$ was
 256 bits in length.

@@ -203,8 +203,8 @@ While the current version of Pisces will only produce version 6 encrypted
 files, it is still able to decrypt files produced by every version of Pisces
 that has been publicly released, specifically versions 3, 4, 5, and 6.
 
-Starting with Pisces version 5, the cryptographic hash function H could accept
-file contents C of any size as input. So, from Pisces 5 onward, the Pisces
+Since Pisces version 5, the cryptographic hash function H has been able to
+process file contents C of any length. So from Pisces 5 onward, the Pisces
 file format has supported arbitrarily large input files.
 
 In Pisces version 5,
