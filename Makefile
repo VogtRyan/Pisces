@@ -97,7 +97,8 @@ man:
 # Code generation
 ##
 
-generate: ${BINDIR}/generate_aes ${BINDIR}/generate_sha3
+generate: ${BINDIR}/generate_aes ${BINDIR}/generate_blake2b \
+  ${BINDIR}/generate_sha3
 
 ##
 # crypto/primitives/aes/generate_aes
@@ -107,6 +108,15 @@ GENERATE_AES_OBJS = src/crypto/primitives/aes/generate_aes.o
 
 ${BINDIR}/generate_aes: ${GENERATE_AES_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${GENERATE_AES_OBJS}
+
+##
+# crypto/primitives/blake2b/generate_blake2b
+##
+
+GENERATE_BLAKE2B_OBJS = src/crypto/primitives/blake2b/generate_blake2b.o
+
+${BINDIR}/generate_blake2b: ${GENERATE_BLAKE2B_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${GENERATE_BLAKE2B_OBJS}
 
 ##
 # crypto/generate/generate_sha3
@@ -121,8 +131,9 @@ ${BINDIR}/generate_sha3: ${GENERATE_SHA3_OBJS}
 # Tests
 ##
 
-test: ${BINDIR}/test_aes_ecb ${BINDIR}/test_aes_cbc ${BINDIR}/test_sha1 \
-  ${BINDIR}/test_sha3 ${BINDIR}/test_hmac ${BINDIR}/test_pbkdf2
+test: ${BINDIR}/test_aes_ecb ${BINDIR}/test_aes_cbc ${BINDIR}/test_blake2b \
+  ${BINDIR}/test_sha1 ${BINDIR}/test_sha3 ${BINDIR}/test_hmac \
+  ${BINDIR}/test_pbkdf2
 
 ##
 # crypto/primitives/aes/test_aes_ecb
@@ -146,6 +157,17 @@ TEST_AES_CBC_OBJS = src/crypto/primitives/aes/test_aes_cbc.o \
 ${BINDIR}/test_aes_cbc: ${TEST_AES_CBC_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${TEST_AES_CBC_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_aes_cbc
+
+##
+# crypto/primitives/blake2b/test_blake2b
+##
+
+TEST_BLAKE2B_OBJS = src/crypto/primitives/blake2b/test_blake2b.o \
+  src/crypto/primitives/blake2b/blake2b.o src/crypto/test/hex.o
+
+${BINDIR}/test_blake2b: ${TEST_BLAKE2B_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_BLAKE2B_OBJS}
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_blake2b
 
 ##
 # crypto/primitives/sha1/test_sha1
@@ -289,6 +311,16 @@ src/crypto/algorithms/pkcs7/pkcs7_padding.o: \
   src/crypto/algorithms/pkcs7/pkcs7_padding.c \
   src/crypto/algorithms/pkcs7/pkcs7_padding.h src/common/bytetype.h \
   src/common/errorflow.h
+src/crypto/primitives/blake2b/test_blake2b.o: \
+  src/crypto/primitives/blake2b/test_blake2b.c src/common/bytetype.h \
+  src/common/errorflow.h src/crypto/primitives/blake2b/blake2b.h \
+  src/crypto/test/framework.h src/crypto/test/hex.h
+src/crypto/primitives/blake2b/blake2b.o: \
+  src/crypto/primitives/blake2b/blake2b.c \
+  src/crypto/primitives/blake2b/blake2b.h src/common/bytetype.h \
+  src/common/errorflow.h src/common/scrub.h src/crypto/machine/endian.h
+src/crypto/primitives/blake2b/generate_blake2b.o: \
+  src/crypto/primitives/blake2b/generate_blake2b.c
 src/crypto/primitives/sha3/generate_sha3.o: \
   src/crypto/primitives/sha3/generate_sha3.c
 src/crypto/primitives/sha3/test_sha3.o: \
