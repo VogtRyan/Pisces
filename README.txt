@@ -151,8 +151,8 @@ equal to the length of the key K.
 
 The first element placed into the output file is a header. The header begins
 with the six characters PISCES, followed by a one-byte encoding of the file
-format version. The current version of Pisces uses the Pisces version 5
-specifications, so the single byte 0x05 will be output. The next component in
+format version. The current version of Pisces uses the Pisces version 6
+specifications, so the single byte 0x06 will be output. The next component in
 the header is the salt, S. That will be followed by two randomly generated
 initialization vectors, denoted I and J.
 
@@ -179,11 +179,11 @@ the input file. If C represents the contents of the input file, then
 E[K, J](C || H(C)) is output to the output file. Because the length of C is
 indeterminate, PKCS #7 padding is used this time in E.
 
-In Pisces version 5,
+In Pisces version 6,
 
 - E is 256-bit AES in CBC mode;
 - H is SHA3-512; and,
-- KDF is PBKDF2, using HMAC-SHA3-512 as the generator, with 16384 iterations.
+- KDF is [FIXME]
 
 Because of these choices, R is 512 bits in length; I and J are 128 bits in
 length; and, S is 256 bits in length.
@@ -192,16 +192,28 @@ length; and, S is 256 bits in length.
 
 7. Historical Details
 
-The current version of Pisces is Pisces 5, as specified above.
+The current version of Pisces is Pisces 6, as specified above.
 
 Pisces 1 and Pisces 2 were internal development versions, and files encrypted
 in either of those formats simply do not exist anymore. Version 1 used the
 Twofish block cipher, giving the Pisces project its name. The name stuck, even
 though the underlying block cipher changed.
 
-While the current version of Pisces will only produce version 5 encrypted
+While the current version of Pisces will only produce version 6 encrypted
 files, it is still able to decrypt files produced by every version of Pisces
-that has been publicly released, specifically versions 3, 4, and 5.
+that has been publicly released, specifically versions 3, 4, 5, and 6.
+
+Starting with Pisces version 5, the cryptographic hash function H could accept
+file contents C of any size as input. So, from Pisces 5 onward, the Pisces
+file format has supported arbitrarily large input files.
+
+In Pisces version 5,
+
+- E was 256-bit AES in CBC mode;
+- H was SHA3-512; and,
+- KDF was PBKDF2, using HMAC-SHA3-512 as the generator, with 16384 iterations;
+- R was 512 bits in length; I and J were 128 bits in length; and, S was 256
+  bits in length.
 
 In Pisces version 4,
 
