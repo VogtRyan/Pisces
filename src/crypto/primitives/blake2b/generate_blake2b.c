@@ -33,8 +33,7 @@ static void output_compress_fn_f_preamble(void);
 static void output_compress_fn_f_tail(void);
 
 static void output_compress_fn_f_core(void);
-static void output_mix_fn_g(int a, int b, int c, int d, int xi, int xj, int yi,
-                            int yj);
+static void output_mix_fn_g(int a, int b, int c, int d, int i, int xj, int yi);
 static void output_xor_circ_right_shift(int index_a, int index_b, int amnt);
 static int sigma(int i, int j);
 
@@ -87,26 +86,25 @@ static void output_compress_fn_f_core(void)
     int i;
 
     for (i = 0; i < 12; i++) {
-        output_mix_fn_g(0, 4, 8, 12, i, 0, i, 1);
-        output_mix_fn_g(1, 5, 9, 13, i, 2, i, 3);
-        output_mix_fn_g(2, 6, 10, 14, i, 4, i, 5);
-        output_mix_fn_g(3, 7, 11, 15, i, 6, i, 7);
-        output_mix_fn_g(0, 5, 10, 15, i, 8, i, 9);
-        output_mix_fn_g(1, 6, 11, 12, i, 10, i, 11);
-        output_mix_fn_g(2, 7, 8, 13, i, 12, i, 13);
-        output_mix_fn_g(3, 4, 9, 14, i, 14, i, 15);
+        output_mix_fn_g(0, 4, 8, 12, i, 0, 1);
+        output_mix_fn_g(1, 5, 9, 13, i, 2, 3);
+        output_mix_fn_g(2, 6, 10, 14, i, 4, 5);
+        output_mix_fn_g(3, 7, 11, 15, i, 6, 7);
+        output_mix_fn_g(0, 5, 10, 15, i, 8, 9);
+        output_mix_fn_g(1, 6, 11, 12, i, 10, 11);
+        output_mix_fn_g(2, 7, 8, 13, i, 12, 13);
+        output_mix_fn_g(3, 4, 9, 14, i, 14, 15);
     }
 }
 
-static void output_mix_fn_g(int a, int b, int c, int d, int xi, int xj, int yi,
-                            int yj)
+static void output_mix_fn_g(int a, int b, int c, int d, int i, int xj, int yj)
 {
 
-    printf("    v[%d] += v[%d] + m[%d];\n", a, b, sigma(xi, xj));
+    printf("    v[%d] += v[%d] + m[%d];\n", a, b, sigma(i, xj));
     output_xor_circ_right_shift(d, a, 32);
     printf("    v[%d] += v[%d];\n", c, d);
     output_xor_circ_right_shift(b, c, 24);
-    printf("    v[%d] += v[%d] + m[%d];\n", a, b, sigma(yi, yj));
+    printf("    v[%d] += v[%d] + m[%d];\n", a, b, sigma(i, yj));
     output_xor_circ_right_shift(d, a, 16);
     printf("    v[%d] += v[%d];\n", c, d);
     output_xor_circ_right_shift(b, c, 63);
