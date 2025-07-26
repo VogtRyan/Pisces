@@ -27,7 +27,7 @@
 
 TEST_PREAMBLE("BLAKE2b");
 
-struct blake2b_plain_test {
+struct blake2b_kat {
     const char *msg;
     const char *key;
     const char *digest;
@@ -38,11 +38,10 @@ static void fill_selftest_seq(byte *out, size_t len, uint32_t seed);
 static void blake2b_single(byte *digest, size_t digest_len, const byte *key,
                            size_t key_len, const byte *msg, size_t msg_len);
 
-static void run_blake2b_plain_test(const struct blake2b_plain_test *test);
-static void run_parsed_blake2b_plain_test(const byte *msg, size_t msg_len,
-                                          const byte *key, size_t key_len,
-                                          const byte *digest,
-                                          size_t digest_len);
+static void run_blake2b_kat(const struct blake2b_kat *test);
+static void run_parsed_blake2b_kat(const byte *msg, size_t msg_len,
+                                   const byte *key, size_t key_len,
+                                   const byte *digest, size_t digest_len);
 static void add_single_message(struct blake2b_ctx *ctx, const byte *msg,
                                size_t msg_len);
 
@@ -53,11 +52,12 @@ static void parse_hex_to_bytes(const char *msg_hex, byte **msg_bytes,
                                size_t *digest_len);
 
 /*
- * All BLAKE2b plain tests are taken from the BLAKE2b official repository,
- * blake2-kat.json. Partial-block keys test both that keying and padding the
- * key work correctly.
+ * The BLAKE2b official tests are taken from the BLAKE2b repository,
+ * https://github.com/BLAKE2/BLAKE2/tree/master/testvectors (accessed
+ * 26 July 2025). The blake2-kat.json file most closely matches the format
+ * below.
  */
-static const struct blake2b_plain_test blake2b_plain_tests[] = {
+static const struct blake2b_kat official_tests[] = {
     /* Empty message, unkeyed */
     {
         .msg = "",
@@ -106,7 +106,7 @@ static const struct blake2b_plain_test blake2b_plain_tests[] = {
             "B107DA4A3DB6320BAAF2C8617D5A51DF914AE88DA3867C2D41F0CC14FA67928",
     },
 
-    /* Empty message, half-block key */
+    /* Empty message, full-length key */
     {
         .msg = "",
         .key =
@@ -117,7 +117,7 @@ static const struct blake2b_plain_test blake2b_plain_tests[] = {
             "5e996e8f0f4eb981fc214b005f42d2ff4233499391653df7aefcbc13fc51568",
     },
 
-    /* One-byte message, half-block key */
+    /* One-byte message, full-length key */
     {
         .msg = "00",
         .key =
@@ -128,7 +128,7 @@ static const struct blake2b_plain_test blake2b_plain_tests[] = {
             "87B0BC9FE30492B16B0D0BC4EF9B0F34C7003FAC09A5EF1532E69430234CEBD",
     },
 
-    /* Single-block message, half-block key */
+    /* Single-block message, full-length key */
     {
         .msg =
             "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
@@ -143,7 +143,7 @@ static const struct blake2b_plain_test blake2b_plain_tests[] = {
             "88D4CAF806290425F9890A3A2A35A905AB4B37ACFD0DA6E4517B2525C9651E4",
     },
 
-    /* Sub-two-block message, half-block key */
+    /* Sub-two-block message, full-length key */
     {
         .msg =
             "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2"
@@ -163,17 +163,60 @@ static const struct blake2b_plain_test blake2b_plain_tests[] = {
     },
 };
 
+/*
+ * Custom test vector, which has been verified against two other independent
+ * implementations of BLAKE2b:
+ *
+ * - OpenSSL 3.5.1 libcrypto implementation in C
+ * - BouncyCastle 1.81 implementation in Java
+ *
+ * To test key padding, a key of half the maximum length is used. To test all
+ * possible paths in blake2b_add() in which the input buffer is manipulated or
+ * the compression function f is executed, a message length of 2.5-times the
+ * block size is used, split up by add_single_message() into 1/4-block,
+ * 2-block, and 1/4-block add operations.
+ *
+ * The "random" message and key data are actually the first 704 hexadecimal
+ * digits of the fractional part of pi. The first 640 digits are used as the
+ * message, and the next 64 as the key. For clarity, in hexadecimal,
+ * pi = 3.243F6A8885...
+ *
+ * These digits were computed using the Bailey-Borwein-Plouffe (BBP)
+ * formula, and are the same as those used in the Blowfish P-array and
+ * first S-box.
+ */
+static const struct blake2b_kat custom_tests[] = {
+    {
+        .msg =
+            "243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C894"
+            "52821E638D01377BE5466CF34E90C6CC0AC29B7C97C50DD3F84D5B5B547091792"
+            "16D5D98979FB1BD1310BA698DFB5AC2FFD72DBD01ADFB7B8E1AFED6A267E96BA7"
+            "C9045F12C7F9924A19947B3916CF70801F2E2858EFC16636920D871574E69A458"
+            "FEA3F4933D7E0D95748F728EB658718BCD5882154AEE7B54A41DC25A59B59C30D"
+            "5392AF26013C5D1B023286085F0CA417918B8DB38EF8E79DCB0603A180E6C9E0E"
+            "8BB01E8A3ED71577C1BD314B2778AF2FDA55605C60E65525F3AA55AB945748986"
+            "263E8144055CA396A2AAB10B6B4CC5C341141E8CEA15486AF7C72E993B3EE1411"
+            "636FBC2A2BA9C55D741831F6CE5C3E169B87931EAFD6BA336C24CF5C7A3253812"
+            "89586773B8F48986B4BB9AFC4BFE81B6628219361D809CCFB21A991",
+        .key =
+            "487CAC605DEC8032EF845D5DE98575B1DC262302EB651B8823893E81D396ACC5",
+        .digest =
+            "F4A536AD960D2467C444DA207983402C821882591D03E8CC8CE7642C455F8B81E"
+            "4BE1AD2861BCE0D585E5B5DFE8C602854DCE972526AA37D111CF83D02AE6F2A",
+    },
+};
+
 int main(void)
 {
     size_t i;
-    size_t num_plain_tests;
 
     run_blake2b_selftest();
 
-    num_plain_tests =
-        sizeof(blake2b_plain_tests) / sizeof(struct blake2b_plain_test);
-    for (i = 0; i < num_plain_tests; i++) {
-        run_blake2b_plain_test(&blake2b_plain_tests[i]);
+    for (i = 0; i < sizeof(official_tests) / sizeof(struct blake2b_kat); i++) {
+        run_blake2b_kat(&official_tests[i]);
+    }
+    for (i = 0; i < sizeof(custom_tests) / sizeof(struct blake2b_kat); i++) {
+        run_blake2b_kat(&(custom_tests[i]));
     }
 
     TEST_CONCLUDE();
@@ -249,25 +292,23 @@ static void blake2b_single(byte *digest, size_t digest_len, const byte *key,
     blake2b_free_scrub(ctx);
 }
 
-static void run_blake2b_plain_test(const struct blake2b_plain_test *test)
+static void run_blake2b_kat(const struct blake2b_kat *test)
 {
     byte *msg, *key, *digest;
     size_t msg_len, key_len, digest_len;
 
     parse_hex_to_bytes(test->msg, &msg, &msg_len, test->key, &key, &key_len,
                        test->digest, &digest, &digest_len);
-    run_parsed_blake2b_plain_test(msg, msg_len, key, key_len, digest,
-                                  digest_len);
+    run_parsed_blake2b_kat(msg, msg_len, key, key_len, digest, digest_len);
 
     free(msg);
     free(key);
     free(digest);
 }
 
-static void run_parsed_blake2b_plain_test(const byte *msg, size_t msg_len,
-                                          const byte *key, size_t key_len,
-                                          const byte *digest,
-                                          size_t digest_len)
+static void run_parsed_blake2b_kat(const byte *msg, size_t msg_len,
+                                   const byte *key, size_t key_len,
+                                   const byte *digest, size_t digest_len)
 {
     struct blake2b_ctx *ctx;
     byte actual[BLAKE2B_MAX_DIGEST_BYTES];
