@@ -131,7 +131,7 @@ When Pisces is used to encrypt a file, the user enters a one-line password (or
 passphrase) that will later be used to decrypt the file. That password is
 transformed into an encryption key, $K$, using a key derivation function,
 $\textnormal{KDF}$. $\textnormal{KDF}$ will salt the password using a randomly
-generated salt, $S$, with length equal to the length of the key $K$.
+generated salt, $S$.
 
 The first element placed into the output file is a header. The header begins
 with the six characters `PISCES`, followed by a one-byte encoding of the file
@@ -173,7 +173,7 @@ In Pisces version 6,
 - $\textnormal{KDF}$ is (FIXME).
 
 Because of these choices, $R$ is 512 bits in length; $I$ and $J$ are 128 bits
-in length; and, $S$ is 256 bits in length.
+in length; and, $S$ is 128 bits in length.
 
 ## Historical Details
 
@@ -196,9 +196,9 @@ files.
 In Pisces version 5,
 
 - $\textnormal{E}$ was 256-bit AES in CBC mode;
-- $\textnormal{H}$ was SHA3-512; and,
+- $\textnormal{H}$ was SHA3-512;
 - $\textnormal{KDF}$ was PBKDF2, using HMAC-SHA3-512 as the generator, with
-16384 iterations.
+16384 iterations and a 256-bit salt; and,
 - $R$ was 512 bits in length; $I$ and $J$ were 128 bits in length; and, $S$ was
 256 bits in length.
 
@@ -207,16 +207,16 @@ In Pisces version 4,
 - $\textnormal{E}$ was 256-bit AES in CBC mode;
 - $\textnormal{H}$ was SHA1;
 - $\textnormal{KDF}$ was PBKDF2, using HMAC-SHA1 as the generator, with 4096
-iterations;
+iterations and a 256-bit salt; and,
 - $R$ was 352 bits in length; $I$ and $J$ were 128 bits in length; and, $S$ was
 256 bits in length.
 
 In Pisces version 3,
 
 - $\textnormal{E}$ was 128-bit AES in CBC mode;
-- $\textnormal{H}$ was SHA1; and,
+- $\textnormal{H}$ was SHA1;
 - $\textnormal{KDF}$ was PBKDF2, using HMAC-SHA1 as the generator, with 1024
-iterations;
+iterations and a 128-bit salt; and,
 - $R$ was 224 bits in length; and, $I$, $J$, and $S$ were all 128 bits in
 length.
 
