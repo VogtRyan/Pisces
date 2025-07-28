@@ -164,22 +164,21 @@ static const struct blake2b_kat official_tests[] = {
 };
 
 /*
- * Custom test vector, which has been verified against two other independent
- * implementations of BLAKE2b:
+ * Custom test vector, verified against two other independent implementations
+ * of BLAKE2b:
  *
  * - OpenSSL 3.5.1 libcrypto implementation in C
  * - BouncyCastle 1.81 implementation in Java
  *
- * To test key padding, a key of half the maximum length is used. To test all
- * possible paths in blake2b_add() in which the input buffer is manipulated or
- * the compression function f is executed, a message length of 2.5-times the
- * block size is used, split up by add_single_message() into 1/4-block,
- * 2-block, and 1/4-block add operations.
+ * The key is half the maximum length, to test key padding. The message length
+ * is 2.5-times the block size -- and the message will be split per
+ * add_single_message() --  to test all paths in blake2b_add() where buffers
+ * are manipulated or the compression function f executed.
  *
  * The "random" message and key data are actually the first 704 hexadecimal
- * digits of the fractional part of pi. The first 640 digits are used as the
- * message, and the next 64 as the key. For clarity, in hexadecimal,
- * pi = 3.243F6A8885...
+ * digits of the fractional part of pi. The first 640 digits (320 bytes) are
+ * used as the message, and the next 64 digits (32 bytes) as the key. For
+ * clarity, in hexadecimal, pi = 3.243F6A8885...
  *
  * These digits were computed using the Bailey-Borwein-Plouffe (BBP)
  * formula, and are the same as those used in the Blowfish P-array and
