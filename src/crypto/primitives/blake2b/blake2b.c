@@ -78,6 +78,11 @@ void blake2b_start(struct blake2b_ctx *ctx, size_t digest_len, const byte *key,
     ctx->bytes_processed_t_high = 0;
     ctx->bytes_processed_t_overflow = false;
 
+    /*
+     * Per RFC 7693 sections 2.5 and 3.3: a keyed BLAKE2b hash has key length
+     * greater than 0. The key length is 0 iff the hash is unkeyed (that is,
+     * there is no keyed BLAKE2b operation that uses the empty key).
+     */
     if (key_len > 0) {
         memcpy(ctx->input_buf, key, key_len);
         memset(ctx->input_buf + key_len, 0, BLAKE2B_BLOCK_BYTES - key_len);
