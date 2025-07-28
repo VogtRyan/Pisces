@@ -129,8 +129,8 @@ int encrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
     struct cprng *rng;
-    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
-    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
+    byte body_iv[CIPHER_MAX_IV_SIZE];
+    byte imprint_iv[CIPHER_MAX_IV_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
     byte salt[KDF_MAX_SALT_SIZE];
     int in = -1;
@@ -181,8 +181,8 @@ done:
 int decrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
-    byte body_iv[CIPHER_MAX_BLOCK_SIZE];
-    byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
+    byte body_iv[CIPHER_MAX_IV_SIZE];
+    byte imprint_iv[CIPHER_MAX_IV_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
     byte salt[KDF_MAX_SALT_SIZE];
     int in = -1;
