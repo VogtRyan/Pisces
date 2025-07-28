@@ -132,7 +132,7 @@ int encrypt_file(const char *input_file, const char *output_file,
     byte body_iv[CIPHER_MAX_BLOCK_SIZE];
     byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
-    byte salt[CIPHER_MAX_KEY_SIZE];
+    byte salt[KDF_MAX_SALT_SIZE];
     int in = -1;
     int out = -1;
     int errval = 0;
@@ -184,7 +184,7 @@ int decrypt_file(const char *input_file, const char *output_file,
     byte body_iv[CIPHER_MAX_BLOCK_SIZE];
     byte imprint_iv[CIPHER_MAX_BLOCK_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
-    byte salt[CIPHER_MAX_KEY_SIZE];
+    byte salt[KDF_MAX_SALT_SIZE];
     int in = -1;
     int out = -1;
     int errval = 0;
@@ -233,13 +233,16 @@ done:
 static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
     struct cipher_ctx *cipher;
-    size_t key_salt_len, iv_len;
+    struct kdf *kdf_fn;
+    size_t iv_len, salt_len;
     byte magic_version;
     int errval = 0;
 
     cipher = pisces_unpadded_cipher_alloc();
-    key_salt_len = cipher_key_size(cipher);
     iv_len = cipher_iv_size(cipher);
+
+    kdf_fn = pisces_kdf_alloc();
+    salt_len = kdf_salt_size(kdf_fn);
 
     magic_version = (byte)pisces_get_version();
     if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
@@ -250,7 +253,7 @@ static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
         ERROR_GOTO(done, errval, "Could not write magic-byte version");
     }
 
-    if (write_exactly(fd, salt, key_salt_len)) {
+    if (write_exactly(fd, salt, salt_len)) {
         ERROR_GOTO(done, errval, "Could not write salt");
     }
     if (write_exactly(fd, imprint_iv, iv_len)) {
@@ -262,20 +265,24 @@ static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 
 done:
     cipher_free_scrub(cipher);
+    kdf_free_scrub(kdf_fn);
     return errval;
 }
 
 static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
     struct cipher_ctx *cipher;
+    struct kdf *kdf_fn;
     byte magic_prefix[PISCES_MAGIC_PREFIX_LEN];
-    size_t key_salt_len, iv_len;
+    size_t iv_len, salt_len;
     byte magic_version;
     int errval = 0;
 
     cipher = pisces_unpadded_cipher_alloc();
-    key_salt_len = cipher_key_size(cipher);
     iv_len = cipher_iv_size(cipher);
+
+    kdf_fn = pisces_kdf_alloc();
+    salt_len = kdf_salt_size(kdf_fn);
 
     if (read_exactly(fd, magic_prefix, PISCES_MAGIC_PREFIX_LEN)) {
         ERROR_GOTO(done, errval, "Could not read magic-byte prefix");
@@ -291,7 +298,7 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
                    (int)magic_version);
     }
 
-    if (read_exactly(fd, salt, key_salt_len)) {
+    if (read_exactly(fd, salt, salt_len)) {
         ERROR_GOTO(done, errval, "Could not read salt");
     }
     if (read_exactly(fd, imprint_iv, iv_len)) {
@@ -303,6 +310,7 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 
 done:
     cipher_free_scrub(cipher);
+    kdf_free_scrub(kdf_fn);
     return errval;
 }
 
@@ -633,13 +641,16 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
                               struct cprng *rng)
 {
     struct cipher_ctx *cipher;
-    size_t key_salt_len, iv_len;
+    struct kdf *kdf_fn;
+    size_t iv_len, salt_len;
 
     cipher = pisces_unpadded_cipher_alloc();
-    key_salt_len = cipher_key_size(cipher);
     iv_len = cipher_iv_size(cipher);
 
-    cprng_bytes(rng, salt, key_salt_len);
+    kdf_fn = pisces_kdf_alloc();
+    salt_len = kdf_salt_size(kdf_fn);
+
+    cprng_bytes(rng, salt, salt_len);
 
     /*
      * IVs cannot be reused for multiple cipher operations. That said, the
@@ -657,6 +668,7 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
     }
 
     cipher_free_scrub(cipher);
+    kdf_free_scrub(kdf_fn);
 }
 
 static int password_to_key(byte *derived_key, const char *password,
@@ -664,15 +676,14 @@ static int password_to_key(byte *derived_key, const char *password,
 {
     struct cipher_ctx *cipher;
     struct kdf *fn;
-    size_t key_salt_len;
+    size_t key_len;
     int errval = 0;
 
     cipher = pisces_unpadded_cipher_alloc();
     fn = pisces_kdf_alloc();
-    key_salt_len = cipher_key_size(cipher);
+    key_len = cipher_key_size(cipher);
 
-    if (kdf_derive(fn, derived_key, key_salt_len, password, password_len, salt,
-                   key_salt_len)) {
+    if (kdf_derive(fn, derived_key, key_len, password, password_len, salt)) {
         ERROR_GOTO(done, errval, "Could not derive key - %s", kdf_error(fn));
     }
 

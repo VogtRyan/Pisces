@@ -21,17 +21,18 @@
 
 #include <stddef.h>
 
+#define KDF_MAX_SALT_SIZE (32)
+
+#define KDF_ERROR_PASSWORD_TOO_LONG    (-1)
+#define KDF_ERROR_DERIVED_KEY_TOO_LONG (-2)
+
 typedef enum {
-    KDF_ALG_PBKDF2_HMAC_SHA3_512_16384,
-    KDF_ALG_PBKDF2_HMAC_SHA1_4096,
-    KDF_ALG_PBKDF2_HMAC_SHA1_1024
+    KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256,
+    KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256,
+    KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128
 } kdf_algorithm;
 
 struct kdf;
-
-#define KDF_ERROR_PASSWORD_TOO_LONG    (-1)
-#define KDF_ERROR_SALT_TOO_LONG        (-2)
-#define KDF_ERROR_DERIVED_KEY_TOO_LONG (-3)
 
 /*
  * Allocates a new cryptographic key derivation function. Must be freed with
@@ -42,11 +43,16 @@ struct kdf *kdf_alloc(kdf_algorithm alg);
 /*
  * Computes a derived key. Returns 0 on success, <0 on error (in order of
  * precedence from highest to lowest: KDF_ERROR_PASSWORD_TOO_LONG,
- * KDF_ERROR_SALT_TOO_LONG, KDF_ERROR_DERIVED_KEY_TOO_LONG).
+ * KDF_ERROR_DERIVED_KEY_TOO_LONG).
  */
 int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
-               const char *password, size_t password_len, const byte *salt,
-               size_t salt_len);
+               const char *password, size_t password_len, const byte *salt);
+
+/*
+ * Returns the size, in bytes, of the salt to be passed to kdf_derive().
+ * Guaranteed to be no larger than KDF_MAX_SALT_SIZE.
+ */
+size_t kdf_salt_size(const struct kdf *fn);
 
 /*
  * Returns a human-readable description of the most recent outcome of

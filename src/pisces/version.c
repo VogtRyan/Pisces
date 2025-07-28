@@ -84,11 +84,11 @@ struct kdf *pisces_kdf_alloc(void)
 {
     switch (pisces_version) {
     case 3:
-        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_1024);
+        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128);
     case 4:
-        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_4096);
+        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256);
     case 5:
-        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA3_512_16384);
+        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256);
     default:
         ASSERT_NEVER_REACH("Illegal Pisces version");
     }
