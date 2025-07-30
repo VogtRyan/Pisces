@@ -35,8 +35,6 @@ struct blake2b_kat {
 
 static void run_blake2b_selftest(void);
 static void fill_selftest_seq(byte *out, size_t len, uint32_t seed);
-static void blake2b_single(byte *digest, size_t digest_len, const byte *key,
-                           size_t key_len, const byte *msg, size_t msg_len);
 
 static void run_blake2b_kat(const struct blake2b_kat *test);
 static void run_parsed_blake2b_kat(const byte *msg, size_t msg_len,
@@ -233,10 +231,12 @@ static void run_blake2b_selftest(void)
     const size_t b2b_in_len[6] = {0, 3, 128, 129, 255, 1024};
 
     struct blake2b_ctx *ctx;
+    struct blake2b_ctx *inner_ctx;
     size_t i, j, outlen, inlen;
     uint8_t in[1024], md[64], key[64];
 
     ctx = blake2b_alloc();
+    inner_ctx = blake2b_alloc();
     blake2b_start(ctx, 32, NULL, 0);
 
     for (i = 0; i < 4; i++) {
@@ -245,11 +245,11 @@ static void run_blake2b_selftest(void)
             inlen = b2b_in_len[j];
 
             fill_selftest_seq(in, inlen, inlen);
-            blake2b_single(md, outlen, NULL, 0, in, inlen);
+            blake2b_single(inner_ctx, in, inlen, NULL, 0, md, outlen);
             blake2b_add(ctx, md, outlen);
 
             fill_selftest_seq(key, outlen, outlen);
-            blake2b_single(md, outlen, key, outlen, in, inlen);
+            blake2b_single(inner_ctx, in, inlen, key, outlen, md, outlen);
             blake2b_add(ctx, md, outlen);
         }
     }
@@ -258,6 +258,7 @@ static void run_blake2b_selftest(void)
     TEST_ASSERT(memcmp(md, blake2_res, sizeof(blake2_res)) == 0);
 
     blake2b_free_scrub(ctx);
+    blake2b_free_scrub(inner_ctx);
 }
 
 static void fill_selftest_seq(byte *out, size_t len, uint32_t seed)
@@ -275,20 +276,6 @@ static void fill_selftest_seq(byte *out, size_t len, uint32_t seed)
         b = t;
         out[i] = (t >> 24) & 0xFF;
     }
-}
-
-static void blake2b_single(byte *digest, size_t digest_len, const byte *key,
-                           size_t key_len, const byte *msg, size_t msg_len)
-{
-    struct blake2b_ctx *ctx;
-
-    ctx = blake2b_alloc();
-
-    blake2b_start(ctx, digest_len, key, key_len);
-    blake2b_add(ctx, msg, msg_len);
-    blake2b_end(ctx, digest);
-
-    blake2b_free_scrub(ctx);
 }
 
 static void run_blake2b_kat(const struct blake2b_kat *test)

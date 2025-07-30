@@ -159,6 +159,15 @@ int blake2b_end(struct blake2b_ctx *ctx, byte *digest)
     return 0;
 }
 
+int blake2b_single(struct blake2b_ctx *ctx, const byte *msg, size_t msg_len,
+                   const byte *key, size_t key_len, byte *digest,
+                   size_t digest_len)
+{
+    blake2b_start(ctx, digest_len, key, key_len);
+    blake2b_add(ctx, msg, msg_len);
+    return blake2b_end(ctx, digest);
+}
+
 void blake2b_copy(struct blake2b_ctx *dst, const struct blake2b_ctx *src)
 {
     memcpy(dst, src, sizeof(struct blake2b_ctx));

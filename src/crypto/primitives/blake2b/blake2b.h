@@ -56,6 +56,15 @@ int blake2b_add(struct blake2b_ctx *ctx, const byte *bytes, size_t num_bytes);
 int blake2b_end(struct blake2b_ctx *ctx, byte *digest);
 
 /*
+ * Calls blake2b_start(), blake2b_add(), and blake2b_end() in sequence. Because
+ * the functions are called in sequence, the digest buffer may overlap an input
+ * buffer.
+ */
+int blake2b_single(struct blake2b_ctx *ctx, const byte *msg, size_t msg_len,
+                   const byte *key, size_t key_len, byte *digest,
+                   size_t digest_len);
+
+/*
  * Copies the current state of the src context into the dst context. Behaviour
  * is underfined if the contexts overlap. Both contexts must first be allocated
  * by blake2b_alloc().
