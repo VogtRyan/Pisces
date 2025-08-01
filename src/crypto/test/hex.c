@@ -32,6 +32,12 @@ void hex_to_bytes(const char *hex, byte **bytes, size_t *num_bytes)
     int scan_res;
 
     out_len = hex_byte_len(hex);
+    if (out_len == 0) {
+        *bytes = NULL;
+        *num_bytes = 0;
+        return;
+    }
+
     out = (byte *)calloc(out_len, 1);
     GUARD_ALLOC(out);
 
