@@ -33,7 +33,7 @@ static void output_compress_fn_f_preamble(void);
 static void output_compress_fn_f_tail(void);
 
 static void output_compress_fn_f_core(void);
-static void output_mix_fn_g(int a, int b, int c, int d, int i, int xj, int yi);
+static void output_mix_fn_g(int a, int b, int c, int d, int i, int xj, int yj);
 static void output_xor_circ_right_shift(int index_a, int index_b, int amnt);
 static int sigma(int i, int j);
 
