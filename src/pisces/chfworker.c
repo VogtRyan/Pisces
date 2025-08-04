@@ -61,6 +61,7 @@ struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx, size_t input_buf_size)
     chfw->digest_size = chf_digest_size(chfw->ctx);
 
     if (input_buf_size == 0) {
+        chfw->input_buf = NULL;
         return chfw;
     }
 
