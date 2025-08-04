@@ -105,10 +105,9 @@ int holdbuf_end(struct holdbuf *hb, byte *output)
 void holdbuf_free_scrub(struct holdbuf *hb)
 {
     if (hb != NULL) {
-        if (hb->buf != NULL) {
-            scrub_memory(hb->buf, hb->stop_size);
-            free(hb->buf);
-        }
+        scrub_memory(hb->buf, hb->stop_size);
+        free(hb->buf);
+
         scrub_memory(hb, sizeof(struct holdbuf));
         free(hb);
     }
