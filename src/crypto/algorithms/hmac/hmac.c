@@ -198,17 +198,10 @@ void hmac_copy(struct hmac_ctx *dst, const struct hmac_ctx *src)
 
 void hmac_free_scrub(struct hmac_ctx *hmac)
 {
-    if (hmac == NULL) {
-        return;
-    }
-
-    if (hmac->inner_ctx != NULL) {
+    if (hmac != NULL) {
         chf_free_scrub(hmac->inner_ctx);
-    }
-    if (hmac->outer_ctx != NULL) {
         chf_free_scrub(hmac->outer_ctx);
+        scrub_memory(hmac, sizeof(struct hmac_ctx));
+        free(hmac);
     }
-
-    scrub_memory(hmac, sizeof(struct hmac_ctx));
-    free(hmac);
 }
