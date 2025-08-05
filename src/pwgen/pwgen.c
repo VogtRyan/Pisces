@@ -54,8 +54,8 @@ static void print_description_whole(const char *gfn_name, size_t pwdlen,
                                     size_t bits_sec);
 static void print_description_prefix(const char *gfn_name, size_t pwdlen);
 
-static void parse_command_line(int argc, char **argv, gen_fn *gfn,
-                               size_t *pwdlen, bool *describe);
+static void parse_pwgen_cmdline(int argc, char **argv, gen_fn *gfn,
+                                size_t *pwdlen, bool *describe);
 
 static void set_generation_fn(gen_fn *gfn, bool *gfn_set, gen_fn new_gfn);
 static void set_length_value(size_t *pwdlen, char *cmdline_arg);
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     size_t pwdlen;
     bool describe;
 
-    parse_command_line(argc, argv, &gfn, &pwdlen, &describe);
+    parse_pwgen_cmdline(argc, argv, &gfn, &pwdlen, &describe);
     if (sanity_check_length(gfn, pwdlen)) {
         return EXIT_FAILURE;
     }
@@ -192,8 +192,8 @@ static void print_description_prefix(const char *gfn_name, size_t pwdlen)
     printf("Bits of security: ");
 }
 
-static void parse_command_line(int argc, char **argv, gen_fn *gfn,
-                               size_t *pwdlen, bool *describe)
+static void parse_pwgen_cmdline(int argc, char **argv, gen_fn *gfn,
+                                size_t *pwdlen, bool *describe)
 {
     bool gfn_set;
     int ch;

@@ -48,16 +48,16 @@ static void run_sha3_plain_test(const struct sha3_plain_test *test);
 static void run_parsed_sha3_plain_test(const byte *msg, size_t msg_len,
                                        const byte *digest, size_t digest_len);
 
-static void add_single_message(struct sha3_ctx *ctx, const byte *msg,
-                               size_t msg_len, size_t digest_len);
+static void add_long_sha3(struct sha3_ctx *ctx, const byte *msg,
+                          size_t msg_len, size_t digest_len);
 
 static void run_sha3_monte_test(const struct sha3_monte_test *test);
 static void run_parsed_sha3_monte_test(const byte *seed, const byte *output,
                                        size_t digest_len);
 
-static void parse_hex_to_bytes(const char *msg_hex, byte **msg_bytes,
-                               size_t *msg_len, const char *digest_hex,
-                               byte **digest_bytes, size_t *digest_len);
+static void parse_hex_sha3(const char *msg_hex, byte **msg_bytes,
+                           size_t *msg_len, const char *digest_hex,
+                           byte **digest_bytes, size_t *digest_len);
 
 static void start_ctx(struct sha3_ctx *ctx, size_t digest_len);
 
@@ -327,11 +327,13 @@ int main(void)
 {
     size_t i;
 
-    for (i = 0; i < sizeof(plain_tests) / sizeof(struct sha3_plain_test); i++) {
+    for (i = 0; i < sizeof(plain_tests) / sizeof(struct sha3_plain_test);
+         i++) {
         run_sha3_plain_test(&plain_tests[i]);
     }
 
-    for (i = 0; i < sizeof(monte_tests) / sizeof(struct sha3_monte_test); i++) {
+    for (i = 0; i < sizeof(monte_tests) / sizeof(struct sha3_monte_test);
+         i++) {
         run_sha3_monte_test(&monte_tests[i]);
     }
 
@@ -343,8 +345,8 @@ static void run_sha3_plain_test(const struct sha3_plain_test *test)
     byte *msg, *digest;
     size_t msg_len, digest_len;
 
-    parse_hex_to_bytes(test->msg, &msg, &msg_len, test->digest, &digest,
-                       &digest_len);
+    parse_hex_sha3(test->msg, &msg, &msg_len, test->digest, &digest,
+                   &digest_len);
     run_parsed_sha3_plain_test(msg, msg_len, digest, digest_len);
 
     free(msg);
@@ -361,15 +363,15 @@ static void run_parsed_sha3_plain_test(const byte *msg, size_t msg_len,
     memset(actual, 0, digest_len);
 
     start_ctx(ctx, digest_len);
-    add_single_message(ctx, msg, msg_len, digest_len);
+    add_long_sha3(ctx, msg, msg_len, digest_len);
     sha3_end(ctx, actual);
 
     TEST_ASSERT(memcmp(actual, digest, digest_len) == 0);
     sha3_free_scrub(ctx);
 }
 
-static void add_single_message(struct sha3_ctx *ctx, const byte *msg,
-                               size_t msg_len, size_t digest_len)
+static void add_long_sha3(struct sha3_ctx *ctx, const byte *msg,
+                          size_t msg_len, size_t digest_len)
 {
     /*
      * If the message is larger than one block in size, it will be broken up
@@ -397,8 +399,8 @@ static void run_sha3_monte_test(const struct sha3_monte_test *test)
     byte *seed, *output;
     size_t seed_len, digest_len;
 
-    parse_hex_to_bytes(test->seed, &seed, &seed_len, test->output, &output,
-                       &digest_len);
+    parse_hex_sha3(test->seed, &seed, &seed_len, test->output, &output,
+                   &digest_len);
     ASSERT(seed_len == digest_len,
            "MCT seed length does not match digest length");
 
@@ -450,9 +452,9 @@ static void run_parsed_sha3_monte_test(const byte *seed, const byte *output,
     sha3_free_scrub(ctx);
 }
 
-static void parse_hex_to_bytes(const char *msg_hex, byte **msg_bytes,
-                               size_t *msg_len, const char *digest_hex,
-                               byte **digest_bytes, size_t *digest_len)
+static void parse_hex_sha3(const char *msg_hex, byte **msg_bytes,
+                           size_t *msg_len, const char *digest_hex,
+                           byte **digest_bytes, size_t *digest_len)
 {
     hex_to_bytes(msg_hex, msg_bytes, msg_len);
     hex_to_bytes(digest_hex, digest_bytes, digest_len);

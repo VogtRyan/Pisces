@@ -40,14 +40,14 @@ static void run_blake2b_kat(const struct blake2b_kat *test);
 static void run_parsed_blake2b_kat(const byte *msg, size_t msg_len,
                                    const byte *key, size_t key_len,
                                    const byte *digest, size_t digest_len);
-static void add_single_message(struct blake2b_ctx *ctx, const byte *msg,
-                               size_t msg_len);
+static void add_long_blake2b(struct blake2b_ctx *ctx, const byte *msg,
+                             size_t msg_len);
 
-static void parse_hex_to_bytes(const char *msg_hex, byte **msg_bytes,
-                               size_t *msg_len, const char *key_hex,
-                               byte **key_bytes, size_t *key_len,
-                               const char *digest_hex, byte **digest_bytes,
-                               size_t *digest_len);
+static void parse_hex_blake2b(const char *msg_hex, byte **msg_bytes,
+                              size_t *msg_len, const char *key_hex,
+                              byte **key_bytes, size_t *key_len,
+                              const char *digest_hex, byte **digest_bytes,
+                              size_t *digest_len);
 
 /*
  * The BLAKE2b official tests are taken from the BLAKE2b repository,
@@ -170,8 +170,8 @@ static const struct blake2b_kat official_tests[] = {
  *
  * The key is half the maximum length, to test key padding. The message length
  * is 2.5-times the block size -- and the message will be split per
- * add_single_message() --  to test all paths in blake2b_add() where buffers
- * are manipulated or the compression function f executed.
+ * add_long_blake2b() --  to test all paths in blake2b_add() where buffers are
+ * manipulated or the compression function f executed.
  *
  * The "random" message and key data are actually the first 704 hexadecimal
  * digits of the fractional part of pi. The first 640 digits (320 bytes) are
@@ -283,8 +283,8 @@ static void run_blake2b_kat(const struct blake2b_kat *test)
     byte *msg, *key, *digest;
     size_t msg_len, key_len, digest_len;
 
-    parse_hex_to_bytes(test->msg, &msg, &msg_len, test->key, &key, &key_len,
-                       test->digest, &digest, &digest_len);
+    parse_hex_blake2b(test->msg, &msg, &msg_len, test->key, &key, &key_len,
+                      test->digest, &digest, &digest_len);
     run_parsed_blake2b_kat(msg, msg_len, key, key_len, digest, digest_len);
 
     free(msg);
@@ -303,15 +303,15 @@ static void run_parsed_blake2b_kat(const byte *msg, size_t msg_len,
     memset(actual, 0, digest_len);
 
     blake2b_start(ctx, digest_len, key, key_len);
-    add_single_message(ctx, msg, msg_len);
+    add_long_blake2b(ctx, msg, msg_len);
     blake2b_end(ctx, actual);
 
     TEST_ASSERT(memcmp(actual, digest, digest_len) == 0);
     blake2b_free_scrub(ctx);
 }
 
-static void add_single_message(struct blake2b_ctx *ctx, const byte *msg,
-                               size_t msg_len)
+static void add_long_blake2b(struct blake2b_ctx *ctx, const byte *msg,
+                             size_t msg_len)
 {
     /*
      * If the message is larger than one block in size, it will be broken up
@@ -331,11 +331,11 @@ static void add_single_message(struct blake2b_ctx *ctx, const byte *msg,
     }
 }
 
-static void parse_hex_to_bytes(const char *msg_hex, byte **msg_bytes,
-                               size_t *msg_len, const char *key_hex,
-                               byte **key_bytes, size_t *key_len,
-                               const char *digest_hex, byte **digest_bytes,
-                               size_t *digest_len)
+static void parse_hex_blake2b(const char *msg_hex, byte **msg_bytes,
+                              size_t *msg_len, const char *key_hex,
+                              byte **key_bytes, size_t *key_len,
+                              const char *digest_hex, byte **digest_bytes,
+                              size_t *digest_len)
 {
     hex_to_bytes(msg_hex, msg_bytes, msg_len);
     hex_to_bytes(key_hex, key_bytes, key_len);

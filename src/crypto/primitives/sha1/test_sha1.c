@@ -50,8 +50,8 @@ static void run_sha1_plain_test(const struct sha1_plain_test *test);
 static void run_parsed_sha1_plain_test(const byte *msg, size_t msg_len,
                                        size_t msg_repeats, const byte *digest);
 
-static void add_single_message(struct sha1_ctx *ctx, const byte *msg,
-                               size_t msg_len);
+static void add_long_sha1(struct sha1_ctx *ctx, const byte *msg,
+                          size_t msg_len);
 
 static void run_sha1_monte_test(const struct sha1_monte_test *test);
 static void run_parsed_sha1_monte_test(const byte *seed, const byte *output);
@@ -206,7 +206,7 @@ static void run_parsed_sha1_plain_test(const byte *msg, size_t msg_len,
 
     sha1_start(ctx);
     for (on_repeat = 0; on_repeat < msg_repeats; on_repeat++) {
-        add_single_message(ctx, msg, msg_len);
+        add_long_sha1(ctx, msg, msg_len);
     }
     sha1_end(ctx, actual);
 
@@ -214,8 +214,8 @@ static void run_parsed_sha1_plain_test(const byte *msg, size_t msg_len,
     sha1_free_scrub(ctx);
 }
 
-static void add_single_message(struct sha1_ctx *ctx, const byte *msg,
-                               size_t msg_len)
+static void add_long_sha1(struct sha1_ctx *ctx, const byte *msg,
+                          size_t msg_len)
 {
     /*
      * If the message is larger than one block in size, it will be broken up

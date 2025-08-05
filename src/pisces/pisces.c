@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static void parse_command_line(int argc, char **argv, bool *encrypt,
-                               char **input_file, char **output_file,
-                               char **password);
+static void parse_pisces_cmdline(int argc, char **argv, bool *encrypt,
+                                 char **input_file, char **output_file,
+                                 char **password);
 static bool is_stdin_stdout(const char *cmdline_arg);
 
 static int sanity_check_files(char *input_file, char *output_file);
@@ -53,8 +53,8 @@ int main(int argc, char **argv)
     bool encrypt;
     int errval;
 
-    parse_command_line(argc, argv, &encrypt, &input_file, &output_file,
-                       &cmdline_password);
+    parse_pisces_cmdline(argc, argv, &encrypt, &input_file, &output_file,
+                         &cmdline_password);
     if (sanity_check_files(input_file, output_file)) {
         return EXIT_FAILURE;
     }
@@ -69,9 +69,9 @@ int main(int argc, char **argv)
     return (errval ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-static void parse_command_line(int argc, char **argv, bool *encrypt,
-                               char **input_file, char **output_file,
-                               char **password)
+static void parse_pisces_cmdline(int argc, char **argv, bool *encrypt,
+                                 char **input_file, char **output_file,
+                                 char **password)
 {
     bool op_specified;
     int ch;

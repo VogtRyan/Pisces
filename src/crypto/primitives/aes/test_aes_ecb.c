@@ -84,12 +84,11 @@ static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
 static void nist_monte_ecb_compute_new_key(byte *key_i, size_t key_size,
                                            const byte *last_two_out_blocks_i);
 
-static void parse_hex_to_bytes(const char *key_hex, byte **key_bytes,
-                               size_t *key_size, const char *plaintext_hex,
-                               byte **plaintext_bytes, size_t *plaintext_len,
-                               const char *ciphertext_hex,
-                               byte **ciphertext_bytes,
-                               size_t *ciphertext_len);
+static void parse_hex_aes_ecb(const char *key_hex, byte **key_bytes,
+                              size_t *key_size, const char *plaintext_hex,
+                              byte **plaintext_bytes, size_t *plaintext_len,
+                              const char *ciphertext_hex,
+                              byte **ciphertext_bytes, size_t *ciphertext_len);
 
 static const struct aes_ecb_plain_test plain_tests[] = {
     /* FIPS-197, Appendix C.1, AES-128 */
@@ -272,9 +271,9 @@ static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test)
     byte *key, *plaintext, *ciphertext;
     size_t key_size, plaintext_len, ciphertext_len;
 
-    parse_hex_to_bytes(test->key, &key, &key_size, test->plaintext, &plaintext,
-                       &plaintext_len, test->ciphertext, &ciphertext,
-                       &ciphertext_len);
+    parse_hex_aes_ecb(test->key, &key, &key_size, test->plaintext, &plaintext,
+                      &plaintext_len, test->ciphertext, &ciphertext,
+                      &ciphertext_len);
     ASSERT(plaintext_len == ciphertext_len,
            "Plaintext and ciphertext sizes do not match");
     ASSERT(plaintext_len % AES_ECB_BLOCK_SIZE == 0,
@@ -340,9 +339,9 @@ static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
     byte *key, *plaintext, *ciphertext;
     size_t key_size, plaintext_len, ciphertext_len;
 
-    parse_hex_to_bytes(test->key, &key, &key_size, test->plaintext, &plaintext,
-                       &plaintext_len, test->ciphertext, &ciphertext,
-                       &ciphertext_len);
+    parse_hex_aes_ecb(test->key, &key, &key_size, test->plaintext, &plaintext,
+                      &plaintext_len, test->ciphertext, &ciphertext,
+                      &ciphertext_len);
     ASSERT(plaintext_len == AES_ECB_BLOCK_SIZE, "Invalid plaintext length");
     ASSERT(ciphertext_len == AES_ECB_BLOCK_SIZE, "Inalid ciphertext length");
 
@@ -478,11 +477,11 @@ static void nist_monte_ecb_compute_new_key(byte *key_i, size_t key_size,
     }
 }
 
-static void parse_hex_to_bytes(const char *key_hex, byte **key_bytes,
-                               size_t *key_size, const char *plaintext_hex,
-                               byte **plaintext_bytes, size_t *plaintext_len,
-                               const char *ciphertext_hex,
-                               byte **ciphertext_bytes, size_t *ciphertext_len)
+static void parse_hex_aes_ecb(const char *key_hex, byte **key_bytes,
+                              size_t *key_size, const char *plaintext_hex,
+                              byte **plaintext_bytes, size_t *plaintext_len,
+                              const char *ciphertext_hex,
+                              byte **ciphertext_bytes, size_t *ciphertext_len)
 {
     hex_to_bytes(key_hex, key_bytes, key_size);
     hex_to_bytes(plaintext_hex, plaintext_bytes, plaintext_len);
