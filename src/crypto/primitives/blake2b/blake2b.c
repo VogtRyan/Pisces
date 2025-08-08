@@ -31,6 +31,8 @@
 
 struct blake2b_ctx {
     byte input_buf[BLAKE2B_BLOCK_BYTES];
+    uint64_t working_buf_m[16];
+    uint64_t working_buf_v[16];
     uint64_t state_h[8];
     size_t input_buf_len;
     size_t digest_len;
@@ -215,9 +217,12 @@ static inline int add_to_bytes_processed(struct blake2b_ctx *ctx, size_t amnt)
 static void compress_fn_f(struct blake2b_ctx *ctx, const byte *input_block,
                           bool final_block)
 {
-    uint64_t v[16];
-    uint64_t m[16];
+    uint64_t *m;
+    uint64_t *v;
     int i;
+
+    m = ctx->working_buf_m;
+    v = ctx->working_buf_v;
 
     memcpy(v, ctx->state_h, 8 * sizeof(uint64_t));
     memcpy(v + 8, IV, 8 * sizeof(uint64_t));
