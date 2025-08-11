@@ -27,7 +27,8 @@
 #include <stddef.h>
 #include <string.h>
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MIN(a, b)       ((a) < (b) ? (a) : (b))
+#define UNUSED(varname) (void)(varname)
 
 static int alloc_hmacs(const char *password, size_t password_len,
                        const byte *salt, size_t salt_len, chf_algorithm alg,
@@ -194,6 +195,8 @@ static bool would_overflow_counter_before_completion(size_t derived_key_len,
      * can take values from 1 to 2^32-1, but never 0).
      */
 #if SIZE_MAX <= UINT32_MAX
+    UNUSED(derived_key_len);
+    UNUSED(hlen);
     return false;
 #else
     size_t div = derived_key_len / hlen;
