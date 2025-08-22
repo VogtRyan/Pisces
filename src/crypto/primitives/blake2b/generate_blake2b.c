@@ -52,12 +52,9 @@ static void output_compress_fn_f_preamble(void)
            "                          bool final_block)\n");
     printf("{\n");
 
-    printf("    uint64_t *m;\n");
-    printf("    uint64_t *v;\n");
+    printf("    uint64_t m[16];\n");
+    printf("    uint64_t v[16];\n");
     printf("    int i;\n\n");
-
-    printf("    m = ctx->working_buf_m;\n");
-    printf("    v = ctx->working_buf_v;\n\n");
 
     printf("    memcpy(v, ctx->state_h, 8 * sizeof(uint64_t));\n");
     printf("    memcpy(v + 8, IV, 8 * sizeof(uint64_t));\n\n");
