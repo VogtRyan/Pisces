@@ -97,8 +97,8 @@ man:
 # Code generation
 ##
 
-generate: ${BINDIR}/generate_aes ${BINDIR}/generate_blake2b \
-  ${BINDIR}/generate_sha3
+generate: ${BINDIR}/generate_aes ${BINDIR}/generate_argon2 \
+  ${BINDIR}/generate_blake2b ${BINDIR}/generate_sha3
 
 ##
 # crypto/primitives/aes/generate_aes
@@ -110,6 +110,15 @@ ${BINDIR}/generate_aes: ${GENERATE_AES_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${GENERATE_AES_OBJS}
 
 ##
+# crypto/algorithms/argon2/generate_argon2
+##
+
+GENERATE_ARGON2_OBJS = src/crypto/algorithms/argon2/generate_argon2.o
+
+${BINDIR}/generate_argon2: ${GENERATE_ARGON2_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${GENERATE_ARGON2_OBJS}
+
+##
 # crypto/primitives/blake2b/generate_blake2b
 ##
 
@@ -119,7 +128,7 @@ ${BINDIR}/generate_blake2b: ${GENERATE_BLAKE2B_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${GENERATE_BLAKE2B_OBJS}
 
 ##
-# crypto/generate/generate_sha3
+# crypto/primitives/sha3/generate_sha3
 ##
 
 GENERATE_SHA3_OBJS = src/crypto/primitives/sha3/generate_sha3.o
@@ -132,8 +141,8 @@ ${BINDIR}/generate_sha3: ${GENERATE_SHA3_OBJS}
 ##
 
 test: ${BINDIR}/test_aes_ecb ${BINDIR}/test_aes_cbc ${BINDIR}/test_blake2b \
-  ${BINDIR}/test_sha1 ${BINDIR}/test_sha3 ${BINDIR}/test_hmac \
-  ${BINDIR}/test_pbkdf2
+  ${BINDIR}/test_sha1 ${BINDIR}/test_sha3 ${BINDIR}/test_argon2 \
+  ${BINDIR}/test_hmac ${BINDIR}/test_pbkdf2
 
 ##
 # crypto/primitives/aes/test_aes_ecb
@@ -190,6 +199,20 @@ TEST_SHA3_OBJS = src/crypto/primitives/sha3/test_sha3.o \
 ${BINDIR}/test_sha3: ${TEST_SHA3_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${TEST_SHA3_OBJS}
 	${IGNORE_FAILED_TESTS}@${BINDIR}/test_sha3
+
+##
+# crypto/algorithms/argon2/test_argon2
+##
+
+TEST_ARGON2_OBJS = src/crypto/algorithms/argon2/test_argon2.o \
+  src/crypto/algorithms/argon2/argon2.o \
+  src/crypto/algorithms/argon2/message_barrier.o \
+  src/crypto/primitives/blake2b/blake2b.o src/crypto/test/hex.o
+TEST_ARGON2_LIBS = -pthread
+
+${BINDIR}/test_argon2: ${TEST_ARGON2_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${TEST_ARGON2_OBJS} ${TEST_ARGON2_LIBS}
+	${IGNORE_FAILED_TESTS}@${BINDIR}/test_argon2
 
 ##
 # crypto/algorithms/hmac/test_hmac
@@ -307,6 +330,21 @@ src/crypto/algorithms/pbkdf2/pbkdf2.o: \
   src/crypto/algorithms/pbkdf2/pbkdf2.h src/common/bytetype.h \
   src/crypto/abstract/chf.h src/common/errorflow.h src/common/scrub.h \
   src/crypto/algorithms/hmac/hmac.h src/crypto/machine/endian.h
+src/crypto/algorithms/argon2/test_argon2.o: \
+  src/crypto/algorithms/argon2/test_argon2.c src/common/bytetype.h \
+  src/common/errorflow.h src/crypto/algorithms/argon2/argon2.h \
+  src/crypto/test/framework.h src/crypto/test/hex.h
+src/crypto/algorithms/argon2/message_barrier.o: \
+  src/crypto/algorithms/argon2/message_barrier.c \
+  src/crypto/algorithms/argon2/message_barrier.h src/common/errorflow.h
+src/crypto/algorithms/argon2/generate_argon2.o: \
+  src/crypto/algorithms/argon2/generate_argon2.c
+src/crypto/algorithms/argon2/argon2.o: \
+  src/crypto/algorithms/argon2/argon2.c \
+  src/crypto/algorithms/argon2/argon2.h src/common/bytetype.h \
+  src/common/errorflow.h src/common/scrub.h \
+  src/crypto/algorithms/argon2/message_barrier.h \
+  src/crypto/machine/endian.h src/crypto/primitives/blake2b/blake2b.h
 src/crypto/algorithms/pkcs7/pkcs7_padding.o: \
   src/crypto/algorithms/pkcs7/pkcs7_padding.c \
   src/crypto/algorithms/pkcs7/pkcs7_padding.h src/common/bytetype.h \
