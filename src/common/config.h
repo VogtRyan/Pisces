@@ -21,9 +21,4 @@
 #define IMPLEMENTATION_VERSION "6.0.0-devel"
 #define PASSWORD_LENGTH_MAX    (1024)
 
-/* Must be positive, and setting to 1 disables multithreading */
-#ifndef PISCES_MAX_THREADS
-#define PISCES_MAX_THREADS (2)
-#endif
-
 #endif

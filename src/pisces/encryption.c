@@ -101,6 +101,7 @@
 
 #define MAX(a, b, c)                                                          \
     ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
+#define UNUSED(varname) (void)(varname)
 
 static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv);
 static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv);
@@ -124,6 +125,8 @@ static void compute_imprint_size(size_t *random_data_size,
                                  const struct chf_ctx *chf);
 static size_t cipher_block_ceiling(size_t bytes,
                                    const struct cipher_ctx *cipher);
+
+static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size);
 
 int encrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
@@ -447,12 +450,7 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
     size_t hash_len, bytes_read, bytes_encrypted;
     int errval = 0;
 
-    if (PISCES_MAX_THREADS > 1) {
-        chfw = chf_worker_alloc(pisces_chf_alloc(), sizeof(input));
-    }
-    else {
-        chfw = chf_worker_alloc(pisces_chf_alloc(), 0);
-    }
+    chfw = chf_worker_alloc_per_config(sizeof(input));
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
@@ -538,12 +536,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
     size_t hash_len, bytes_read, bytes_decrypted, bytes_from_hb;
     int errval = 0;
 
-    if (PISCES_MAX_THREADS > 1) {
-        chfw = chf_worker_alloc(pisces_chf_alloc(), sizeof(data_from_hb));
-    }
-    else {
-        chfw = chf_worker_alloc(pisces_chf_alloc(), 0);
-    }
+    chfw = chf_worker_alloc_per_config(sizeof(data_from_hb));
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
@@ -735,4 +728,14 @@ static size_t cipher_block_ceiling(size_t bytes,
         ASSERT(res >= bytes, "Addition overflow computing block ceiling");
         return res;
     }
+}
+
+static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size)
+{
+#ifdef PISCES_NO_MULTITHREAD
+    UNUSED(buf_size);
+    return chf_worker_alloc(pisces_chf_alloc(), 0);
+#else
+    return chf_worker_alloc(pisces_chf_alloc(), buf_size);
+#endif
 }
