@@ -20,6 +20,7 @@
 #include "crypto/algorithms/pbkdf2/pbkdf2.h"
 #include "crypto/test/framework.h"
 #include "crypto/test/hex.h"
+#include "crypto/test/pi.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -339,31 +340,15 @@ static const struct pbkdf2_test custom_tests[] = {
      * PBKDF2-HMAC-SHA3-512, "random" password and "random" salt, both 2.5
      * times the block size; derived key 2.5 times the digest size.
      *
-     * The "random" data are actually the first 720 hexadecimal digits of the
-     * fractional part of pi. The first 360 digits are used as the password,
-     * and the next 360 as the salt. For clarity, in hexadecimal,
-     * pi = 3.243F6A8885...
-     *
-     * These digits were computed using the Bailey-Borwein-Plouffe (BBP)
-     * formula, and are the same as those used in the Blowfish P-array and
-     * first S-box.
+     * The "random" password is the first 360 hexadecimal digits of the
+     * fractional part of pi (180 bytes), and the salt is the next 360 digits
+     * (180 bytes).
      */
     {
         .hashalg = CHF_ALG_SHA3_512,
         .iteration_count = 255,
-        .password =
-            "243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C894"
-            "52821E638D01377BE5466CF34E90C6CC0AC29B7C97C50DD3F84D5B5B547091792"
-            "16D5D98979FB1BD1310BA698DFB5AC2FFD72DBD01ADFB7B8E1AFED6A267E96BA7"
-            "C9045F12C7F9924A19947B3916CF70801F2E2858EFC16636920D871574E69A458"
-            "FEA3F4933D7E0D95748F728EB658718BCD5882154AEE7B54A41DC25A59B59C30D"
-            "5392AF26013C5D1B023286085F0CA417918",
-        .salt = "B8DB38EF8E79DCB0603A180E6C9E0E8BB01E8A3ED71577C1BD314B2778AF2"
-                "FDA55605C60E65525F3AA55AB945748986263E8144055CA396A2AAB10B6B4"
-                "CC5C341141E8CEA15486AF7C72E993B3EE1411636FBC2A2BA9C55D741831F"
-                "6CE5C3E169B87931EAFD6BA336C24CF5C7A325381289586773B8F48986B4B"
-                "B9AFC4BFE81B6628219361D809CCFB21A991487CAC605DEC8032EF845D5DE"
-                "98575B1DC262302EB651B8823893E81D396ACC50F6D6FF383F44239",
+        .password = PI_DIGITS_0_360,
+        .salt = PI_DIGITS_360_720,
         .derived_key =
             "E8536BC9D970C8AAAD7865F6A7B0ACF04D182DC2B75B1FB26C46C2D3A0CB2FA70"
             "5E95FADD0260B7E743CD8773F77CAE56674368AB60E5E56B7A201E3CC7B848707"

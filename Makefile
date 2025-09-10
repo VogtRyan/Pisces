@@ -98,7 +98,7 @@ man:
 ##
 
 generate: ${BINDIR}/generate_aes ${BINDIR}/generate_argon2 \
-  ${BINDIR}/generate_blake2b ${BINDIR}/generate_sha3
+  ${BINDIR}/generate_blake2b ${BINDIR}/generate_sha3 ${BINDIR}/generate_pi
 
 ##
 # crypto/primitives/aes/generate_aes
@@ -135,6 +135,16 @@ GENERATE_SHA3_OBJS = src/crypto/primitives/sha3/generate_sha3.o
 
 ${BINDIR}/generate_sha3: ${GENERATE_SHA3_OBJS}
 	${CC} ${LDFLAGS} -o $@ ${GENERATE_SHA3_OBJS}
+
+##
+# crypto/test/generate_pi
+##
+
+GENERATE_PI_OBJS = src/crypto/test/generate_pi.o
+GENERATE_PI_LIBS = -lm
+
+${BINDIR}/generate_pi: ${GENERATE_PI_OBJS}
+	${CC} ${LDFLAGS} -o $@ ${GENERATE_PI_OBJS} ${GENERATE_PI_LIBS}
 
 ##
 # Tests
@@ -312,6 +322,8 @@ src/crypto/abstract/cipher.o: src/crypto/abstract/cipher.c \
   src/crypto/primitives/aes/aes_cbc.h
 src/crypto/test/hex.o: src/crypto/test/hex.c src/crypto/test/hex.h \
   src/common/bytetype.h src/common/errorflow.h
+src/crypto/test/generate_pi.o: src/crypto/test/generate_pi.c \
+  src/common/errorflow.h
 src/crypto/algorithms/hmac/hmac.o: src/crypto/algorithms/hmac/hmac.c \
   src/crypto/algorithms/hmac/hmac.h src/common/bytetype.h \
   src/crypto/abstract/chf.h src/common/errorflow.h src/common/scrub.h
@@ -324,7 +336,7 @@ src/crypto/algorithms/pbkdf2/test_pbkdf2.o: \
   src/crypto/algorithms/pbkdf2/test_pbkdf2.c src/common/bytetype.h \
   src/common/errorflow.h src/crypto/abstract/chf.h \
   src/crypto/algorithms/pbkdf2/pbkdf2.h src/crypto/test/framework.h \
-  src/crypto/test/hex.h
+  src/crypto/test/hex.h src/crypto/test/pi.h
 src/crypto/algorithms/pbkdf2/pbkdf2.o: \
   src/crypto/algorithms/pbkdf2/pbkdf2.c \
   src/crypto/algorithms/pbkdf2/pbkdf2.h src/common/bytetype.h \
@@ -352,7 +364,7 @@ src/crypto/algorithms/pkcs7/pkcs7_padding.o: \
 src/crypto/primitives/blake2b/test_blake2b.o: \
   src/crypto/primitives/blake2b/test_blake2b.c src/common/bytetype.h \
   src/common/errorflow.h src/crypto/primitives/blake2b/blake2b.h \
-  src/crypto/test/framework.h src/crypto/test/hex.h
+  src/crypto/test/framework.h src/crypto/test/hex.h src/crypto/test/pi.h
 src/crypto/primitives/blake2b/blake2b.o: \
   src/crypto/primitives/blake2b/blake2b.c \
   src/crypto/primitives/blake2b/blake2b.h src/common/bytetype.h \

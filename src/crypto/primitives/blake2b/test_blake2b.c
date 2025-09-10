@@ -19,6 +19,7 @@
 #include "crypto/primitives/blake2b/blake2b.h"
 #include "crypto/test/framework.h"
 #include "crypto/test/hex.h"
+#include "crypto/test/pi.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -173,30 +174,13 @@ static const struct blake2b_kat official_tests[] = {
  * add_long_blake2b() --  to test all paths in blake2b_add() where buffers are
  * manipulated or the compression function f executed.
  *
- * The "random" message and key data are actually the first 704 hexadecimal
- * digits of the fractional part of pi. The first 640 digits (320 bytes) are
- * used as the message, and the next 64 digits (32 bytes) as the key. For
- * clarity, in hexadecimal, pi = 3.243F6A8885...
- *
- * These digits were computed using the Bailey-Borwein-Plouffe (BBP)
- * formula, and are the same as those used in the Blowfish P-array and
- * first S-box.
+ * The "random" message is the first 640 hexadecimal digits of the fractional
+ * part of pi (320 bytes), and the and key is the next 64 digits (32 bytes).
  */
 static const struct blake2b_kat custom_tests[] = {
     {
-        .msg =
-            "243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C894"
-            "52821E638D01377BE5466CF34E90C6CC0AC29B7C97C50DD3F84D5B5B547091792"
-            "16D5D98979FB1BD1310BA698DFB5AC2FFD72DBD01ADFB7B8E1AFED6A267E96BA7"
-            "C9045F12C7F9924A19947B3916CF70801F2E2858EFC16636920D871574E69A458"
-            "FEA3F4933D7E0D95748F728EB658718BCD5882154AEE7B54A41DC25A59B59C30D"
-            "5392AF26013C5D1B023286085F0CA417918B8DB38EF8E79DCB0603A180E6C9E0E"
-            "8BB01E8A3ED71577C1BD314B2778AF2FDA55605C60E65525F3AA55AB945748986"
-            "263E8144055CA396A2AAB10B6B4CC5C341141E8CEA15486AF7C72E993B3EE1411"
-            "636FBC2A2BA9C55D741831F6CE5C3E169B87931EAFD6BA336C24CF5C7A3253812"
-            "89586773B8F48986B4BB9AFC4BFE81B6628219361D809CCFB21A991",
-        .key =
-            "487CAC605DEC8032EF845D5DE98575B1DC262302EB651B8823893E81D396ACC5",
+        .msg = PI_DIGITS_0_640,
+        .key = PI_DIGITS_640_704,
         .digest =
             "F4A536AD960D2467C444DA207983402C821882591D03E8CC8CE7642C455F8B81E"
             "4BE1AD2861BCE0D585E5B5DFE8C602854DCE972526AA37D111CF83D02AE6F2A",
