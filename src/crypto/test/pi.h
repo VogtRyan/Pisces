@@ -14,6 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef PISCES_CRYPTO_TEST_PI_H_
+#define PISCES_CRYPTO_TEST_PI_H_
+
 /*
  * Digits of the fractional part of pi. In hexadecimal:
  *     pi = 3.243F6A8885A...
@@ -52,3 +55,5 @@
 
 #define PI_FRACTIONAL_HEX_DIGITS_640_704                                      \
     "487CAC605DEC8032EF845D5DE98575B1DC262302EB651B8823893E81D396ACC5"
+
+#endif
