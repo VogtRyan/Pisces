@@ -347,8 +347,8 @@ static const struct pbkdf2_test custom_tests[] = {
     {
         .hashalg = CHF_ALG_SHA3_512,
         .iteration_count = 255,
-        .password = PI_DIGITS_0_360,
-        .salt = PI_DIGITS_360_720,
+        .password = PI_FRACTIONAL_HEX_DIGITS_0_360,
+        .salt = PI_FRACTIONAL_HEX_DIGITS_360_720,
         .derived_key =
             "E8536BC9D970C8AAAD7865F6A7B0ACF04D182DC2B75B1FB26C46C2D3A0CB2FA70"
             "5E95FADD0260B7E743CD8773F77CAE56674368AB60E5E56B7A201E3CC7B848707"

@@ -83,8 +83,8 @@ int main(void)
         if (i != 0) {
             printf("\n");
         }
-        printf("#define PI_DIGITS_%lu_%lu \"", indices[i].index_lb,
-               indices[i].index_ub);
+        printf("#define PI_FRACTIONAL_HEX_DIGITS_%lu_%lu \"",
+               indices[i].index_lb, indices[i].index_ub);
         for (on_char = indices[i].index_lb; on_char < indices[i].index_ub;
              on_char++) {
             printf("%c", digits[on_char - smallest_lb]);
@@ -100,12 +100,12 @@ int main(void)
  * Return the hexadecimal digit of pi at position n, where n is zero-based
  * and starts after the decimal point.
  *
- * In hex:
+ * In hexadecimal:
  *     pi = 3.243F6A8885A...
- * pi_hex_digit(0) = 2
- * pi_hex_digit(1) = 4
- * pi_hex_digit(2) = 3
- * pi_hex_digit(3) = F
+ * pi_hex_digit(0) == '2'
+ * pi_hex_digit(1) == '4'
+ * pi_hex_digit(2) == '3'
+ * pi_hex_digit(3) == 'F'
  *
  * This computation uses the Bailey-Borwein-Plouffe (BBP) formula, and can be
  * verified against Blowfish's P-array followed by its S-boxes.

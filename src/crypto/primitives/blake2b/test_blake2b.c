@@ -179,8 +179,8 @@ static const struct blake2b_kat official_tests[] = {
  */
 static const struct blake2b_kat custom_tests[] = {
     {
-        .msg = PI_DIGITS_0_640,
-        .key = PI_DIGITS_640_704,
+        .msg = PI_FRACTIONAL_HEX_DIGITS_0_640,
+        .key = PI_FRACTIONAL_HEX_DIGITS_640_704,
         .digest =
             "F4A536AD960D2467C444DA207983402C821882591D03E8CC8CE7642C455F8B81E"
             "4BE1AD2861BCE0D585E5B5DFE8C602854DCE972526AA37D111CF83D02AE6F2A",
