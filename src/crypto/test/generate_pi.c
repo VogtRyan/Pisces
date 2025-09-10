@@ -164,7 +164,7 @@ static long double compute_sum(unsigned long j, unsigned long n)
         ASSERT(k != 0, "Addition overflow in infinite term computation");
     }
 
-    return sum - floor(sum);
+    return sum - floorl(sum);
 }
 
 /*
