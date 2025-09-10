@@ -63,7 +63,7 @@ int main(void)
     smallest_lb = ULONG_MAX;
     largest_ub = 0;
     for (i = 0; i < sizeof(indices) / sizeof(struct pi_digit_indices); i++) {
-        ASSERT(indices[i].index_lb <= indices[i].index_ub, "Invalid indices");
+        ASSERT(indices[i].index_lb < indices[i].index_ub, "Invalid indices");
         if (indices[i].index_lb < smallest_lb) {
             smallest_lb = indices[i].index_lb;
         }
