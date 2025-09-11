@@ -24,11 +24,11 @@
 #define TERM_BOUND (1e-15L)
 
 struct pi_digit_indices {
-    unsigned long index_lb;
-    unsigned long index_ub;
+    size_t index_lb;
+    size_t index_ub;
 };
 
-static struct pi_digit_indices indices[] = {
+static struct pi_digit_indices defines[] = {
     {
         .index_lb = 0,
         .index_ub = 360,
@@ -47,53 +47,53 @@ static struct pi_digit_indices indices[] = {
     },
 };
 
-static char pi_hex_digit(unsigned long index);
+static size_t num_digits_to_generate(void);
+
+static char pi_hex_digit(size_t index);
 static long double compute_sum(unsigned long j, unsigned long n);
 static unsigned long compute_denom_term(unsigned long k, unsigned long j);
-
 static unsigned long powmod(unsigned long base, unsigned long exponent,
                             unsigned long modulus);
+
+static void output_defines(const char *digits);
+static void output_define(const char *digits, size_t index_lb,
+                          size_t index_ub);
 
 int main(void)
 {
     char *digits;
-    unsigned long smallest_lb, largest_ub, on_char;
-    size_t i;
+    size_t num_digits, on_digit;
 
-    smallest_lb = ULONG_MAX;
-    largest_ub = 0;
-    for (i = 0; i < sizeof(indices) / sizeof(struct pi_digit_indices); i++) {
-        ASSERT(indices[i].index_lb < indices[i].index_ub, "Invalid indices");
-        if (indices[i].index_lb < smallest_lb) {
-            smallest_lb = indices[i].index_lb;
-        }
-        if (indices[i].index_ub > largest_ub) {
-            largest_ub = indices[i].index_ub;
-        }
-    }
-
-    digits = calloc((size_t)(largest_ub - smallest_lb), sizeof(char));
+    num_digits = num_digits_to_generate();
+    digits = calloc(num_digits, sizeof(char));
     GUARD_ALLOC(digits);
 
-    for (on_char = smallest_lb; on_char < largest_ub; on_char++) {
-        digits[on_char - smallest_lb] = pi_hex_digit(on_char);
+    for (on_digit = 0; on_digit < num_digits; on_digit++) {
+        digits[on_digit] = pi_hex_digit(on_digit);
     }
-
-    for (i = 0; i < sizeof(indices) / sizeof(struct pi_digit_indices); i++) {
-        if (i != 0) {
-            printf("\n");
-        }
-        printf("#define PI_FRACTIONAL_HEX_DIGITS_%lu_%lu \"",
-               indices[i].index_lb, indices[i].index_ub);
-        for (on_char = indices[i].index_lb; on_char < indices[i].index_ub;
-             on_char++) {
-            printf("%c", digits[on_char - smallest_lb]);
-        }
-        printf("\"\n");
-    }
+    output_defines(digits);
 
     free(digits);
     return 0;
+}
+
+static size_t num_digits_to_generate(void)
+{
+    size_t num_defines, on_define;
+    size_t largest_ub, ub;
+
+    num_defines = sizeof(defines) / sizeof(struct pi_digit_indices);
+    largest_ub = 0;
+
+    for (on_define = 0; on_define < num_defines; on_define++) {
+        ub = defines[on_define].index_ub;
+        if (ub > largest_ub) {
+            largest_ub = ub;
+        }
+    }
+
+    /* Assume we should generate all digits with indices in [0, largest_ub) */
+    return largest_ub;
 }
 
 /*
@@ -110,16 +110,20 @@ int main(void)
  * This computation uses the Bailey-Borwein-Plouffe (BBP) formula, and can be
  * verified against Blowfish's P-array followed by its S-boxes.
  */
-static char pi_hex_digit(unsigned long index)
+static char pi_hex_digit(size_t index)
 {
     long double frac_part;
-    unsigned int digit;
+    unsigned long n;
+    int digit;
 
-    frac_part = 4 * compute_sum(1, index) - 2 * compute_sum(4, index) -
-                compute_sum(5, index) - compute_sum(6, index);
+    n = (unsigned long)index;
+    ASSERT(index == n, "Index too large to cast (index=%zu, n=%lu)", index, n);
+
+    frac_part = 4 * compute_sum(1, n) - 2 * compute_sum(4, n) -
+                compute_sum(5, n) - compute_sum(6, n);
     frac_part -= floorl(frac_part);
 
-    digit = (unsigned int)(frac_part * 16.0L);
+    digit = (int)(frac_part * 16.0L);
     if (digit < 10) {
         return '0' + digit;
     }
@@ -142,7 +146,7 @@ static long double compute_sum(unsigned long j, unsigned long n)
     long double sum, term;
     unsigned long denom_term, k;
 
-    ASSERT(n < ULONG_MAX, "Computation of n+1 will overflow");
+    ASSERT(n < ULONG_MAX, "Addition overflow on n+1 (j=%lu, n=%lu)", j, n);
 
     sum = 0.0;
     for (k = 0; k < n + 1; k++) {
@@ -161,25 +165,22 @@ static long double compute_sum(unsigned long j, unsigned long n)
         sum += term;
 
         k++;
-        ASSERT(k != 0, "Addition overflow in infinite term computation");
+        ASSERT(k != 0, "Addition overflow on k++ (j=%lu, n=%lu)", j, n);
     }
 
     return sum - floorl(sum);
 }
 
-/*
- * Computes the denominator term in the series expansion:
- *    8 * k + j
- */
+/* Computes the denominator term in the series expansion: 8k + j */
 static unsigned long compute_denom_term(unsigned long k, unsigned long j)
 {
-    unsigned long res;
+    unsigned long eight_k, res;
 
-    ASSERT(k <= ULONG_MAX / 8, "Multiplication overflow");
-    k *= 8;
+    ASSERT(k <= ULONG_MAX / 8, "Multiplication overflow (k=%lu, j=%lu)", k, j);
+    eight_k = 8 * k;
 
-    res = k + j;
-    ASSERT(res >= k, "Addition overflow");
+    res = eight_k + j;
+    ASSERT(res >= eight_k, "Addition overflow (k=%lu, j=%lu)", k, j);
 
     return res;
 }
@@ -212,4 +213,33 @@ static unsigned long powmod(unsigned long base, unsigned long exponent,
 
     /* Bounded by modulus, so cast is safe */
     return (unsigned long)res;
+}
+
+static void output_defines(const char *digits)
+{
+    size_t num_defines, on_define;
+
+    num_defines = sizeof(defines) / sizeof(struct pi_digit_indices);
+
+    for (on_define = 0; on_define < num_defines; on_define++) {
+        if (on_define != 0) {
+            printf("\n");
+        }
+        output_define(digits, defines[on_define].index_lb,
+                      defines[on_define].index_ub);
+    }
+}
+
+static void output_define(const char *digits, size_t index_lb, size_t index_ub)
+{
+    size_t on_digit;
+
+    ASSERT(index_lb < index_ub, "Invalid indices (index_lb=%zu, index_ub=%zu)",
+           index_lb, index_ub);
+
+    printf("#define PI_FRACTIONAL_HEX_DIGITS_%zu_%zu \"", index_lb, index_ub);
+    for (on_digit = index_lb; on_digit < index_ub; on_digit++) {
+        printf("%c", digits[on_digit]);
+    }
+    printf("\"\n");
 }
