@@ -107,8 +107,9 @@ static size_t num_digits_to_generate(void)
  * pi_hex_digit(2) == '3'
  * pi_hex_digit(3) == 'F'
  *
- * This computation uses the Bailey-Borwein-Plouffe (BBP) formula, and can be
- * verified against Blowfish's P-array followed by its S-boxes.
+ * This computation uses the Bailey-Borwein-Plouffe (BBP) formula, and the
+ * first 8336 digits have been verified against Blowfish's P-array followed by
+ * its four S-boxes.
  */
 static char pi_hex_digit(size_t index)
 {
