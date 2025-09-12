@@ -621,8 +621,8 @@ static void compute_j1_j2_i(struct argon2_ctx *a2ctx, uint32_t *j1,
     else {
         /*
          * In RFC 9106 section 3.4.1.2, we compute Z || LE64(i) for values
-         * i >= 1. Call that value i the "prefix" for the associated set of j
-         * values.
+         * i >= 1. Call that value i the "prefix" for the associated set of 128
+         * <J_1, J_2> value pairs.
          */
         jvals->prefix++;
 
