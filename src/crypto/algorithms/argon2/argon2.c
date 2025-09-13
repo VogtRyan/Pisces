@@ -406,7 +406,7 @@ static void compute_h0(struct thread_ctx *tctx, uint32_t derived_key_len,
 
     put_little_end_32(opening, a2ctx->p);
     put_little_end_32(opening + 4, derived_key_len);
-    put_little_end_32(opening + 8, a2ctx->m_prime);
+    put_little_end_32(opening + 8, a2ctx->m);
     put_little_end_32(opening + 12, a2ctx->t);
     opening[16] = (byte)0x13;
     opening[17] = opening[18] = opening[19] = 0;
