@@ -31,11 +31,27 @@ struct pi_digit_indices {
 static struct pi_digit_indices defines[] = {
     {
         .index_lb = 0,
+        .index_ub = 64,
+    },
+    {
+        .index_lb = 0,
         .index_ub = 360,
     },
     {
         .index_lb = 0,
         .index_ub = 640,
+    },
+    {
+        .index_lb = 64,
+        .index_ub = 96,
+    },
+    {
+        .index_lb = 96,
+        .index_ub = 128,
+    },
+    {
+        .index_lb = 128,
+        .index_ub = 160,
     },
     {
         .index_lb = 360,

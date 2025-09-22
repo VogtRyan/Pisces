@@ -345,7 +345,7 @@ src/crypto/algorithms/pbkdf2/pbkdf2.o: \
 src/crypto/algorithms/argon2/test_argon2.o: \
   src/crypto/algorithms/argon2/test_argon2.c src/common/bytetype.h \
   src/common/errorflow.h src/crypto/algorithms/argon2/argon2.h \
-  src/crypto/test/framework.h src/crypto/test/hex.h
+  src/crypto/test/framework.h src/crypto/test/hex.h src/crypto/test/pi.h
 src/crypto/algorithms/argon2/message_barrier.o: \
   src/crypto/algorithms/argon2/message_barrier.c \
   src/crypto/algorithms/argon2/message_barrier.h src/common/errorflow.h
