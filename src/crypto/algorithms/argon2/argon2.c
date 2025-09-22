@@ -189,14 +189,11 @@ struct argon2_ctx *argon2_alloc(argon2_variant y_variant,
     ret->q = ret->m_prime / ret->p;
 
     /*
-     * Guard against overflow by guaranteeing (m' * 1024) = (p * q * 1024)
-     * fits in a size_t. Casting uint32_t to size_t is safe on any platform
-     * supported by this implementation.
+     * If calloc() succeeds, it guarantees that (m' * 1024) = (p * q * 1024)
+     * fits in a size_t. Casting the uint32_t to a size_t is safe on any
+     * platform supported by this imlementation.
      */
-    ASSERT((size_t)ret->m_prime <= SIZE_MAX / BLOCK_BYTES,
-           "Overflow of memory size computation (m'=%lu, m=%lu, p=%lu)",
-           (unsigned long)ret->m_prime, m_memsize_kb, p_parallelism);
-    ret->working_mem = (byte *)malloc((size_t)ret->m_prime * BLOCK_BYTES);
+    ret->working_mem = (byte *)calloc((size_t)ret->m_prime, BLOCK_BYTES);
     GUARD_ALLOC(ret->working_mem);
 
     if (max_threads > p_parallelism ||
@@ -718,8 +715,8 @@ static inline byte *get_block(const struct argon2_ctx *a2ctx, uint32_t lane,
                               uint32_t block_in_lane)
 {
     /*
-     * The overflow check in argon2_alloc() guarantees the math is safe,
-     * provided 0 <= lane < ctx->p and 0 <= block_in_lane < ctx->q.
+     * This math is guaranteed to be safe, per argon2_alloc(), provided
+     * 0 <= lane < ctx->p and 0 <= block_in_lane < ctx->q.
      */
     return a2ctx->working_mem + ((size_t)lane * a2ctx->q * BLOCK_BYTES) +
            ((size_t)block_in_lane * BLOCK_BYTES);
