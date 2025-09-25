@@ -37,12 +37,6 @@ struct pbkdf2_test {
 };
 
 static void run_pbkdf2_test(const struct pbkdf2_test *test);
-static void run_parsed_pbkdf2_test(chf_algorithm hashalg,
-                                   unsigned int iteration_count,
-                                   const byte *password, size_t password_len,
-                                   const byte *salt, size_t salt_len,
-                                   const byte *derived_key,
-                                   size_t derived_key_len);
 
 /*
  * Official test vectors from RFC 6070. The fourth test vector, with an
@@ -375,37 +369,20 @@ int main(void)
 
 static void run_pbkdf2_test(const struct pbkdf2_test *test)
 {
-    byte *password, *salt, *derived_key;
-    size_t password_len, salt_len, derived_key_len;
-
-    hex_to_bytes(test->password, &password, &password_len);
-    hex_to_bytes(test->salt, &salt, &salt_len);
-    hex_to_bytes(test->derived_key, &derived_key, &derived_key_len);
-
-    run_parsed_pbkdf2_test(test->hashalg, test->iteration_count, password,
-                           password_len, salt, salt_len, derived_key,
-                           derived_key_len);
-
-    free(password);
-    free(salt);
-    free(derived_key);
-}
-
-static void run_parsed_pbkdf2_test(chf_algorithm hashalg,
-                                   unsigned int iteration_count,
-                                   const byte *password, size_t password_len,
-                                   const byte *salt, size_t salt_len,
-                                   const byte *derived_key,
-                                   size_t derived_key_len)
-{
+    struct bytearr password, salt, derived_key;
     byte *actual;
 
-    actual = calloc(1, derived_key_len);
+    hex_to_bytearr(&password, test->password);
+    hex_to_bytearr(&salt, test->salt);
+    hex_to_bytearr(&derived_key, test->derived_key);
+
+    actual = calloc(1, derived_key.len);
     GUARD_ALLOC(actual);
 
-    pbkdf2_hmac(actual, derived_key_len, (const char *)password, password_len,
-                salt, salt_len, iteration_count, hashalg);
+    pbkdf2_hmac(actual, derived_key.len, (const char *)password.bytes,
+                password.len, salt.bytes, salt.len, test->iteration_count,
+                test->hashalg);
 
-    TEST_ASSERT(memcmp(actual, derived_key, derived_key_len) == 0);
+    TEST_ASSERT(memcmp(actual, derived_key.bytes, derived_key.len) == 0);
     free(actual);
 }
