@@ -21,21 +21,23 @@
 
 #include <stddef.h>
 
-/*
- * The largest input string size accepted by hex_to_bytes(), which is twice the
- * maximum number of input bytes accepted.
- */
-#define HEX_TO_BYTES_MAX_STRLEN (1000)
+#define BYTEARR_MAX_LEN (180)
+
+struct bytearr {
+    byte bytes[BYTEARR_MAX_LEN];
+    size_t len;
+};
 
 /*
- * Converts a string of hexadecimal characters to an array of bytes. The string
- * must contain only the characters 0-9 and A-F (or a-f), with no prefix of
- * "0x".
- *
- * A new array will be allocated and used to store the bytes, in *bytes. The
- * caller will be responsible for freeing it. The size of the allocated array
- * will be stored in *numBytes.
+ * Fills the byte array with the given contents. Hexadecimal strings must
+ * contain only the characters 0-9 and A-F (or a-f), with no prefix of "0x".
  */
+void hex_to_bytearr(struct bytearr *ba, const char *hex);
+
+/*
+ * FIXME: Deprecated
+ */
+#define HEX_TO_BYTES_MAX_STRLEN (1000)
 void hex_to_bytes(const char *hex, byte **bytes, size_t *num_bytes);
 
 #endif
