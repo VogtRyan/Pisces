@@ -54,17 +54,8 @@ static void run_blake2b_selftest(void);
 static void fill_selftest_seq(byte *out, size_t len, uint32_t seed);
 
 static void run_blake2b_kat(const struct blake2b_kat *test);
-static void run_parsed_blake2b_kat(const byte *msg, size_t msg_len,
-                                   const byte *key, size_t key_len,
-                                   const byte *digest, size_t digest_len);
-static void add_long_blake2b(struct blake2b_ctx *ctx, const byte *msg,
-                             size_t msg_len);
-
-static void parse_hex_blake2b(const char *msg_hex, byte **msg_bytes,
-                              size_t *msg_len, const char *key_hex,
-                              byte **key_bytes, size_t *key_len,
-                              const char *digest_hex, byte **digest_bytes,
-                              size_t *digest_len);
+static void add_long_blake2b(struct blake2b_ctx *ctx,
+                             const struct bytearr *msg);
 
 /*
  * The BLAKE2b official tests are taken from the BLAKE2b repository,
@@ -245,38 +236,31 @@ static void fill_selftest_seq(byte *out, size_t len, uint32_t seed)
 
 static void run_blake2b_kat(const struct blake2b_kat *test)
 {
-    byte *msg, *key, *digest;
-    size_t msg_len, key_len, digest_len;
-
-    parse_hex_blake2b(test->msg, &msg, &msg_len, test->key, &key, &key_len,
-                      test->digest, &digest, &digest_len);
-    run_parsed_blake2b_kat(msg, msg_len, key, key_len, digest, digest_len);
-
-    free(msg);
-    free(key);
-    free(digest);
-}
-
-static void run_parsed_blake2b_kat(const byte *msg, size_t msg_len,
-                                   const byte *key, size_t key_len,
-                                   const byte *digest, size_t digest_len)
-{
     struct blake2b_ctx *ctx;
+    struct bytearr key, msg, digest;
     byte actual[BLAKE2B_MAX_DIGEST_BYTES];
 
-    ctx = blake2b_alloc();
-    memset(actual, 0, digest_len);
+    hex_to_bytearr(&key, test->key);
+    hex_to_bytearr(&msg, test->msg);
+    hex_to_bytearr(&digest, test->digest);
 
-    blake2b_start(ctx, digest_len, key, key_len);
-    add_long_blake2b(ctx, msg, msg_len);
+    ASSERT(digest.len > 0 && digest.len <= 64,
+           "Invalid BLAKE2b digest length (%zu)", digest.len);
+    ASSERT(key.len <= 64, "Invalid BLAKE2b key length (%zu)", key.len);
+
+    ctx = blake2b_alloc();
+    memset(actual, 0, digest.len);
+
+    blake2b_start(ctx, digest.len, key.bytes, key.len);
+    add_long_blake2b(ctx, &msg);
     blake2b_end(ctx, actual);
 
-    TEST_ASSERT(memcmp(actual, digest, digest_len) == 0);
+    TEST_ASSERT(memcmp(actual, digest.bytes, digest.len) == 0);
     blake2b_free_scrub(ctx);
 }
 
-static void add_long_blake2b(struct blake2b_ctx *ctx, const byte *msg,
-                             size_t msg_len)
+static void add_long_blake2b(struct blake2b_ctx *ctx,
+                             const struct bytearr *msg)
 {
     /*
      * If the message is larger than one block in size, it will be broken up
@@ -285,28 +269,14 @@ static void add_long_blake2b(struct blake2b_ctx *ctx, const byte *msg,
      */
     const size_t quarter_block_len = BLAKE2B_BLOCK_BYTES / 4;
 
-    if (msg_len <= BLAKE2B_BLOCK_BYTES) {
-        blake2b_add(ctx, msg, msg_len);
+    if (msg->len <= BLAKE2B_BLOCK_BYTES) {
+        blake2b_add(ctx, msg->bytes, msg->len);
     }
     else {
-        blake2b_add(ctx, msg, quarter_block_len);
-        blake2b_add(ctx, msg + quarter_block_len,
-                    msg_len - 2 * quarter_block_len);
-        blake2b_add(ctx, msg + msg_len - quarter_block_len, quarter_block_len);
+        blake2b_add(ctx, msg->bytes, quarter_block_len);
+        blake2b_add(ctx, msg->bytes + quarter_block_len,
+                    msg->len - 2 * quarter_block_len);
+        blake2b_add(ctx, msg->bytes + msg->len - quarter_block_len,
+                    quarter_block_len);
     }
-}
-
-static void parse_hex_blake2b(const char *msg_hex, byte **msg_bytes,
-                              size_t *msg_len, const char *key_hex,
-                              byte **key_bytes, size_t *key_len,
-                              const char *digest_hex, byte **digest_bytes,
-                              size_t *digest_len)
-{
-    hex_to_bytes(msg_hex, msg_bytes, msg_len);
-    hex_to_bytes(key_hex, key_bytes, key_len);
-    hex_to_bytes(digest_hex, digest_bytes, digest_len);
-
-    ASSERT(*digest_len > 0 && *digest_len <= 64,
-           "Invalid BLAKE2b digest length");
-    ASSERT(*key_len <= 64, "Invalid BLAKE2b key length");
 }
