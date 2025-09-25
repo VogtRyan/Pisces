@@ -46,14 +46,8 @@ struct argon2_kat {
     const char *derived_key;
 };
 
-static void run_ar2kat(const struct argon2_kat *test);
-static void run_parsed_ar2kat(const struct argon2_kat *test,
-                              const char *password, size_t password_len,
-                              const byte *salt, size_t salt_len,
-                              const byte *k_secret, size_t k_secret_len,
-                              const byte *x_associated,
-                              size_t x_associated_len, const byte *derived_key,
-                              size_t derived_key_len, bool multithread);
+static void run_ar2kat_pair(const struct argon2_kat *test);
+static void run_ar2kat(const struct argon2_kat *test, bool multithread);
 
 static const struct argon2_kat rfc_kats[] = {
     /* RFC 9106, section 5.1 (Argon2d) */
@@ -251,60 +245,40 @@ int main(void)
     size_t i;
 
     for (i = 0; i < sizeof(rfc_kats) / sizeof(struct argon2_kat); i++) {
-        run_ar2kat(&rfc_kats[i]);
+        run_ar2kat_pair(&rfc_kats[i]);
     }
     for (i = 0; i < sizeof(custom_kats) / sizeof(struct argon2_kat); i++) {
-        run_ar2kat(&custom_kats[i]);
+        run_ar2kat_pair(&custom_kats[i]);
     }
 
     TEST_CONCLUDE();
 }
 
-static void run_ar2kat(const struct argon2_kat *test)
+static void run_ar2kat_pair(const struct argon2_kat *test)
 {
-    byte *password, *salt, *k_secret, *x_associated, *derived_key;
-    size_t password_len, salt_len, k_secret_len, x_associated_len,
-        derived_key_len;
-
-    hex_to_bytes(test->password, &password, &password_len);
-    hex_to_bytes(test->salt, &salt, &salt_len);
-    hex_to_bytes(test->k_secret, &k_secret, &k_secret_len);
-    hex_to_bytes(test->x_associated, &x_associated, &x_associated_len);
-    hex_to_bytes(test->derived_key, &derived_key, &derived_key_len);
-
-    run_parsed_ar2kat(test, (const char *)password, password_len, salt,
-                      salt_len, k_secret, k_secret_len, x_associated,
-                      x_associated_len, derived_key, derived_key_len, false);
+    run_ar2kat(test, false);
 
 #ifndef PISCES_NO_MULTITHREAD
     if (test->p_parallelism > 1) {
-        run_parsed_ar2kat(test, (const char *)password, password_len, salt,
-                          salt_len, k_secret, k_secret_len, x_associated,
-                          x_associated_len, derived_key, derived_key_len,
-                          true);
+        run_ar2kat(test, true);
     }
 #endif
-
-    free(password);
-    free(salt);
-    free(k_secret);
-    free(x_associated);
-    free(derived_key);
 }
 
-static void run_parsed_ar2kat(const struct argon2_kat *test,
-                              const char *password, size_t password_len,
-                              const byte *salt, size_t salt_len,
-                              const byte *k_secret, size_t k_secret_len,
-                              const byte *x_associated,
-                              size_t x_associated_len, const byte *derived_key,
-                              size_t derived_key_len, bool multithread)
+static void run_ar2kat(const struct argon2_kat *test, bool multithread)
 {
     struct argon2_ctx *ctx;
+    struct bytearr password, salt, k_secret, x_associated, derived_key;
     byte *actual;
     size_t max_threads;
 
-    actual = (byte *)calloc(derived_key_len, 1);
+    hex_to_bytearr(&password, test->password);
+    hex_to_bytearr(&salt, test->salt);
+    hex_to_bytearr(&k_secret, test->k_secret);
+    hex_to_bytearr(&x_associated, test->x_associated);
+    hex_to_bytearr(&derived_key, test->derived_key);
+
+    actual = (byte *)calloc(derived_key.len, 1);
     GUARD_ALLOC(actual);
 
     if (multithread) {
@@ -316,10 +290,11 @@ static void run_parsed_ar2kat(const struct argon2_kat *test,
 
     ctx = argon2_alloc(test->y_variant, test->m_memsize_kb,
                        test->p_parallelism, test->t_passes, max_threads);
-    argon2_derive_opt(ctx, actual, derived_key_len, password, password_len,
-                      salt, salt_len, k_secret, k_secret_len, x_associated,
-                      x_associated_len);
-    TEST_ASSERT(memcmp(actual, derived_key, derived_key_len) == 0);
+    argon2_derive_opt(ctx, actual, derived_key.len,
+                      (const char *)password.bytes, password.len, salt.bytes,
+                      salt.len, k_secret.bytes, k_secret.len,
+                      x_associated.bytes, x_associated.len);
+    TEST_ASSERT(memcmp(actual, derived_key.bytes, derived_key.len) == 0);
 
     argon2_free_scrub(ctx);
     free(actual);
