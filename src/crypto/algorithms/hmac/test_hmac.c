@@ -35,10 +35,6 @@ struct hmac_test {
 };
 
 static void run_hmac_test(const struct hmac_test *test);
-static void run_parsed_hmac_test(chf_algorithm hashalg, const byte *key,
-                                 size_t key_len, const byte *msg,
-                                 size_t msg_len, const byte *digest,
-                                 size_t digest_len);
 
 /* HMAC test vectors from FIPS documents and NIST examples */
 static const struct hmac_test official_tests[] = {
@@ -349,36 +345,21 @@ int main(void)
 
 static void run_hmac_test(const struct hmac_test *test)
 {
-    byte *key, *msg, *digest;
-    size_t key_len, msg_len, digest_len;
-
-    hex_to_bytes(test->key, &key, &key_len);
-    hex_to_bytes(test->msg, &msg, &msg_len);
-    hex_to_bytes(test->digest, &digest, &digest_len);
-
-    run_parsed_hmac_test(test->hashalg, key, key_len, msg, msg_len, digest,
-                         digest_len);
-
-    free(key);
-    free(msg);
-    free(digest);
-}
-
-static void run_parsed_hmac_test(chf_algorithm hashalg, const byte *key,
-                                 size_t key_len, const byte *msg,
-                                 size_t msg_len, const byte *digest,
-                                 size_t digest_len)
-{
     struct hmac_ctx *ctx;
+    struct bytearr key, msg, digest;
     byte actual[HMAC_MAX_DIGEST_SIZE];
 
-    ctx = hmac_alloc(hashalg);
-    ASSERT(digest_len <= hmac_digest_size(ctx),
-           "HMAC test digest larger than digest size");
+    hex_to_bytearr(&key, test->key);
+    hex_to_bytearr(&msg, test->msg);
+    hex_to_bytearr(&digest, test->digest);
 
-    memset(actual, 0, digest_len);
-    hmac_single(ctx, key, key_len, msg, msg_len, actual);
-    TEST_ASSERT(memcmp(actual, digest, digest_len) == 0);
+    ctx = hmac_alloc(test->hashalg);
+    ASSERT(digest.len <= hmac_digest_size(ctx),
+           "HMAC vector digest larger than digest size");
+
+    memset(actual, 0, digest.len);
+    hmac_single(ctx, key.bytes, key.len, msg.bytes, msg.len, actual);
+    TEST_ASSERT(memcmp(actual, digest.bytes, digest.len) == 0);
 
     hmac_free_scrub(ctx);
 }
