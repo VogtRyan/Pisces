@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 
-#define BYTEARR_MAX_LEN (180)
+#define BYTEARR_MAX_LEN (320)
 
 struct bytearr {
     byte bytes[BYTEARR_MAX_LEN];
