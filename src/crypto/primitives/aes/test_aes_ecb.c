@@ -20,6 +20,7 @@
 #include "crypto/test/framework.h"
 #include "crypto/test/hex.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,32 +64,23 @@ struct aes_ecb_monte_test {
 };
 
 static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test);
-static void run_parsed_aes_ecb_plain_test(const byte *key, size_t key_size,
-                                          const byte *plaintext,
-                                          const byte *ciphertext,
-                                          size_t num_blocks);
-
-static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte *input,
-                                byte *output, size_t num_blocks,
+static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx,
+                                const struct bytearr *input, byte *output,
                                 int direction);
 
 static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test);
-static void run_parsed_aes_ecb_monte_test(const byte *key, size_t key_size,
-                                          const byte *plaintext,
-                                          const byte *ciphertext,
-                                          int direction);
 static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
                                       const byte *in_block_i_zero,
                                       byte *last_two_out_blocks_i,
                                       aes_ecb_fptr operation);
-static void nist_monte_ecb_compute_new_key(byte *key_i, size_t key_size,
+static void nist_monte_ecb_compute_new_key(struct bytearr *key_i,
                                            const byte *last_two_out_blocks_i);
 
-static void parse_hex_aes_ecb(const char *key_hex, byte **key_bytes,
-                              size_t *key_size, const char *plaintext_hex,
-                              byte **plaintext_bytes, size_t *plaintext_len,
+static void parse_hex_aes_ecb(struct bytearr *key, struct bytearr *plaintext,
+                              struct bytearr *ciphertext, const char *key_hex,
+                              const char *plaintext_hex,
                               const char *ciphertext_hex,
-                              byte **ciphertext_bytes, size_t *ciphertext_len);
+                              bool allow_multi_block);
 
 static const struct aes_ecb_plain_test plain_tests[] = {
     /* FIPS-197, Appendix C.1, AES-128 */
@@ -268,59 +260,38 @@ int main(void)
 
 static void run_aes_ecb_plain_test(const struct aes_ecb_plain_test *test)
 {
-    byte *key, *plaintext, *ciphertext;
-    size_t key_size, plaintext_len, ciphertext_len;
-
-    parse_hex_aes_ecb(test->key, &key, &key_size, test->plaintext, &plaintext,
-                      &plaintext_len, test->ciphertext, &ciphertext,
-                      &ciphertext_len);
-    ASSERT(plaintext_len == ciphertext_len,
-           "Plaintext and ciphertext sizes do not match");
-    ASSERT(plaintext_len % AES_ECB_BLOCK_SIZE == 0,
-           "Plaintext/ciphertext length not a block-size multiple");
-
-    run_parsed_aes_ecb_plain_test(key, key_size, plaintext, ciphertext,
-                                  plaintext_len / AES_ECB_BLOCK_SIZE);
-
-    free(key);
-    free(plaintext);
-    free(ciphertext);
-}
-
-static void run_parsed_aes_ecb_plain_test(const byte *key, size_t key_size,
-                                          const byte *plaintext,
-                                          const byte *ciphertext,
-                                          size_t num_blocks)
-{
     struct aes_ecb_ctx *ctx;
+    struct bytearr key, plaintext, ciphertext;
     byte *actual;
-    size_t text_len;
 
+    parse_hex_aes_ecb(&key, &plaintext, &ciphertext, test->key,
+                      test->plaintext, test->ciphertext, true);
     ctx = aes_ecb_alloc();
-    text_len = num_blocks * AES_ECB_BLOCK_SIZE;
-    actual = (byte *)calloc(text_len, 1);
+
+    /* plaintext.len == ciphertext.len */
+    actual = (byte *)calloc(plaintext.len, 1);
     GUARD_ALLOC(actual);
 
-    aes_ecb_set_key(ctx, key, key_size);
-    aes_ecb_multi_block(ctx, plaintext, actual, num_blocks,
-                        TEST_DIRECTION_ENCRYPT);
-    TEST_ASSERT(memcmp(actual, ciphertext, text_len) == 0);
+    aes_ecb_set_key(ctx, key.bytes, key.len);
+    aes_ecb_multi_block(ctx, &plaintext, actual, TEST_DIRECTION_ENCRYPT);
+    TEST_ASSERT(memcmp(actual, ciphertext.bytes, ciphertext.len) == 0);
 
-    memset(actual, 0, text_len);
-    aes_ecb_multi_block(ctx, ciphertext, actual, num_blocks,
-                        TEST_DIRECTION_DECRYPT);
-    TEST_ASSERT(memcmp(actual, plaintext, text_len) == 0);
+    memset(actual, 0, plaintext.len);
+    aes_ecb_multi_block(ctx, &ciphertext, actual, TEST_DIRECTION_DECRYPT);
+    TEST_ASSERT(memcmp(actual, plaintext.bytes, plaintext.len) == 0);
 
     free(actual);
     aes_ecb_free_scrub(ctx);
 }
 
-static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte *input,
-                                byte *output, size_t num_blocks, int direction)
+static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx,
+                                const struct bytearr *input, byte *output,
+                                int direction)
 {
-    size_t on_block;
+    size_t num_blocks, on_block;
     aes_ecb_fptr operation;
 
+    num_blocks = input->len / AES_ECB_BLOCK_SIZE;
     if (direction == TEST_DIRECTION_ENCRYPT) {
         operation = &aes_ecb_encrypt;
     }
@@ -329,45 +300,26 @@ static void aes_ecb_multi_block(struct aes_ecb_ctx *ctx, const byte *input,
     }
 
     for (on_block = 0; on_block < num_blocks; on_block++) {
-        operation(ctx, input + on_block * AES_ECB_BLOCK_SIZE,
+        operation(ctx, input->bytes + on_block * AES_ECB_BLOCK_SIZE,
                   output + on_block * AES_ECB_BLOCK_SIZE);
     }
 }
 
 static void run_aes_ecb_monte_test(const struct aes_ecb_monte_test *test)
 {
-    byte *key, *plaintext, *ciphertext;
-    size_t key_size, plaintext_len, ciphertext_len;
-
-    parse_hex_aes_ecb(test->key, &key, &key_size, test->plaintext, &plaintext,
-                      &plaintext_len, test->ciphertext, &ciphertext,
-                      &ciphertext_len);
-    ASSERT(plaintext_len == AES_ECB_BLOCK_SIZE, "Invalid plaintext length");
-    ASSERT(ciphertext_len == AES_ECB_BLOCK_SIZE, "Inalid ciphertext length");
-
-    run_parsed_aes_ecb_monte_test(key, key_size, plaintext, ciphertext,
-                                  test->direction);
-
-    free(key);
-    free(plaintext);
-    free(ciphertext);
-}
-
-static void run_parsed_aes_ecb_monte_test(const byte *key, size_t key_size,
-                                          const byte *plaintext,
-                                          const byte *ciphertext,
-                                          int direction)
-{
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
     struct aes_ecb_ctx *ctx;
-    byte key_i[AES_ECB_KEY_SIZE_MAX];
-    byte in_block_i_zero[AES_ECB_BLOCK_SIZE];
+    struct bytearr key, plaintext, ciphertext;
     byte last_two_out_blocks_i[2 * AES_ECB_BLOCK_SIZE];
+    byte *in_block_i_zero;
     const byte *expected;
     aes_ecb_fptr operation;
     int i;
 
+    parse_hex_aes_ecb(&key, &plaintext, &ciphertext, test->key,
+                      test->plaintext, test->ciphertext, false);
     ctx = aes_ecb_alloc();
+
     memset(last_two_out_blocks_i, 0, 2 * AES_ECB_BLOCK_SIZE);
 
     /*
@@ -388,16 +340,15 @@ static void run_parsed_aes_ecb_monte_test(const byte *key, size_t key_size,
      * key[0] = seed key
      * in_block[0][0] = seed input block
      */
-    memcpy(key_i, key, key_size);
-    if (direction == TEST_DIRECTION_ENCRYPT) {
-        memcpy(in_block_i_zero, plaintext, AES_ECB_BLOCK_SIZE);
+    if (test->direction == TEST_DIRECTION_ENCRYPT) {
+        expected = ciphertext.bytes;
+        in_block_i_zero = plaintext.bytes;
         operation = &aes_ecb_encrypt;
-        expected = ciphertext;
     }
     else {
-        memcpy(in_block_i_zero, ciphertext, AES_ECB_BLOCK_SIZE);
+        expected = plaintext.bytes;
+        in_block_i_zero = ciphertext.bytes;
         operation = &aes_ecb_decrypt;
-        expected = plaintext;
     }
 
     /*
@@ -409,12 +360,11 @@ static void run_parsed_aes_ecb_monte_test(const byte *key, size_t key_size,
      *     in_block[i+1][0] = out_block[i][999]
      */
     for (i = 0; i < NIST_MONTE_OUTER_LOOP_SIZE; i++) {
-        aes_ecb_set_key(ctx, key_i, key_size);
+        aes_ecb_set_key(ctx, key.bytes, key.len);
         nist_monte_ecb_inner_loop(ctx, in_block_i_zero, last_two_out_blocks_i,
                                   operation);
         if (i < NIST_MONTE_OUTER_LOOP_SIZE - 1) {
-            nist_monte_ecb_compute_new_key(key_i, key_size,
-                                           last_two_out_blocks_i);
+            nist_monte_ecb_compute_new_key(&key, last_two_out_blocks_i);
             memcpy(in_block_i_zero, last_two_out_blocks_i + AES_ECB_BLOCK_SIZE,
                    AES_ECB_BLOCK_SIZE);
         }
@@ -457,7 +407,7 @@ static void nist_monte_ecb_inner_loop(struct aes_ecb_ctx *ctx,
               last_two_out_blocks_i + AES_ECB_BLOCK_SIZE);
 }
 
-static void nist_monte_ecb_compute_new_key(byte *key_i, size_t key_size,
+static void nist_monte_ecb_compute_new_key(struct bytearr *key_i,
                                            const byte *last_two_out_blocks_i)
 {
     /*
@@ -471,24 +421,37 @@ static void nist_monte_ecb_compute_new_key(byte *key_i, size_t key_size,
      */
     size_t on_byte;
 
-    last_two_out_blocks_i += 2 * AES_ECB_BLOCK_SIZE - key_size;
-    for (on_byte = 0; on_byte < key_size; on_byte++) {
-        key_i[on_byte] ^= last_two_out_blocks_i[on_byte];
+    last_two_out_blocks_i += 2 * AES_ECB_BLOCK_SIZE - key_i->len;
+    for (on_byte = 0; on_byte < key_i->len; on_byte++) {
+        key_i->bytes[on_byte] ^= last_two_out_blocks_i[on_byte];
     }
 }
 
-static void parse_hex_aes_ecb(const char *key_hex, byte **key_bytes,
-                              size_t *key_size, const char *plaintext_hex,
-                              byte **plaintext_bytes, size_t *plaintext_len,
+static void parse_hex_aes_ecb(struct bytearr *key, struct bytearr *plaintext,
+                              struct bytearr *ciphertext, const char *key_hex,
+                              const char *plaintext_hex,
                               const char *ciphertext_hex,
-                              byte **ciphertext_bytes, size_t *ciphertext_len)
+                              bool allow_multi_block)
 {
-    hex_to_bytes(key_hex, key_bytes, key_size);
-    hex_to_bytes(plaintext_hex, plaintext_bytes, plaintext_len);
-    hex_to_bytes(ciphertext_hex, ciphertext_bytes, ciphertext_len);
+    hex_to_bytearr(key, key_hex);
+    hex_to_bytearr(plaintext, plaintext_hex);
+    hex_to_bytearr(ciphertext, ciphertext_hex);
 
-    ASSERT(*key_size == AES_ECB_KEY_SIZE_128 ||
-               *key_size == AES_ECB_KEY_SIZE_192 ||
-               *key_size == AES_ECB_KEY_SIZE_256,
-           "Invalid AES-ECB key size");
+    ASSERT(key->len == AES_ECB_KEY_SIZE_128 ||
+               key->len == AES_ECB_KEY_SIZE_192 ||
+               key->len == AES_ECB_KEY_SIZE_256,
+           "Invalid AES-CBC key size (%zu)", key->len);
+
+    ASSERT(ciphertext->len == plaintext->len,
+           "Plaintext/ciphertext length mismatch (%zu, %zu)", plaintext->len,
+           ciphertext->len);
+
+    if (allow_multi_block) {
+        ASSERT(plaintext->len % AES_ECB_BLOCK_SIZE == 0,
+               "Input text length (%zu) not a block multiple", plaintext->len);
+    }
+    else {
+        ASSERT(plaintext->len == AES_ECB_BLOCK_SIZE,
+               "Input text length (%zu) not one block", plaintext->len);
+    }
 }
