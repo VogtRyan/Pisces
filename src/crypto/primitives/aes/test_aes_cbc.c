@@ -84,7 +84,7 @@ static void parse_hex_aes_cbc(struct bytearr *key, struct bytearr *iv,
                               struct bytearr *ciphertext, const char *key_hex,
                               const char *iv_hex, const char *plaintext_hex,
                               const char *ciphertext_hex,
-                              bool allow_multiblock);
+                              bool allow_multi_block);
 
 static const struct aes_cbc_plain_test plain_tests[] = {
     /* NIST SP 800-38A, Appendix F.2.1, CBC-AES128.Encrypt */
@@ -461,7 +461,7 @@ static void parse_hex_aes_cbc(struct bytearr *key, struct bytearr *iv,
                               struct bytearr *ciphertext, const char *key_hex,
                               const char *iv_hex, const char *plaintext_hex,
                               const char *ciphertext_hex,
-                              bool allow_multiblock)
+                              bool allow_multi_block)
 {
     hex_to_bytearr(key, key_hex);
     hex_to_bytearr(iv, iv_hex);
@@ -480,7 +480,7 @@ static void parse_hex_aes_cbc(struct bytearr *key, struct bytearr *iv,
            "Plaintext/ciphertext length mismatch (%zu, %zu)", plaintext->len,
            ciphertext->len);
 
-    if (allow_multiblock) {
+    if (allow_multi_block) {
         ASSERT(plaintext->len % AES_CBC_BLOCK_SIZE == 0,
                "Input text length (%zu) not a block multiple", plaintext->len);
     }
