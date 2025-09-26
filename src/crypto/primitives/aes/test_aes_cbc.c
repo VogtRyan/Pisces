@@ -66,9 +66,9 @@ struct aes_cbc_monte_test {
 };
 
 static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test);
-static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte *input,
-                                const byte *iv, byte *output,
-                                size_t num_blocks, int direction);
+static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx,
+                                const struct bytearr *input, const byte *iv,
+                                byte *output, int direction);
 
 static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test);
 static void nist_monte_cbc_inner_loop(struct aes_cbc_ctx *ctx,
@@ -269,7 +269,6 @@ static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test)
     struct aes_cbc_ctx *ctx;
     struct bytearr key, iv, plaintext, ciphertext;
     byte *actual;
-    size_t num_blocks;
 
     parse_hex_aes_cbc(&key, &iv, &plaintext, &ciphertext, test->key, test->iv,
                       test->plaintext, test->ciphertext, true);
@@ -279,14 +278,13 @@ static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test)
     actual = (byte *)calloc(plaintext.len, 1);
     GUARD_ALLOC(actual);
 
-    num_blocks = plaintext.len / AES_CBC_BLOCK_SIZE;
     aes_cbc_set_key(ctx, key.bytes, key.len);
-    aes_cbc_multi_block(ctx, plaintext.bytes, iv.bytes, actual, num_blocks,
+    aes_cbc_multi_block(ctx, &plaintext, iv.bytes, actual,
                         TEST_DIRECTION_ENCRYPT);
     TEST_ASSERT(memcmp(actual, ciphertext.bytes, ciphertext.len) == 0);
 
     memset(actual, 0, plaintext.len);
-    aes_cbc_multi_block(ctx, ciphertext.bytes, iv.bytes, actual, num_blocks,
+    aes_cbc_multi_block(ctx, &ciphertext, iv.bytes, actual,
                         TEST_DIRECTION_DECRYPT);
     TEST_ASSERT(memcmp(actual, plaintext.bytes, plaintext.len) == 0);
 
@@ -294,13 +292,14 @@ static void run_aes_cbc_plain_test(const struct aes_cbc_plain_test *test)
     aes_cbc_free_scrub(ctx);
 }
 
-static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte *input,
-                                const byte *iv, byte *output,
-                                size_t num_blocks, int direction)
+static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx,
+                                const struct bytearr *input, const byte *iv,
+                                byte *output, int direction)
 {
-    size_t on_block;
+    size_t num_blocks, on_block;
     aes_cbc_fptr operation;
 
+    num_blocks = input->len / AES_CBC_BLOCK_SIZE;
     if (direction == TEST_DIRECTION_ENCRYPT) {
         operation = &aes_cbc_encrypt;
     }
@@ -310,7 +309,7 @@ static void aes_cbc_multi_block(struct aes_cbc_ctx *ctx, const byte *input,
 
     aes_cbc_set_iv(ctx, iv);
     for (on_block = 0; on_block < num_blocks; on_block++) {
-        operation(ctx, input + on_block * AES_CBC_BLOCK_SIZE,
+        operation(ctx, input->bytes + on_block * AES_CBC_BLOCK_SIZE,
                   output + on_block * AES_CBC_BLOCK_SIZE);
     }
 }
@@ -320,8 +319,8 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
     struct aes_cbc_ctx *ctx;
     struct bytearr key, iv, plaintext, ciphertext;
-    byte in_block_i_zero[AES_CBC_BLOCK_SIZE];
     byte last_two_out_blocks_i[2 * AES_CBC_BLOCK_SIZE];
+    byte *in_block_i_zero;
     const byte *expected;
     aes_cbc_fptr operation;
     int i;
@@ -353,14 +352,14 @@ static void run_aes_cbc_monte_test(const struct aes_cbc_monte_test *test)
      * in_block[0][0] = seed input block
      */
     if (test->direction == TEST_DIRECTION_ENCRYPT) {
-        memcpy(in_block_i_zero, plaintext.bytes, AES_CBC_BLOCK_SIZE);
-        operation = &aes_cbc_encrypt;
         expected = ciphertext.bytes;
+        in_block_i_zero = plaintext.bytes;
+        operation = &aes_cbc_encrypt;
     }
     else {
-        memcpy(in_block_i_zero, ciphertext.bytes, AES_CBC_BLOCK_SIZE);
-        operation = &aes_cbc_decrypt;
         expected = plaintext.bytes;
+        in_block_i_zero = ciphertext.bytes;
+        operation = &aes_cbc_decrypt;
     }
 
     /*
