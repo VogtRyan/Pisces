@@ -34,10 +34,4 @@ struct bytearr {
  */
 void hex_to_bytearr(struct bytearr *ba, const char *hex);
 
-/*
- * FIXME: Deprecated
- */
-#define HEX_TO_BYTES_MAX_STRLEN (1000)
-void hex_to_bytes(const char *hex, byte **bytes, size_t *num_bytes);
-
 #endif
