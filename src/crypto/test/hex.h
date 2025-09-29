@@ -21,6 +21,29 @@
 
 #include <stddef.h>
 
+#ifndef DEBUG_OUTPUT
+#define DEBUG_OUTPUT stderr
+#endif
+
+#ifdef DEBUGGING
+#define DEBUG_HEX(bytes, len, ...)                                            \
+    do {                                                                      \
+        fprintf(DEBUG_OUTPUT, "Debug [%s:%d] [", __FILE__, __LINE__);         \
+        fprintf(DEBUG_OUTPUT, __VA_ARGS__);                                   \
+        fprintf(DEBUG_OUTPUT, "]: ");                                         \
+        debug_output_hex((bytes), (len));                                     \
+        fprintf(DEBUG_OUTPUT, "\n");                                          \
+        fflush(DEBUG_OUTPUT);                                                 \
+    } while (0)
+#else
+#define DEBUG_HEX(bytes, len, ...)                                            \
+    do {                                                                      \
+    } while (0)
+#endif
+
+#define DEBUG_BYTEARR(ba, ...)  DEBUG_HEX((ba).bytes, (ba).len, __VA_ARGS__)
+#define DEBUG_BYTEARRP(ba, ...) DEBUG_HEX((ba)->bytes, (ba)->len, __VA_ARGS__)
+
 #define BYTEARR_MAX_LEN (320)
 
 struct bytearr {
@@ -33,5 +56,13 @@ struct bytearr {
  * contain only the characters 0-9 and A-F (or a-f), with no prefix of "0x".
  */
 void hex_to_bytearr(struct bytearr *ba, const char *hex);
+
+/*
+ * Outputs using the characters 0-9 and A-F, with no prefix of "0x" (if
+ * DEBUGGING is defined). Prefer using DEBUG_HEX, DEBUG_BYTEARR, and
+ * DEBUG_BYTEARRP over calling this function directly, to produce more
+ * informative output.
+ */
+void debug_output_hex(const byte *bytes, size_t len);
 
 #endif

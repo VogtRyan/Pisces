@@ -20,7 +20,10 @@
 #include "common/errorflow.h"
 
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
+
+#define UNUSED(varname) (void)(varname)
 
 static byte hex_to_byte(const char *hex);
 
@@ -36,6 +39,20 @@ void hex_to_bytearr(struct bytearr *ba, const char *hex)
     }
 
     memset(ba->bytes + ba->len, 0, BYTEARR_MAX_LEN - ba->len);
+}
+
+void debug_output_hex(const byte *bytes, size_t len)
+{
+#ifdef DEBUGGING
+    size_t i;
+
+    for (i = 0; i < len; i++) {
+        fprintf(DEBUG_OUTPUT, "%02X", bytes[i]);
+    }
+#else
+    UNUSED(bytes);
+    UNUSED(len);
+#endif
 }
 
 static byte hex_to_byte(const char *hex)
