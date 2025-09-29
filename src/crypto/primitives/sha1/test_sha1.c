@@ -47,14 +47,9 @@ struct sha1_monte_test {
 };
 
 static void run_sha1_plain_test(const struct sha1_plain_test *test);
-static void run_parsed_sha1_plain_test(const byte *msg, size_t msg_len,
-                                       size_t msg_repeats, const byte *digest);
-
-static void add_long_sha1(struct sha1_ctx *ctx, const byte *msg,
-                          size_t msg_len);
+static void add_long_sha1(struct sha1_ctx *ctx, const struct bytearr *msg);
 
 static void run_sha1_monte_test(const struct sha1_monte_test *test);
-static void run_parsed_sha1_monte_test(const byte *seed, const byte *output);
 static void nist_monte_sha1_inner_loop(struct sha1_ctx *ctx,
                                        const byte *seed_j,
                                        byte *last_digest_j);
@@ -181,41 +176,29 @@ int main(void)
 
 static void run_sha1_plain_test(const struct sha1_plain_test *test)
 {
-    byte *msg, *digest;
-    size_t msg_len, digest_len;
-
-    hex_to_bytes(test->msg, &msg, &msg_len);
-    hex_to_bytes(test->digest, &digest, &digest_len);
-    ASSERT(digest_len == SHA1_DIGEST_BYTES, "Invalid digest size");
-
-    run_parsed_sha1_plain_test(msg, msg_len, test->msg_repeats, digest);
-
-    free(msg);
-    free(digest);
-}
-
-static void run_parsed_sha1_plain_test(const byte *msg, size_t msg_len,
-                                       size_t msg_repeats, const byte *digest)
-{
     struct sha1_ctx *ctx;
+    struct bytearr msg, digest;
     byte actual[SHA1_DIGEST_BYTES];
     size_t on_repeat;
+
+    hex_to_bytearr(&msg, test->msg);
+    hex_to_bytearr(&digest, test->digest);
+    ASSERT(digest.len == SHA1_DIGEST_BYTES, "Invalid digest size");
 
     ctx = sha1_alloc();
     memset(actual, 0, SHA1_DIGEST_BYTES);
 
     sha1_start(ctx);
-    for (on_repeat = 0; on_repeat < msg_repeats; on_repeat++) {
-        add_long_sha1(ctx, msg, msg_len);
+    for (on_repeat = 0; on_repeat < test->msg_repeats; on_repeat++) {
+        add_long_sha1(ctx, &msg);
     }
     sha1_end(ctx, actual);
 
-    TEST_ASSERT(memcmp(actual, digest, SHA1_DIGEST_BYTES) == 0);
+    TEST_ASSERT(memcmp(actual, digest.bytes, SHA1_DIGEST_BYTES) == 0);
     sha1_free_scrub(ctx);
 }
 
-static void add_long_sha1(struct sha1_ctx *ctx, const byte *msg,
-                          size_t msg_len)
+static void add_long_sha1(struct sha1_ctx *ctx, const struct bytearr *msg)
 {
     /*
      * If the message is larger than one block in size, it will be broken up
@@ -224,40 +207,32 @@ static void add_long_sha1(struct sha1_ctx *ctx, const byte *msg,
      */
     const size_t QUARTER_BLOCK_SIZE = SHA1_BLOCK_BYTES / 4;
 
-    if (msg_len <= SHA1_BLOCK_BYTES) {
-        sha1_add(ctx, msg, msg_len);
+    if (msg->len <= SHA1_BLOCK_BYTES) {
+        sha1_add(ctx, msg->bytes, msg->len);
     }
     else {
-        sha1_add(ctx, msg, QUARTER_BLOCK_SIZE);
-        sha1_add(ctx, msg + QUARTER_BLOCK_SIZE,
-                 msg_len - 2 * QUARTER_BLOCK_SIZE);
-        sha1_add(ctx, msg + msg_len - QUARTER_BLOCK_SIZE, QUARTER_BLOCK_SIZE);
+        sha1_add(ctx, msg->bytes, QUARTER_BLOCK_SIZE);
+        sha1_add(ctx, msg->bytes + QUARTER_BLOCK_SIZE,
+                 msg->len - 2 * QUARTER_BLOCK_SIZE);
+        sha1_add(ctx, msg->bytes + msg->len - QUARTER_BLOCK_SIZE,
+                 QUARTER_BLOCK_SIZE);
     }
 }
 
 static void run_sha1_monte_test(const struct sha1_monte_test *test)
 {
-    byte *seed, *output;
-    size_t seed_len, output_len;
-
-    hex_to_bytes(test->seed, &seed, &seed_len);
-    hex_to_bytes(test->output, &output, &output_len);
-    ASSERT(seed_len == SHA1_DIGEST_BYTES, "Invalid seed size");
-    ASSERT(output_len == SHA1_DIGEST_BYTES, "Invalid output size");
-
-    run_parsed_sha1_monte_test(seed, output);
-
-    free(seed);
-    free(output);
-}
-
-static void run_parsed_sha1_monte_test(const byte *seed, const byte *output)
-{
     const int NIST_MONTE_OUTER_LOOP_SIZE = 100;
     struct sha1_ctx *ctx;
+    struct bytearr seed, output;
     const byte *seed_j;
     byte last_digest_j[SHA1_DIGEST_BYTES];
     int j;
+
+    hex_to_bytearr(&seed, test->seed);
+    hex_to_bytearr(&output, test->output);
+    ASSERT(seed.len == SHA1_DIGEST_BYTES, "Invalid seed size (%zu)", seed.len);
+    ASSERT(output.len == SHA1_DIGEST_BYTES, "Invalid output size (%zu)",
+           output.len);
 
     ctx = sha1_alloc();
     memset(last_digest_j, 0, SHA1_DIGEST_BYTES);
@@ -274,7 +249,7 @@ static void run_parsed_sha1_monte_test(const byte *seed, const byte *output)
      *
      * seed[0] = the provided input seed
      */
-    seed_j = seed;
+    seed_j = seed.bytes;
 
     /*
      * for ( j = 0 to 99 ):
@@ -292,7 +267,7 @@ static void run_parsed_sha1_monte_test(const byte *seed, const byte *output)
      * Note: in the SHAVS CAVP, each md[j][1002] is output as an intermediate
      * computation. Here, we check only the final result.
      */
-    TEST_ASSERT(memcmp(last_digest_j, output, SHA1_DIGEST_BYTES) == 0);
+    TEST_ASSERT(memcmp(last_digest_j, output.bytes, SHA1_DIGEST_BYTES) == 0);
     sha1_free_scrub(ctx);
 }
 
