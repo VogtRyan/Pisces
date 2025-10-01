@@ -53,6 +53,7 @@ int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
  * Guaranteed to be no larger than KDF_MAX_SALT_SIZE.
  */
 size_t kdf_salt_size(const struct kdf *fn);
+size_t kdf_alg_salt_size(kdf_algorithm alg);
 
 /*
  * Returns a human-readable description of the most recent outcome of

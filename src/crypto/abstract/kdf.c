@@ -26,8 +26,8 @@
 #include <stdlib.h>
 
 struct kdf {
+    kdf_algorithm alg;
     chf_algorithm chf_alg;
-    size_t salt_size;
     unsigned int iteration_count;
     int errcode;
 };
@@ -41,17 +41,14 @@ struct kdf *kdf_alloc(kdf_algorithm alg)
 
     switch (alg) {
     case KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256:
-        ret->salt_size = 32;
         ret->iteration_count = 16384;
         ret->chf_alg = CHF_ALG_SHA3_512;
         break;
     case KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256:
-        ret->salt_size = 32;
         ret->iteration_count = 4096;
         ret->chf_alg = CHF_ALG_SHA1;
         break;
     case KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128:
-        ret->salt_size = 16;
         ret->iteration_count = 1024;
         ret->chf_alg = CHF_ALG_SHA1;
         break;
@@ -59,17 +56,21 @@ struct kdf *kdf_alloc(kdf_algorithm alg)
         ASSERT_NEVER_REACH("Invalid KDF algorithm");
     }
 
+    ret->alg = alg;
+
     return ret;
 }
 
 int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
                const char *password, size_t password_len, const byte *salt)
 {
+    size_t salt_size;
     int pbkdf2_ret;
 
+    salt_size = kdf_salt_size(fn);
     pbkdf2_ret =
         pbkdf2_hmac(derived_key, derived_key_len, password, password_len, salt,
-                    fn->salt_size, fn->iteration_count, fn->chf_alg);
+                    salt_size, fn->iteration_count, fn->chf_alg);
 
     switch (pbkdf2_ret) {
     case 0:
@@ -92,7 +93,20 @@ int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
 
 size_t kdf_salt_size(const struct kdf *fn)
 {
-    return fn->salt_size;
+    return kdf_alg_salt_size(fn->alg);
+}
+
+size_t kdf_alg_salt_size(kdf_algorithm alg)
+{
+    switch (alg) {
+    case KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256:
+    case KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256:
+        return 32;
+    case KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128:
+        return 16;
+    default:
+        ASSERT_NEVER_REACH("Invalid KDF algorithm");
+    }
 }
 
 const char *kdf_error(const struct kdf *fn)

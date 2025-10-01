@@ -68,6 +68,7 @@ int chf_single(struct chf_ctx *chf, const byte *msg, size_t msg_len,
  * greater than zero and no larger than CHF_MAX_DIGEST_SIZE.
  */
 size_t chf_digest_size(const struct chf_ctx *chf);
+size_t chf_alg_digest_size(chf_algorithm alg);
 
 /*
  * Returns the hash algorithm's block size. Guaranteed to be greater than zero
@@ -75,6 +76,7 @@ size_t chf_digest_size(const struct chf_ctx *chf);
  * other cryptographic algorithms on top of a cryptographic hash primitive.
  */
 size_t chf_block_size(const struct chf_ctx *chf);
+size_t chf_alg_block_size(chf_algorithm alg);
 
 /*
  * Copies the current content of the src context into the dst context, which

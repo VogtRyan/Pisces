@@ -121,18 +121,21 @@ int cipher_end(struct cipher_ctx *cipher, byte *output, size_t *output_len);
  * no larger than CIPHER_MAX_BLOCK_SIZE.
  */
 size_t cipher_block_size(const struct cipher_ctx *cipher);
+size_t cipher_alg_block_size(cipher_algorithm alg);
 
 /*
  * Returns the size of the initialization vector for the cipher. Guaranteed to
  * be greater than zero and no larger than CIPHER_MAX_IV_SIZE.
  */
 size_t cipher_iv_size(const struct cipher_ctx *cipher);
+size_t cipher_alg_iv_size(cipher_algorithm alg);
 
 /*
  * Returns the key size of the cipher. Guaranteed to be greater than zero and
  * no larger than CIPHER_MAX_KEY_SIZE.
  */
 size_t cipher_key_size(const struct cipher_ctx *cipher);
+size_t cipher_alg_key_size(cipher_algorithm alg);
 
 /*
  * Returns a human-readable description of the most recent outcome of

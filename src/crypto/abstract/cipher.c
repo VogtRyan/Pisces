@@ -27,21 +27,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MIN(a, b)       ((a) < (b) ? (a) : (b))
-#define UNUSED(varname) (void)(varname)
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /*
  * This abstract context contains a struct aes_cbc_ctx *, instead of a void *,
- * because AES-CBC is the only primitive supported. The key_size field is used
- * as a proxy for an abstract type field.
+ * because AES-CBC is the only primitive supported.
  */
 struct cipher_ctx {
     struct aes_cbc_ctx *ctx;
+    cipher_algorithm alg;
     byte input_block[CIPHER_MAX_BLOCK_SIZE];
     byte iv0[CIPHER_MAX_IV_SIZE];
     byte output_block[CIPHER_MAX_BLOCK_SIZE];
     size_t amnt_input;
-    size_t key_size;
     cipher_direction direction;
     int errcode;
     bool direction_set;
@@ -63,25 +61,21 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm alg)
     GUARD_ALLOC(ret);
 
     switch (alg) {
-    case CIPHER_ALG_AES_128_CBC_NOPAD:
-        ret->key_size = AES_CBC_KEY_SIZE_128;
-        break;
     case CIPHER_ALG_AES_128_CBC_PKCS7PAD:
-        ret->key_size = AES_CBC_KEY_SIZE_128;
-        ret->padded = true;
-        break;
-    case CIPHER_ALG_AES_256_CBC_NOPAD:
-        ret->key_size = AES_CBC_KEY_SIZE_256;
-        break;
     case CIPHER_ALG_AES_256_CBC_PKCS7PAD:
-        ret->key_size = AES_CBC_KEY_SIZE_256;
         ret->padded = true;
+        break;
+    case CIPHER_ALG_AES_128_CBC_NOPAD:
+    case CIPHER_ALG_AES_256_CBC_NOPAD:
+        ret->padded = false;
         break;
     default:
         ASSERT_NEVER_REACH("Invalid cipher algorithm");
     }
 
+    ret->alg = alg;
     ret->ctx = aes_cbc_alloc();
+
     return ret;
 }
 
@@ -99,9 +93,12 @@ void cipher_set_direction(struct cipher_ctx *cipher,
 
 void cipher_set_key(struct cipher_ctx *cipher, const byte *key)
 {
+    size_t key_size;
+
     ASSERT(cipher->running == false, "Cannot set key on running cipher");
 
-    aes_cbc_set_key(cipher->ctx, key, cipher->key_size);
+    key_size = cipher_key_size(cipher);
+    aes_cbc_set_key(cipher->ctx, key, key_size);
     cipher->key_set = true;
 }
 
@@ -240,19 +237,51 @@ done:
 
 size_t cipher_block_size(const struct cipher_ctx *cipher)
 {
-    UNUSED(cipher);
+    return cipher_alg_block_size(cipher->alg);
+}
+
+size_t cipher_alg_block_size(cipher_algorithm alg)
+{
+    ASSERT(alg == CIPHER_ALG_AES_128_CBC_NOPAD ||
+               alg == CIPHER_ALG_AES_128_CBC_PKCS7PAD ||
+               alg == CIPHER_ALG_AES_256_CBC_NOPAD ||
+               alg == CIPHER_ALG_AES_256_CBC_PKCS7PAD,
+           "Invalid cipher algorithm");
     return AES_CBC_BLOCK_SIZE;
 }
 
 size_t cipher_iv_size(const struct cipher_ctx *cipher)
 {
-    UNUSED(cipher);
+    return cipher_alg_iv_size(cipher->alg);
+}
+
+size_t cipher_alg_iv_size(cipher_algorithm alg)
+{
+    ASSERT(alg == CIPHER_ALG_AES_128_CBC_NOPAD ||
+               alg == CIPHER_ALG_AES_128_CBC_PKCS7PAD ||
+               alg == CIPHER_ALG_AES_256_CBC_NOPAD ||
+               alg == CIPHER_ALG_AES_256_CBC_PKCS7PAD,
+           "Invalid cipher algorithm");
     return AES_CBC_IV_SIZE;
 }
 
 size_t cipher_key_size(const struct cipher_ctx *cipher)
 {
-    return cipher->key_size;
+    return cipher_alg_key_size(cipher->alg);
+}
+
+size_t cipher_alg_key_size(cipher_algorithm alg)
+{
+    switch (alg) {
+    case CIPHER_ALG_AES_128_CBC_NOPAD:
+    case CIPHER_ALG_AES_128_CBC_PKCS7PAD:
+        return AES_CBC_KEY_SIZE_128;
+    case CIPHER_ALG_AES_256_CBC_NOPAD:
+    case CIPHER_ALG_AES_256_CBC_PKCS7PAD:
+        return AES_CBC_KEY_SIZE_256;
+    default:
+        ASSERT_NEVER_REACH("Invalid cipher algorithm");
+    }
 }
 
 const char *cipher_error(const struct cipher_ctx *cipher)

@@ -28,9 +28,7 @@
 
 struct chf_ctx {
     void *ctx;
-    chf_algorithm type;
-    size_t digest_size;
-    size_t block_size;
+    chf_algorithm alg;
     int errcode;
     bool running;
 };
@@ -51,20 +49,7 @@ struct chf_ctx *chf_alloc(chf_algorithm alg)
     ret = (struct chf_ctx *)calloc(1, sizeof(struct chf_ctx));
     GUARD_ALLOC(ret);
 
-    switch (alg) {
-    case CHF_ALG_SHA1:
-        ret->digest_size = SHA1_DIGEST_BYTES;
-        ret->block_size = SHA1_BLOCK_BYTES;
-        break;
-    case CHF_ALG_SHA3_512:
-        ret->digest_size = SHA3_512_DIGEST_BYTES;
-        ret->block_size = SHA3_512_BLOCK_BYTES;
-        break;
-    default:
-        ASSERT_NEVER_REACH("Invalid CHF algorithm");
-    }
-
-    ret->type = alg;
+    ret->alg = alg;
     chf_ctx_alloc(ret);
     return ret;
 }
@@ -116,12 +101,36 @@ int chf_single(struct chf_ctx *chf, const byte *msg, size_t msg_len,
 
 size_t chf_digest_size(const struct chf_ctx *chf)
 {
-    return chf->digest_size;
+    return chf_alg_digest_size(chf->alg);
+}
+
+size_t chf_alg_digest_size(chf_algorithm alg)
+{
+    switch (alg) {
+    case CHF_ALG_SHA1:
+        return SHA1_DIGEST_BYTES;
+    case CHF_ALG_SHA3_512:
+        return SHA3_512_DIGEST_BYTES;
+    default:
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
+    }
 }
 
 size_t chf_block_size(const struct chf_ctx *chf)
 {
-    return chf->block_size;
+    return chf_alg_block_size(chf->alg);
+}
+
+size_t chf_alg_block_size(chf_algorithm alg)
+{
+    switch (alg) {
+    case CHF_ALG_SHA1:
+        return SHA1_BLOCK_BYTES;
+    case CHF_ALG_SHA3_512:
+        return SHA3_512_BLOCK_BYTES;
+    default:
+        ASSERT_NEVER_REACH("Invalid CHF algorithm");
+    }
 }
 
 void chf_copy(struct chf_ctx *dst, const struct chf_ctx *src)
@@ -129,7 +138,7 @@ void chf_copy(struct chf_ctx *dst, const struct chf_ctx *src)
     if (src == dst) {
         return;
     }
-    ASSERT(src->type == dst->type, "CHF copy with different algorithms");
+    ASSERT(src->alg == dst->alg, "CHF copy with different algorithms");
 
     dst->errcode = src->errcode;
     dst->running = src->running;
@@ -159,7 +168,7 @@ void chf_free_scrub(struct chf_ctx *chf)
 
 static inline void chf_ctx_alloc(struct chf_ctx *chf)
 {
-    switch (chf->type) {
+    switch (chf->alg) {
     case CHF_ALG_SHA1:
         chf->ctx = sha1_alloc();
         break;
@@ -173,7 +182,7 @@ static inline void chf_ctx_alloc(struct chf_ctx *chf)
 
 static inline void chf_ctx_start(struct chf_ctx *chf)
 {
-    switch (chf->type) {
+    switch (chf->alg) {
     case CHF_ALG_SHA1:
         sha1_start((struct sha1_ctx *)chf->ctx);
         break;
@@ -188,7 +197,7 @@ static inline void chf_ctx_start(struct chf_ctx *chf)
 static inline int chf_ctx_add(struct chf_ctx *chf, const byte *msg,
                               size_t msg_len)
 {
-    switch (chf->type) {
+    switch (chf->alg) {
     case CHF_ALG_SHA1:
         return sha1_add((struct sha1_ctx *)chf->ctx, msg, msg_len);
     case CHF_ALG_SHA3_512:
@@ -201,7 +210,7 @@ static inline int chf_ctx_add(struct chf_ctx *chf, const byte *msg,
 
 static inline int chf_ctx_end(struct chf_ctx *chf, byte *digest)
 {
-    switch (chf->type) {
+    switch (chf->alg) {
     case CHF_ALG_SHA1:
         return sha1_end((struct sha1_ctx *)chf->ctx, digest);
     case CHF_ALG_SHA3_512:
@@ -215,7 +224,7 @@ static inline int chf_ctx_end(struct chf_ctx *chf, byte *digest)
 static inline void chf_ctx_copy(struct chf_ctx *dst, const struct chf_ctx *src)
 {
     /* Assumes src != dst, which must be guaranteed by calling function */
-    switch (src->type) {
+    switch (src->alg) {
     case CHF_ALG_SHA1:
         sha1_copy((struct sha1_ctx *)dst->ctx,
                   (const struct sha1_ctx *)src->ctx);
@@ -235,7 +244,7 @@ static inline void chf_ctx_free_scrub(struct chf_ctx *chf)
         return;
     }
 
-    switch (chf->type) {
+    switch (chf->alg) {
     case CHF_ALG_SHA1:
         sha1_free_scrub((struct sha1_ctx *)chf->ctx);
         break;
