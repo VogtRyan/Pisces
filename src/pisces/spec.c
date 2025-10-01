@@ -17,124 +17,33 @@
 #include "spec.h"
 
 #include "common/bytetype.h"
-#include "common/errorflow.h"
-#include "common/scrub.h"
 #include "crypto/abstract/chf.h"
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-#include <stdbool.h>
-
-#define SPEC_VERSION_EARLIEST_SUPPORTED (3U)
-
-struct spec {
-    byte version;
-};
-
-struct spec *spec_alloc(byte version)
+int spec_init(struct spec *ps, unsigned int version)
 {
-    struct spec *ret;
-
-    ASSERT(spec_version_supported(version),
-           "Unsupported Pisces specification (%hhu)", version);
-
-    ret = (struct spec *)calloc(1, sizeof(struct spec));
-    GUARD_ALLOC(ret);
-
-    ret->version = version;
-
-    return ret;
-}
-
-bool spec_version_supported(byte version)
-{
-    return (version >= SPEC_VERSION_EARLIEST_SUPPORTED &&
-            version <= SPEC_VERSION_LATEST);
-}
-
-byte spec_version(const struct spec *ps)
-{
-    return ps->version;
-}
-
-struct cipher_ctx *spec_unpadded_cipher_alloc(const struct spec *ps)
-{
-    struct cipher_ctx *ret;
-
-    switch (ps->version) {
+    switch (version) {
     case 3:
-        ret = cipher_alloc(CIPHER_ALG_AES_128_CBC);
+        ps->chf_alg = CHF_ALG_SHA1;
+        ps->cipher_alg = CIPHER_ALG_AES_128_CBC;
+        ps->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128;
         break;
     case 4:
-        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
+        ps->chf_alg = CHF_ALG_SHA1;
+        ps->cipher_alg = CIPHER_ALG_AES_256_CBC;
+        ps->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256;
         break;
     case 5:
-        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
+        ps->chf_alg = CHF_ALG_SHA3_512;
+        ps->cipher_alg = CIPHER_ALG_AES_256_CBC;
+        ps->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256;
         break;
     default:
-        ASSERT_NEVER_REACH("Illegal Pisces specification version");
+        return -1;
     }
 
-    cipher_set_padding(ret, CIPHER_PADDING_NONE);
-    return ret;
-}
+    ps->version = version;
 
-struct cipher_ctx *spec_padded_cipher_alloc(const struct spec *ps)
-{
-    struct cipher_ctx *ret;
-
-    switch (ps->version) {
-    case 3:
-        ret = cipher_alloc(CIPHER_ALG_AES_128_CBC);
-        break;
-    case 4:
-        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
-        break;
-    case 5:
-        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
-        break;
-    default:
-        ASSERT_NEVER_REACH("Illegal Pisces specification version");
-    }
-
-    cipher_set_padding(ret, CIPHER_PADDING_PKCS7);
-    return ret;
-}
-
-struct chf_ctx *spec_chf_alloc(const struct spec *ps)
-{
-    switch (ps->version) {
-    case 3:
-        return chf_alloc(CHF_ALG_SHA1);
-    case 4:
-        return chf_alloc(CHF_ALG_SHA1);
-    case 5:
-        return chf_alloc(CHF_ALG_SHA3_512);
-    default:
-        ASSERT_NEVER_REACH("Illegal Pisces specification version");
-    }
-}
-
-struct kdf *spec_kdf_alloc(const struct spec *ps)
-{
-    switch (ps->version) {
-    case 3:
-        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128);
-    case 4:
-        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256);
-    case 5:
-        return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256);
-    default:
-        ASSERT_NEVER_REACH("Illegal Pisces specification version");
-    }
-}
-
-void spec_free_scrub(struct spec *ps)
-{
-    if (ps == NULL) {
-        return;
-    }
-
-    scrub_memory(ps, sizeof(struct spec));
-    free(ps);
+    return 0;
 }

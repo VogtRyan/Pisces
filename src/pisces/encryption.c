@@ -128,7 +128,7 @@ static size_t cipher_block_ceiling(size_t bytes,
 
 static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size);
 
-static struct spec *sps = NULL;
+static struct spec sps;
 
 int encrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
@@ -143,7 +143,7 @@ int encrypt_file(const char *input_file, const char *output_file,
     int errval = 0;
 
     /* Catch any errors with the password before we start opening files */
-    sps = spec_alloc(SPEC_VERSION_LATEST);
+    spec_init(&sps, SPEC_VERSION_LATEST);
     rng = cprng_alloc_default();
     generate_salt_ivs(salt, imprint_iv, body_iv, rng);
     if (password_to_key(key, password, password_len, salt)) {
@@ -179,7 +179,6 @@ done:
     if (out != -1) {
         close(out);
     }
-    spec_free_scrub(sps);
     cprng_free_scrub(rng);
     scrub_memory(key, sizeof(key));
     return errval;
@@ -233,97 +232,73 @@ done:
     if (out != -1) {
         close(out);
     }
-    spec_free_scrub(sps);
     scrub_memory(key, sizeof(key));
     return errval;
 }
 
 static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
-    struct cipher_ctx *cipher;
-    struct kdf *kdf_fn;
     size_t iv_len, salt_len;
     byte magic_version;
-    int errval = 0;
 
-    cipher = spec_unpadded_cipher_alloc(sps);
-    iv_len = cipher_iv_size(cipher);
+    iv_len = cipher_alg_iv_size(sps.cipher_alg);
+    salt_len = kdf_alg_salt_size(sps.kdf_alg);
 
-    kdf_fn = spec_kdf_alloc(sps);
-    salt_len = kdf_salt_size(kdf_fn);
+    magic_version = (byte)sps.version;
 
-    magic_version = spec_version(sps);
     if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
                       PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR_GOTO(done, errval, "Could not write magic-byte prefix");
+        ERROR_RETURN("Could not write magic-byte prefix");
     }
-    if (write_exactly(fd, &magic_version, 1)) {
-        ERROR_GOTO(done, errval, "Could not write magic-byte version");
+    if (write_exactly(fd, &magic_version, sizeof(magic_version))) {
+        ERROR_RETURN("Could not write magic-byte version");
     }
-
     if (write_exactly(fd, salt, salt_len)) {
-        ERROR_GOTO(done, errval, "Could not write salt");
+        ERROR_RETURN("Could not write salt");
     }
     if (write_exactly(fd, imprint_iv, iv_len)) {
-        ERROR_GOTO(done, errval, "Could not write imprint IV");
+        ERROR_RETURN("Could not write imprint IV");
     }
     if (write_exactly(fd, body_iv, iv_len)) {
-        ERROR_GOTO(done, errval, "Could not write body IV");
+        ERROR_RETURN("Could not write body IV");
     }
 
-done:
-    cipher_free_scrub(cipher);
-    kdf_free_scrub(kdf_fn);
-    return errval;
+    return 0;
 }
 
 static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
 {
-    struct cipher_ctx *cipher;
-    struct kdf *kdf_fn;
     byte magic_prefix[PISCES_MAGIC_PREFIX_LEN];
     size_t iv_len, salt_len;
     byte magic_version;
-    int errval = 0;
-
-    cipher = NULL;
-    kdf_fn = NULL;
 
     if (read_exactly(fd, magic_prefix, PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR_GOTO(done, errval, "Could not read magic-byte prefix");
+        ERROR_RETURN("Could not read magic-byte prefix");
     }
     if (memcmp(magic_prefix, PISCES_MAGIC_PREFIX, PISCES_MAGIC_PREFIX_LEN)) {
-        ERROR_GOTO(done, errval, MESSAGE_CANNOT_DECRYPT);
+        ERROR_RETURN(MESSAGE_CANNOT_DECRYPT);
     }
-    if (read_exactly(fd, &magic_version, 1)) {
-        ERROR_GOTO(done, errval, "Could not read magic-byte version");
+    if (read_exactly(fd, &magic_version, sizeof(magic_version))) {
+        ERROR_RETURN("Could not read magic-byte version");
     }
-    if (spec_version_supported(magic_version) == false) {
-        ERROR_GOTO(done, errval, "Unsupported Pisces version: %hhu",
-                   magic_version);
+    if (spec_init(&sps, magic_version)) {
+        ERROR_RETURN("Unsupported Pisces version: %hhu", magic_version);
     }
-    sps = spec_alloc(magic_version);
 
-    cipher = spec_unpadded_cipher_alloc(sps);
-    iv_len = cipher_iv_size(cipher);
-
-    kdf_fn = spec_kdf_alloc(sps);
-    salt_len = kdf_salt_size(kdf_fn);
+    iv_len = cipher_alg_iv_size(sps.cipher_alg);
+    salt_len = kdf_alg_salt_size(sps.kdf_alg);
 
     if (read_exactly(fd, salt, salt_len)) {
-        ERROR_GOTO(done, errval, "Could not read salt");
+        ERROR_RETURN("Could not read salt");
     }
     if (read_exactly(fd, imprint_iv, iv_len)) {
-        ERROR_GOTO(done, errval, "Could not read imprint IV");
+        ERROR_RETURN("Could not read imprint IV");
     }
     if (read_exactly(fd, body_iv, iv_len)) {
-        ERROR_GOTO(done, errval, "Could not read body IV");
+        ERROR_RETURN("Could not read body IV");
     }
 
-done:
-    cipher_free_scrub(cipher);
-    kdf_free_scrub(kdf_fn);
-    return errval;
+    return 0;
 }
 
 static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
@@ -338,8 +313,8 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
     size_t bytes_encrypted1, bytes_encrypted2, bytes_encrypted3;
     int errval = 0;
 
-    chf = spec_chf_alloc(sps);
-    cipher = spec_unpadded_cipher_alloc(sps);
+    chf = chf_alloc(sps.chf_alg);
+    cipher = cipher_alloc(sps.cipher_alg);
     hash_len = chf_digest_size(chf);
     compute_imprint_size(&random_len, &total_len, cipher, chf);
 
@@ -356,6 +331,7 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
     cipher_set_iv(cipher, imprint_iv);
     cipher_set_key(cipher, key);
+    cipher_set_padding(cipher, CIPHER_PADDING_NONE);
 
     cipher_start(cipher);
     cipher_add(cipher, random_data, random_len, encrypted_imprint,
@@ -394,8 +370,8 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
     size_t decrypted_len1, decrypted_len2;
     int errval = 0;
 
-    chf = spec_chf_alloc(sps);
-    cipher = spec_unpadded_cipher_alloc(sps);
+    chf = chf_alloc(sps.chf_alg);
+    cipher = cipher_alloc(sps.cipher_alg);
     hash_len = chf_digest_size(chf);
     compute_imprint_size(&random_len, &total_len, cipher, chf);
 
@@ -408,6 +384,7 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
     cipher_set_iv(cipher, imprint_iv);
     cipher_set_key(cipher, key);
+    cipher_set_padding(cipher, CIPHER_PADDING_NONE);
     cipher_start(cipher);
     cipher_add(cipher, encrypted_imprint, total_len, decrypted_imprint,
                &decrypted_len1);
@@ -463,10 +440,11 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
-    cipher = spec_padded_cipher_alloc(sps);
+    cipher = cipher_alloc(sps.cipher_alg);
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
     cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
+    cipher_set_padding(cipher, CIPHER_PADDING_PKCS7);
     cipher_start(cipher);
 
     /*
@@ -549,10 +527,11 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
-    cipher = spec_padded_cipher_alloc(sps);
+    cipher = cipher_alloc(sps.cipher_alg);
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
     cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
+    cipher_set_padding(cipher, CIPHER_PADDING_PKCS7);
     cipher_start(cipher);
 
     hb = holdbuf_alloc(hash_len);
@@ -642,15 +621,10 @@ done:
 static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
                               struct cprng *rng)
 {
-    struct cipher_ctx *cipher;
-    struct kdf *kdf_fn;
     size_t iv_len, salt_len;
 
-    cipher = spec_unpadded_cipher_alloc(sps);
-    iv_len = cipher_iv_size(cipher);
-
-    kdf_fn = spec_kdf_alloc(sps);
-    salt_len = kdf_salt_size(kdf_fn);
+    iv_len = cipher_alg_iv_size(sps.cipher_alg);
+    salt_len = kdf_alg_salt_size(sps.kdf_alg);
 
     cprng_bytes(rng, salt, salt_len);
 
@@ -668,29 +642,23 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
     if (memcmp(iv1, iv2, iv_len) == 0) {
         FATAL_ERROR("Identical IVs generated");
     }
-
-    cipher_free_scrub(cipher);
-    kdf_free_scrub(kdf_fn);
 }
 
 static int password_to_key(byte *derived_key, const char *password,
                            size_t password_len, const byte *salt)
 {
-    struct cipher_ctx *cipher;
     struct kdf *fn;
     size_t key_len;
     int errval = 0;
 
-    cipher = spec_unpadded_cipher_alloc(sps);
-    fn = spec_kdf_alloc(sps);
-    key_len = cipher_key_size(cipher);
+    fn = kdf_alloc(sps.kdf_alg);
+    key_len = cipher_alg_key_size(sps.cipher_alg);
 
     if (kdf_derive(fn, derived_key, key_len, password, password_len, salt)) {
         ERROR_GOTO(done, errval, "Could not derive key - %s", kdf_error(fn));
     }
 
 done:
-    cipher_free_scrub(cipher);
     kdf_free_scrub(fn);
     return errval;
 }
@@ -743,8 +711,8 @@ static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size)
 {
 #ifdef PISCES_NO_MULTITHREAD
     UNUSED(buf_size);
-    return chf_worker_alloc(spec_chf_alloc(sps), 0);
+    return chf_worker_alloc(chf_alloc(sps.chf_alg), 0);
 #else
-    return chf_worker_alloc(spec_chf_alloc(sps), buf_size);
+    return chf_worker_alloc(chf_alloc(sps.chf_alg), buf_size);
 #endif
 }

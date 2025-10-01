@@ -22,38 +22,20 @@
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-#include <stdbool.h>
-
-struct spec;
+struct spec {
+    unsigned int version;
+    chf_algorithm chf_alg;
+    cipher_algorithm cipher_alg;
+    kdf_algorithm kdf_alg;
+};
 
 #define SPEC_VERSION_LATEST (5U)
 
 /*
- * Allocates a Pisces file format specification, which must use a supported
- * file version. Guaranteed to return non-NULL.
+ * Sets the algorithms in the Pisces specification to match those used by the
+ * given version of Pisces. Returns 0 on success, or -1 if the Pisces version
+ * is not supported by this implementation.
  */
-struct spec *spec_alloc(byte version);
-bool spec_version_supported(byte version);
-
-/*
- * Guaranteed to return a value greater than 0 and no greater than
- * SPEC_VERSION_LATEST.
- */
-byte spec_version(const struct spec *ps);
-
-/*
- * Allocates a cipher, hash function, or KDF used by this Pisces file format
- * specification version. Can be called repeatedly.
- */
-struct cipher_ctx *spec_unpadded_cipher_alloc(const struct spec *ps);
-struct cipher_ctx *spec_padded_cipher_alloc(const struct spec *ps);
-struct chf_ctx *spec_chf_alloc(const struct spec *ps);
-struct kdf *spec_kdf_alloc(const struct spec *ps);
-
-/*
- * Frees a Pisces file format specification allocated with spec_alloc() and
- * securely scrubs its memory. Calling with NULL is a no-op.
- */
-void spec_free_scrub(struct spec *ps);
+int spec_init(struct spec *ps, unsigned int version);
 
 #endif
