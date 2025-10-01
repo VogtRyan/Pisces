@@ -27,7 +27,7 @@
 #include "pisces/chfworker.h"
 #include "pisces/holdbuf.h"
 #include "pisces/iowrap.h"
-#include "pisces/version.h"
+#include "pisces/spec.h"
 
 #include <fcntl.h>
 #include <string.h>
@@ -128,6 +128,8 @@ static size_t cipher_block_ceiling(size_t bytes,
 
 static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size);
 
+static struct spec *sps = NULL;
+
 int encrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
@@ -141,6 +143,7 @@ int encrypt_file(const char *input_file, const char *output_file,
     int errval = 0;
 
     /* Catch any errors with the password before we start opening files */
+    sps = spec_alloc(SPEC_VERSION_LATEST);
     rng = cprng_alloc_default();
     generate_salt_ivs(salt, imprint_iv, body_iv, rng);
     if (password_to_key(key, password, password_len, salt)) {
@@ -176,6 +179,7 @@ done:
     if (out != -1) {
         close(out);
     }
+    spec_free_scrub(sps);
     cprng_free_scrub(rng);
     scrub_memory(key, sizeof(key));
     return errval;
@@ -229,6 +233,7 @@ done:
     if (out != -1) {
         close(out);
     }
+    spec_free_scrub(sps);
     scrub_memory(key, sizeof(key));
     return errval;
 }
@@ -241,13 +246,13 @@ static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
     byte magic_version;
     int errval = 0;
 
-    cipher = pisces_unpadded_cipher_alloc();
+    cipher = spec_unpadded_cipher_alloc(sps);
     iv_len = cipher_iv_size(cipher);
 
-    kdf_fn = pisces_kdf_alloc();
+    kdf_fn = spec_kdf_alloc(sps);
     salt_len = kdf_salt_size(kdf_fn);
 
-    magic_version = (byte)pisces_get_version();
+    magic_version = spec_version(sps);
     if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
                       PISCES_MAGIC_PREFIX_LEN)) {
         ERROR_GOTO(done, errval, "Could not write magic-byte prefix");
@@ -281,11 +286,8 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
     byte magic_version;
     int errval = 0;
 
-    cipher = pisces_unpadded_cipher_alloc();
-    iv_len = cipher_iv_size(cipher);
-
-    kdf_fn = pisces_kdf_alloc();
-    salt_len = kdf_salt_size(kdf_fn);
+    cipher = NULL;
+    kdf_fn = NULL;
 
     if (read_exactly(fd, magic_prefix, PISCES_MAGIC_PREFIX_LEN)) {
         ERROR_GOTO(done, errval, "Could not read magic-byte prefix");
@@ -296,10 +298,17 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv)
     if (read_exactly(fd, &magic_version, 1)) {
         ERROR_GOTO(done, errval, "Could not read magic-byte version");
     }
-    if (pisces_set_version((int)magic_version)) {
-        ERROR_GOTO(done, errval, "Unsupported Pisces version: %d",
-                   (int)magic_version);
+    if (spec_version_supported(magic_version) == false) {
+        ERROR_GOTO(done, errval, "Unsupported Pisces version: %hhu",
+                   magic_version);
     }
+    sps = spec_alloc(magic_version);
+
+    cipher = spec_unpadded_cipher_alloc(sps);
+    iv_len = cipher_iv_size(cipher);
+
+    kdf_fn = spec_kdf_alloc(sps);
+    salt_len = kdf_salt_size(kdf_fn);
 
     if (read_exactly(fd, salt, salt_len)) {
         ERROR_GOTO(done, errval, "Could not read salt");
@@ -329,8 +338,8 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
     size_t bytes_encrypted1, bytes_encrypted2, bytes_encrypted3;
     int errval = 0;
 
-    chf = pisces_chf_alloc();
-    cipher = pisces_unpadded_cipher_alloc();
+    chf = spec_chf_alloc(sps);
+    cipher = spec_unpadded_cipher_alloc(sps);
     hash_len = chf_digest_size(chf);
     compute_imprint_size(&random_len, &total_len, cipher, chf);
 
@@ -385,8 +394,8 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv)
     size_t decrypted_len1, decrypted_len2;
     int errval = 0;
 
-    chf = pisces_chf_alloc();
-    cipher = pisces_unpadded_cipher_alloc();
+    chf = spec_chf_alloc(sps);
+    cipher = spec_unpadded_cipher_alloc(sps);
     hash_len = chf_digest_size(chf);
     compute_imprint_size(&random_len, &total_len, cipher, chf);
 
@@ -454,7 +463,7 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv)
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
-    cipher = pisces_padded_cipher_alloc();
+    cipher = spec_padded_cipher_alloc(sps);
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
     cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
@@ -540,7 +549,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv)
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
-    cipher = pisces_padded_cipher_alloc();
+    cipher = spec_padded_cipher_alloc(sps);
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
     cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
@@ -637,10 +646,10 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
     struct kdf *kdf_fn;
     size_t iv_len, salt_len;
 
-    cipher = pisces_unpadded_cipher_alloc();
+    cipher = spec_unpadded_cipher_alloc(sps);
     iv_len = cipher_iv_size(cipher);
 
-    kdf_fn = pisces_kdf_alloc();
+    kdf_fn = spec_kdf_alloc(sps);
     salt_len = kdf_salt_size(kdf_fn);
 
     cprng_bytes(rng, salt, salt_len);
@@ -672,8 +681,8 @@ static int password_to_key(byte *derived_key, const char *password,
     size_t key_len;
     int errval = 0;
 
-    cipher = pisces_unpadded_cipher_alloc();
-    fn = pisces_kdf_alloc();
+    cipher = spec_unpadded_cipher_alloc(sps);
+    fn = spec_kdf_alloc(sps);
     key_len = cipher_key_size(cipher);
 
     if (kdf_derive(fn, derived_key, key_len, password, password_len, salt)) {
@@ -734,8 +743,8 @@ static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size)
 {
 #ifdef PISCES_NO_MULTITHREAD
     UNUSED(buf_size);
-    return chf_worker_alloc(pisces_chf_alloc(), 0);
+    return chf_worker_alloc(spec_chf_alloc(sps), 0);
 #else
-    return chf_worker_alloc(pisces_chf_alloc(), buf_size);
+    return chf_worker_alloc(spec_chf_alloc(sps), buf_size);
 #endif
 }

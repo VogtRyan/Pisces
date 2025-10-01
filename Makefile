@@ -263,7 +263,7 @@ PISCES_OBJS = src/pisces/pisces.o src/crypto/abstract/chf.o \
   src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o \
   src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pisces/chfworker.o \
   src/pisces/encryption.o src/pisces/holdbuf.o src/pisces/iowrap.o \
-  src/pisces/password.o src/pisces/version.o
+  src/pisces/password.o src/pisces/spec.o
 PISCES_LIBS = -pthread
 
 ${BINDIR}/pisces: ${PISCES_OBJS}
@@ -411,6 +411,10 @@ src/crypto/random/rdev.o: src/crypto/random/rdev.c \
   src/crypto/random/rdev.h src/common/bytetype.h src/common/errorflow.h
 src/crypto/random/rarc4.o: src/crypto/random/rarc4.c \
   src/crypto/random/rarc4.h src/common/bytetype.h src/common/errorflow.h
+src/pisces/spec.o: src/pisces/spec.c src/pisces/spec.h \
+  src/crypto/abstract/chf.h src/common/bytetype.h \
+  src/crypto/abstract/cipher.h src/crypto/abstract/kdf.h \
+  src/common/errorflow.h src/common/scrub.h
 src/pisces/chfworker.o: src/pisces/chfworker.c src/pisces/chfworker.h \
   src/common/bytetype.h src/crypto/abstract/chf.h src/common/errorflow.h \
   src/common/scrub.h
@@ -421,21 +425,15 @@ src/pisces/iowrap.o: src/pisces/iowrap.c src/pisces/iowrap.h \
   src/common/bytetype.h src/common/errorflow.h
 src/pisces/holdbuf.o: src/pisces/holdbuf.c src/pisces/holdbuf.h \
   src/common/bytetype.h src/common/errorflow.h src/common/scrub.h
-src/pisces/version.o: src/pisces/version.c src/pisces/version.h \
-  src/crypto/abstract/chf.h src/common/bytetype.h \
-  src/crypto/abstract/cipher.h src/crypto/abstract/kdf.h \
-  src/common/errorflow.h
 src/pisces/encryption.o: src/pisces/encryption.c src/pisces/encryption.h \
   src/common/bytetype.h src/common/config.h src/common/errorflow.h \
   src/common/scrub.h src/crypto/abstract/chf.h \
   src/crypto/abstract/cipher.h src/crypto/abstract/cprng.h \
   src/crypto/abstract/kdf.h src/pisces/chfworker.h src/pisces/holdbuf.h \
-  src/pisces/iowrap.h src/pisces/version.h
+  src/pisces/iowrap.h src/pisces/spec.h
 src/pisces/pisces.o: src/pisces/pisces.c src/pisces/encryption.h \
-  src/pisces/password.h src/common/config.h src/pisces/version.h \
-  src/crypto/abstract/chf.h src/common/bytetype.h \
-  src/crypto/abstract/cipher.h src/crypto/abstract/kdf.h \
-  src/common/errorflow.h src/common/scrub.h
+  src/pisces/password.h src/common/config.h src/common/errorflow.h \
+  src/common/scrub.h src/common/bytetype.h
 src/pwgen/hex.o: src/pwgen/hex.c src/pwgen/hex.h src/common/bytetype.h \
   src/common/errorflow.h src/common/scrub.h src/crypto/abstract/cprng.h
 src/pwgen/ascii.o: src/pwgen/ascii.c src/pwgen/ascii.h \

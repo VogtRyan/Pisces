@@ -14,33 +14,52 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "version.h"
+#include "spec.h"
 
+#include "common/bytetype.h"
 #include "common/errorflow.h"
+#include "common/scrub.h"
 #include "crypto/abstract/chf.h"
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-static int pisces_version = PISCES_VERSION_NEWEST;
+#include <stdbool.h>
 
-int pisces_set_version(int version)
+#define SPEC_VERSION_EARLIEST_SUPPORTED (3U)
+
+struct spec {
+    byte version;
+};
+
+struct spec *spec_alloc(byte version)
 {
-    if (version < PISCES_VERSION_EARLIEST_SUPPORTED ||
-        version > PISCES_VERSION_NEWEST) {
-        return -1;
-    }
-    pisces_version = version;
-    return 0;
+    struct spec *ret;
+
+    ASSERT(spec_version_supported(version),
+           "Unsupported Pisces specification (%hhu)", version);
+
+    ret = (struct spec *)calloc(1, sizeof(struct spec));
+    GUARD_ALLOC(ret);
+
+    ret->version = version;
+
+    return ret;
 }
 
-int pisces_get_version(void)
+bool spec_version_supported(byte version)
 {
-    return pisces_version;
+    return (version >= SPEC_VERSION_EARLIEST_SUPPORTED &&
+            version <= SPEC_VERSION_LATEST);
 }
 
-struct cipher_ctx *pisces_unpadded_cipher_alloc(void)
+byte spec_version(const struct spec *ps)
 {
-    switch (pisces_version) {
+    return ps->version;
+}
+
+struct cipher_ctx *spec_unpadded_cipher_alloc(const struct spec *ps)
+{
+    switch (ps->version) {
     case 3:
         return cipher_alloc(CIPHER_ALG_AES_128_CBC_NOPAD);
     case 4:
@@ -48,13 +67,13 @@ struct cipher_ctx *pisces_unpadded_cipher_alloc(void)
     case 5:
         return cipher_alloc(CIPHER_ALG_AES_256_CBC_NOPAD);
     default:
-        ASSERT_NEVER_REACH("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces specification version");
     }
 }
 
-struct cipher_ctx *pisces_padded_cipher_alloc(void)
+struct cipher_ctx *spec_padded_cipher_alloc(const struct spec *ps)
 {
-    switch (pisces_version) {
+    switch (ps->version) {
     case 3:
         return cipher_alloc(CIPHER_ALG_AES_128_CBC_PKCS7PAD);
     case 4:
@@ -62,13 +81,13 @@ struct cipher_ctx *pisces_padded_cipher_alloc(void)
     case 5:
         return cipher_alloc(CIPHER_ALG_AES_256_CBC_PKCS7PAD);
     default:
-        ASSERT_NEVER_REACH("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces specification version");
     }
 }
 
-struct chf_ctx *pisces_chf_alloc(void)
+struct chf_ctx *spec_chf_alloc(const struct spec *ps)
 {
-    switch (pisces_version) {
+    switch (ps->version) {
     case 3:
         return chf_alloc(CHF_ALG_SHA1);
     case 4:
@@ -76,13 +95,13 @@ struct chf_ctx *pisces_chf_alloc(void)
     case 5:
         return chf_alloc(CHF_ALG_SHA3_512);
     default:
-        ASSERT_NEVER_REACH("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces specification version");
     }
 }
 
-struct kdf *pisces_kdf_alloc(void)
+struct kdf *spec_kdf_alloc(const struct spec *ps)
 {
-    switch (pisces_version) {
+    switch (ps->version) {
     case 3:
         return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128);
     case 4:
@@ -90,6 +109,16 @@ struct kdf *pisces_kdf_alloc(void)
     case 5:
         return kdf_alloc(KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256);
     default:
-        ASSERT_NEVER_REACH("Illegal Pisces version");
+        ASSERT_NEVER_REACH("Illegal Pisces specification version");
     }
+}
+
+void spec_free_scrub(struct spec *ps)
+{
+    if (ps == NULL) {
+        return;
+    }
+
+    scrub_memory(ps, sizeof(struct spec));
+    free(ps);
 }

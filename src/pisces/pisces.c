@@ -16,7 +16,6 @@
 
 #include "encryption.h"
 #include "password.h"
-#include "version.h"
 
 #include "common/config.h"
 #include "common/errorflow.h"
@@ -185,7 +184,6 @@ static int run_cipher_op(const char *input_file, const char *output_file,
                          bool encrypt)
 {
     if (encrypt) {
-        pisces_set_version(PISCES_VERSION_NEWEST);
         return encrypt_file(input_file, output_file, password, password_len);
     }
     else {
