@@ -59,30 +59,46 @@ byte spec_version(const struct spec *ps)
 
 struct cipher_ctx *spec_unpadded_cipher_alloc(const struct spec *ps)
 {
+    struct cipher_ctx *ret;
+
     switch (ps->version) {
     case 3:
-        return cipher_alloc(CIPHER_ALG_AES_128_CBC_NOPAD);
+        ret = cipher_alloc(CIPHER_ALG_AES_128_CBC);
+        break;
     case 4:
-        return cipher_alloc(CIPHER_ALG_AES_256_CBC_NOPAD);
+        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
+        break;
     case 5:
-        return cipher_alloc(CIPHER_ALG_AES_256_CBC_NOPAD);
+        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
+        break;
     default:
         ASSERT_NEVER_REACH("Illegal Pisces specification version");
     }
+
+    cipher_set_padding(ret, CIPHER_PADDING_NONE);
+    return ret;
 }
 
 struct cipher_ctx *spec_padded_cipher_alloc(const struct spec *ps)
 {
+    struct cipher_ctx *ret;
+
     switch (ps->version) {
     case 3:
-        return cipher_alloc(CIPHER_ALG_AES_128_CBC_PKCS7PAD);
+        ret = cipher_alloc(CIPHER_ALG_AES_128_CBC);
+        break;
     case 4:
-        return cipher_alloc(CIPHER_ALG_AES_256_CBC_PKCS7PAD);
+        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
+        break;
     case 5:
-        return cipher_alloc(CIPHER_ALG_AES_256_CBC_PKCS7PAD);
+        ret = cipher_alloc(CIPHER_ALG_AES_256_CBC);
+        break;
     default:
         ASSERT_NEVER_REACH("Illegal Pisces specification version");
     }
+
+    cipher_set_padding(ret, CIPHER_PADDING_PKCS7);
+    return ret;
 }
 
 struct chf_ctx *spec_chf_alloc(const struct spec *ps)

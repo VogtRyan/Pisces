@@ -33,16 +33,19 @@
 #define CIPHER_ERROR_INVALID_PAD_DATA              (-3)
 
 typedef enum {
-    CIPHER_ALG_AES_128_CBC_NOPAD,
-    CIPHER_ALG_AES_128_CBC_PKCS7PAD,
-    CIPHER_ALG_AES_256_CBC_NOPAD,
-    CIPHER_ALG_AES_256_CBC_PKCS7PAD
+    CIPHER_ALG_AES_128_CBC,
+    CIPHER_ALG_AES_256_CBC,
 } cipher_algorithm;
 
 typedef enum {
+    CIPHER_DIRECTION_DECRYPT,
     CIPHER_DIRECTION_ENCRYPT,
-    CIPHER_DIRECTION_DECRYPT
 } cipher_direction;
+
+typedef enum {
+    CIPHER_PADDING_NONE,
+    CIPHER_PADDING_PKCS7,
+} cipher_padding;
 
 struct cipher_ctx;
 
@@ -60,13 +63,6 @@ void cipher_set_direction(struct cipher_ctx *cipher,
                           cipher_direction direction);
 
 /*
- * Sets the encryption key. Must be called prior to starting a cipher
- * operation. The key must be exactly cipher_key_size() bytes, which is
- * guaranteed to be no larger than CIPHER_MAX_KEY_SIZE.
- */
-void cipher_set_key(struct cipher_ctx *cipher, const byte *key);
-
-/*
  * Sets the initialization vector. Must be called prior to starting a cipher
  * operation. The IV must be exactly cipher_iv_size() bytes, which is
  * guaranteed to be no larger than CIPHER_MAX_IV_SIZE.
@@ -78,8 +74,22 @@ void cipher_set_key(struct cipher_ctx *cipher, const byte *key);
 void cipher_set_iv(struct cipher_ctx *cipher, const byte *iv);
 
 /*
+ * Sets the encryption key. Must be called prior to starting a cipher
+ * operation. The key must be exactly cipher_key_size() bytes, which is
+ * guaranteed to be no larger than CIPHER_MAX_KEY_SIZE.
+ */
+void cipher_set_key(struct cipher_ctx *cipher, const byte *key);
+
+/*
+ * Sets the padding scheme. Must be called prior to starting a cipher
+ * operation.
+ */
+void cipher_set_padding(struct cipher_ctx *cipher, cipher_padding scheme);
+
+/*
  * Starts a new cipher operation using the parameters set with
- * cipher_set_direction(), cipher_set_key(), and cipher_set_iv().
+ * cipher_set_direction(), cipher_set_iv(), cipher_set_key(), and
+ * cipher_set_padding().
  */
 void cipher_start(struct cipher_ctx *cipher);
 

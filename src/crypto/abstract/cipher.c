@@ -47,6 +47,7 @@ struct cipher_ctx {
     bool iv_set;
     bool key_set;
     bool padded;
+    bool padding_set;
     bool running;
 };
 
@@ -57,21 +58,11 @@ struct cipher_ctx *cipher_alloc(cipher_algorithm alg)
 {
     struct cipher_ctx *ret;
 
+    ASSERT(alg == CIPHER_ALG_AES_128_CBC || alg == CIPHER_ALG_AES_256_CBC,
+           "Invalid cipher algorithm");
+
     ret = calloc(1, sizeof(struct cipher_ctx));
     GUARD_ALLOC(ret);
-
-    switch (alg) {
-    case CIPHER_ALG_AES_128_CBC_PKCS7PAD:
-    case CIPHER_ALG_AES_256_CBC_PKCS7PAD:
-        ret->padded = true;
-        break;
-    case CIPHER_ALG_AES_128_CBC_NOPAD:
-    case CIPHER_ALG_AES_256_CBC_NOPAD:
-        ret->padded = false;
-        break;
-    default:
-        ASSERT_NEVER_REACH("Invalid cipher algorithm");
-    }
 
     ret->alg = alg;
     ret->ctx = aes_cbc_alloc();
@@ -91,6 +82,14 @@ void cipher_set_direction(struct cipher_ctx *cipher,
     cipher->direction_set = true;
 }
 
+void cipher_set_iv(struct cipher_ctx *cipher, const byte *iv)
+{
+    ASSERT(cipher->running == false, "Cannot set IV on running cipher");
+
+    memcpy(cipher->iv0, iv, AES_CBC_IV_SIZE);
+    cipher->iv_set = true;
+}
+
 void cipher_set_key(struct cipher_ctx *cipher, const byte *key)
 {
     size_t key_size;
@@ -102,12 +101,22 @@ void cipher_set_key(struct cipher_ctx *cipher, const byte *key)
     cipher->key_set = true;
 }
 
-void cipher_set_iv(struct cipher_ctx *cipher, const byte *iv)
+void cipher_set_padding(struct cipher_ctx *cipher, cipher_padding scheme)
 {
-    ASSERT(cipher->running == false, "Cannot set IV on running cipher");
+    ASSERT(cipher->running == false, "Cannot set padding on running cipher");
 
-    memcpy(cipher->iv0, iv, AES_CBC_IV_SIZE);
-    cipher->iv_set = true;
+    switch (scheme) {
+    case CIPHER_PADDING_NONE:
+        cipher->padded = false;
+        break;
+    case CIPHER_PADDING_PKCS7:
+        cipher->padded = true;
+        break;
+    default:
+        ASSERT_NEVER_REACH("Invalid cipher padding scheme");
+    }
+
+    cipher->padding_set = true;
 }
 
 void cipher_start(struct cipher_ctx *cipher)
@@ -115,6 +124,7 @@ void cipher_start(struct cipher_ctx *cipher)
     ASSERT(cipher->direction_set, "Cannot start cipher without direction");
     ASSERT(cipher->iv_set, "Cannot start cipher without IV");
     ASSERT(cipher->key_set, "Cannot start cipher without key");
+    ASSERT(cipher->padding_set, "Cannot start cipher without padding scheme");
 
     cipher->running = true;
     cipher->errcode = 0;
@@ -242,10 +252,7 @@ size_t cipher_block_size(const struct cipher_ctx *cipher)
 
 size_t cipher_alg_block_size(cipher_algorithm alg)
 {
-    ASSERT(alg == CIPHER_ALG_AES_128_CBC_NOPAD ||
-               alg == CIPHER_ALG_AES_128_CBC_PKCS7PAD ||
-               alg == CIPHER_ALG_AES_256_CBC_NOPAD ||
-               alg == CIPHER_ALG_AES_256_CBC_PKCS7PAD,
+    ASSERT(alg == CIPHER_ALG_AES_128_CBC || alg == CIPHER_ALG_AES_256_CBC,
            "Invalid cipher algorithm");
     return AES_CBC_BLOCK_SIZE;
 }
@@ -257,10 +264,7 @@ size_t cipher_iv_size(const struct cipher_ctx *cipher)
 
 size_t cipher_alg_iv_size(cipher_algorithm alg)
 {
-    ASSERT(alg == CIPHER_ALG_AES_128_CBC_NOPAD ||
-               alg == CIPHER_ALG_AES_128_CBC_PKCS7PAD ||
-               alg == CIPHER_ALG_AES_256_CBC_NOPAD ||
-               alg == CIPHER_ALG_AES_256_CBC_PKCS7PAD,
+    ASSERT(alg == CIPHER_ALG_AES_128_CBC || alg == CIPHER_ALG_AES_256_CBC,
            "Invalid cipher algorithm");
     return AES_CBC_IV_SIZE;
 }
@@ -273,11 +277,9 @@ size_t cipher_key_size(const struct cipher_ctx *cipher)
 size_t cipher_alg_key_size(cipher_algorithm alg)
 {
     switch (alg) {
-    case CIPHER_ALG_AES_128_CBC_NOPAD:
-    case CIPHER_ALG_AES_128_CBC_PKCS7PAD:
+    case CIPHER_ALG_AES_128_CBC:
         return AES_CBC_KEY_SIZE_128;
-    case CIPHER_ALG_AES_256_CBC_NOPAD:
-    case CIPHER_ALG_AES_256_CBC_PKCS7PAD:
+    case CIPHER_ALG_AES_256_CBC:
         return AES_CBC_KEY_SIZE_256;
     default:
         ASSERT_NEVER_REACH("Invalid cipher algorithm");
