@@ -127,12 +127,10 @@ static int password_to_key(byte *derived_key, const char *password,
 
 static void compute_imprint_size(size_t *random_data_size,
                                  size_t *total_imprint_size,
-                                 const struct cipher_ctx *cipher,
-                                 const struct chf_ctx *chf);
-static size_t cipher_block_ceiling(size_t bytes,
-                                   const struct cipher_ctx *cipher);
+                                 struct spec pspec);
+static size_t ceiling_to_multiple(size_t num_bytes, size_t block_len);
 
-static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size,
+static struct chf_worker *configured_chf_worker_alloc(size_t buf_size,
                                                       struct spec pspec);
 
 int encrypt_file(const char *input_file, const char *output_file,
@@ -148,9 +146,10 @@ int encrypt_file(const char *input_file, const char *output_file,
     int out = -1;
     int errval = 0;
 
-    /* Catch any errors with the password before we start opening files */
-    spec_init(&pspec, SPEC_VERSION_LATEST);
     rng = cprng_alloc_default();
+    spec_init(&pspec, SPEC_VERSION_LATEST);
+
+    /* Catch any errors with the password before we start opening files */
     generate_salt_ivs(salt, imprint_iv, body_iv, rng, pspec);
     if (password_to_key(key, password, password_len, salt, pspec)) {
         ERROR_GOTO_SILENT(done, errval);
@@ -324,7 +323,7 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
     chf = chf_alloc(pspec.chf_alg);
     cipher = cipher_alloc(pspec.cipher_alg);
     hash_len = chf_digest_size(chf);
-    compute_imprint_size(&random_len, &total_len, cipher, chf);
+    compute_imprint_size(&random_len, &total_len, pspec);
 
     /*
      * The number of random bytes is small enough that we can generate them and
@@ -382,7 +381,7 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv,
     chf = chf_alloc(pspec.chf_alg);
     cipher = cipher_alloc(pspec.cipher_alg);
     hash_len = chf_digest_size(chf);
-    compute_imprint_size(&random_len, &total_len, cipher, chf);
+    compute_imprint_size(&random_len, &total_len, pspec);
 
     /* Read the entire imprint */
     if (read_exactly(fd, encrypted_imprint, total_len)) {
@@ -395,6 +394,7 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv,
     cipher_set_key(cipher, key);
     cipher_set_padding(cipher, CIPHER_PADDING_NONE);
     cipher_start(cipher);
+
     cipher_add(cipher, encrypted_imprint, total_len, decrypted_imprint,
                &decrypted_len1);
     if (cipher_end(cipher, decrypted_imprint + decrypted_len1,
@@ -446,7 +446,7 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv,
     size_t hash_len, bytes_read, bytes_encrypted;
     int errval = 0;
 
-    chfw = chf_worker_alloc_per_config(sizeof(input), pspec);
+    chfw = configured_chf_worker_alloc(sizeof(input), pspec);
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
@@ -534,7 +534,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
     size_t hash_len, bytes_read, bytes_decrypted, bytes_from_hb;
     int errval = 0;
 
-    chfw = chf_worker_alloc_per_config(sizeof(data_from_hb), pspec);
+    chfw = configured_chf_worker_alloc(sizeof(data_from_hb), pspec);
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
@@ -676,16 +676,14 @@ done:
 }
 
 static void compute_imprint_size(size_t *random_data_size,
-                                 size_t *total_imprint_size,
-                                 const struct cipher_ctx *cipher,
-                                 const struct chf_ctx *chf)
+                                 size_t *total_imprint_size, struct spec pspec)
 {
     size_t hash_len, block_len, key_len, max, required;
 
     /* Amount of random data is guaranteed to be as large as each of these */
-    hash_len = chf_digest_size(chf);
-    block_len = cipher_block_size(cipher);
-    key_len = cipher_key_size(cipher);
+    hash_len = chf_alg_digest_size(pspec.chf_alg);
+    block_len = cipher_alg_block_size(pspec.cipher_alg);
+    key_len = cipher_alg_key_size(pspec.cipher_alg);
     max = MAX(hash_len, block_len, key_len);
 
     /* The imprint also includes the hash of the random data */
@@ -697,29 +695,26 @@ static void compute_imprint_size(size_t *random_data_size,
      * size, so we might need to make the random data slightly larger, to fill
      * out a final block.
      */
-    *total_imprint_size = cipher_block_ceiling(required, cipher);
+    *total_imprint_size = ceiling_to_multiple(required, block_len);
     *random_data_size = (*total_imprint_size) - hash_len;
 }
 
-static size_t cipher_block_ceiling(size_t bytes,
-                                   const struct cipher_ctx *cipher)
+static size_t ceiling_to_multiple(size_t num_bytes, size_t block_len)
 {
-    size_t block_size, remainder, res;
+    size_t remainder, res;
 
-    /* Ceiling to a multiple of the cipher's block size */
-    block_size = cipher_block_size(cipher);
-    remainder = bytes % block_size;
+    remainder = num_bytes % block_len;
     if (remainder == 0) {
-        return bytes;
+        return num_bytes;
     }
     else {
-        res = bytes + (block_size - remainder);
-        ASSERT(res >= bytes, "Addition overflow computing block ceiling");
+        res = num_bytes + (block_len - remainder);
+        ASSERT(res >= num_bytes, "Addition overflow computing block ceiling");
         return res;
     }
 }
 
-static struct chf_worker *chf_worker_alloc_per_config(size_t buf_size,
+static struct chf_worker *configured_chf_worker_alloc(size_t buf_size,
                                                       struct spec pspec)
 {
 #ifdef PISCES_NO_MULTITHREAD
