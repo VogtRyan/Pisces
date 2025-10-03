@@ -413,8 +413,7 @@ src/crypto/random/rarc4.o: src/crypto/random/rarc4.c \
   src/crypto/random/rarc4.h src/common/bytetype.h src/common/errorflow.h
 src/pisces/spec.o: src/pisces/spec.c src/pisces/spec.h \
   src/crypto/abstract/chf.h src/common/bytetype.h \
-  src/crypto/abstract/cipher.h src/crypto/abstract/kdf.h \
-  src/common/errorflow.h src/common/scrub.h
+  src/crypto/abstract/cipher.h src/crypto/abstract/kdf.h
 src/pisces/chfworker.o: src/pisces/chfworker.c src/pisces/chfworker.h \
   src/common/bytetype.h src/crypto/abstract/chf.h src/common/errorflow.h \
   src/common/scrub.h
