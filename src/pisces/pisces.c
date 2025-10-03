@@ -183,12 +183,17 @@ static int run_cipher_op(const char *input_file, const char *output_file,
                          const char *password, size_t password_len,
                          bool encrypt)
 {
+    int ret;
+
     if (encrypt) {
-        return encrypt_file(input_file, output_file, password, password_len);
+        ret = encrypt_file(input_file, output_file, password, password_len);
     }
     else {
-        return decrypt_file(input_file, output_file, password, password_len);
+        ret = decrypt_file(input_file, output_file, password, password_len);
     }
+
+    scrub_memory(&password_len, sizeof(password_len));
+    return ret;
 }
 
 static void usage(void)
