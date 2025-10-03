@@ -16,7 +16,6 @@
 
 #include "spec.h"
 
-#include "common/bytetype.h"
 #include "crypto/abstract/chf.h"
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"

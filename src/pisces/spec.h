@@ -17,7 +17,6 @@
 #ifndef PISCES_PISCES_SPEC_H_
 #define PISCES_PISCES_SPEC_H_
 
-#include "common/bytetype.h"
 #include "crypto/abstract/chf.h"
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
