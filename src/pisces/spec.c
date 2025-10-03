@@ -20,7 +20,7 @@
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-int spec_init(struct spec *ps, unsigned int version)
+int pisces_spec_init(struct pisces_spec *ps, unsigned int version)
 {
     switch (version) {
     case 3:

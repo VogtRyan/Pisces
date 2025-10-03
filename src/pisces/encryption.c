@@ -104,40 +104,40 @@
 #define UNUSED(varname) (void)(varname)
 
 static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
-                        struct spec pspec);
+                        struct pisces_spec ps);
 static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
-                       struct spec *pspec);
+                       struct pisces_spec *ps);
 
 static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
-                         struct cprng *rng, struct spec pspec);
+                         struct cprng *rng, struct pisces_spec ps);
 static int read_imprint(int fd, const byte *key, const byte *imprint_iv,
-                        struct spec pspec);
+                        struct pisces_spec ps);
 
 static int encrypt_body(int in, int out, const byte *key, const byte *body_iv,
-                        struct spec pspec);
+                        struct pisces_spec ps);
 static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
-                        struct spec pspec);
+                        struct pisces_spec ps);
 
 static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
-                              struct cprng *rng, struct spec pspec);
+                              struct cprng *rng, struct pisces_spec ps);
 
 static int password_to_key(byte *derived_key, const char *password,
                            size_t password_len, const byte *salt,
-                           struct spec pspec);
+                           struct pisces_spec ps);
 
 static void compute_imprint_size(size_t *random_data_size,
                                  size_t *total_imprint_size,
-                                 struct spec pspec);
+                                 struct pisces_spec ps);
 static size_t ceiling_to_multiple(size_t num_bytes, size_t block_len);
 
 static struct chf_worker *configured_chf_worker_alloc(size_t buf_size,
-                                                      struct spec pspec);
+                                                      struct pisces_spec ps);
 
 int encrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
     struct cprng *rng;
-    struct spec pspec;
+    struct pisces_spec ps;
     byte body_iv[CIPHER_MAX_IV_SIZE];
     byte imprint_iv[CIPHER_MAX_IV_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
@@ -147,11 +147,11 @@ int encrypt_file(const char *input_file, const char *output_file,
     int errval = 0;
 
     rng = cprng_alloc_default();
-    spec_init(&pspec, SPEC_VERSION_LATEST);
+    pisces_spec_init(&ps, PISCES_SPEC_VERSION_LATEST);
 
     /* Catch any errors with the password before we start opening files */
-    generate_salt_ivs(salt, imprint_iv, body_iv, rng, pspec);
-    if (password_to_key(key, password, password_len, salt, pspec)) {
+    generate_salt_ivs(salt, imprint_iv, body_iv, rng, ps);
+    if (password_to_key(key, password, password_len, salt, ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
 
@@ -167,13 +167,13 @@ int encrypt_file(const char *input_file, const char *output_file,
                    (output_file == NULL ? "standard output" : output_file));
     }
 
-    if (write_header(out, salt, imprint_iv, body_iv, pspec)) {
+    if (write_header(out, salt, imprint_iv, body_iv, ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
-    if (write_imprint(out, key, imprint_iv, rng, pspec)) {
+    if (write_imprint(out, key, imprint_iv, rng, ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
-    if (encrypt_body(in, out, key, body_iv, pspec)) {
+    if (encrypt_body(in, out, key, body_iv, ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
 
@@ -192,7 +192,7 @@ done:
 int decrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
-    struct spec pspec;
+    struct pisces_spec ps;
     byte body_iv[CIPHER_MAX_IV_SIZE];
     byte imprint_iv[CIPHER_MAX_IV_SIZE];
     byte key[CIPHER_MAX_KEY_SIZE];
@@ -207,13 +207,13 @@ int decrypt_file(const char *input_file, const char *output_file,
                    (input_file == NULL ? "standard input" : input_file));
     }
 
-    if (read_header(in, salt, imprint_iv, body_iv, &pspec)) {
+    if (read_header(in, salt, imprint_iv, body_iv, &ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
-    if (password_to_key(key, password, password_len, salt, pspec)) {
+    if (password_to_key(key, password, password_len, salt, ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
-    if (read_imprint(in, key, imprint_iv, pspec)) {
+    if (read_imprint(in, key, imprint_iv, ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
 
@@ -227,7 +227,7 @@ int decrypt_file(const char *input_file, const char *output_file,
                    (output_file == NULL ? "standard output" : output_file));
     }
 
-    if (decrypt_body(in, out, key, body_iv, pspec)) {
+    if (decrypt_body(in, out, key, body_iv, ps)) {
         ERROR_GOTO_SILENT(done, errval);
     }
 
@@ -243,14 +243,14 @@ done:
 }
 
 static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
-                        struct spec pspec)
+                        struct pisces_spec ps)
 {
     size_t iv_len, salt_len;
     byte magic_version;
 
-    iv_len = cipher_alg_iv_size(pspec.cipher_alg);
-    salt_len = kdf_alg_salt_size(pspec.kdf_alg);
-    magic_version = (byte)pspec.version;
+    iv_len = cipher_alg_iv_size(ps.cipher_alg);
+    salt_len = kdf_alg_salt_size(ps.kdf_alg);
+    magic_version = (byte)ps.version;
 
     if (write_exactly(fd, (byte *)PISCES_MAGIC_PREFIX,
                       PISCES_MAGIC_PREFIX_LEN)) {
@@ -273,7 +273,7 @@ static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
 }
 
 static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
-                       struct spec *pspec)
+                       struct pisces_spec *ps)
 {
     byte magic_prefix[PISCES_MAGIC_PREFIX_LEN];
     size_t iv_len, salt_len;
@@ -288,12 +288,12 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
     if (read_exactly(fd, &magic_version, sizeof(magic_version))) {
         ERROR_RETURN("Could not read magic-byte version");
     }
-    if (spec_init(pspec, magic_version)) {
+    if (pisces_spec_init(ps, magic_version)) {
         ERROR_RETURN("Unsupported Pisces version: %hhu", magic_version);
     }
 
-    iv_len = cipher_alg_iv_size(pspec->cipher_alg);
-    salt_len = kdf_alg_salt_size(pspec->kdf_alg);
+    iv_len = cipher_alg_iv_size(ps->cipher_alg);
+    salt_len = kdf_alg_salt_size(ps->kdf_alg);
 
     if (read_exactly(fd, salt, salt_len)) {
         ERROR_RETURN("Could not read salt");
@@ -309,7 +309,7 @@ static int read_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
 }
 
 static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
-                         struct cprng *rng, struct spec pspec)
+                         struct cprng *rng, struct pisces_spec ps)
 {
     struct chf_ctx *chf;
     struct cipher_ctx *cipher;
@@ -320,10 +320,10 @@ static int write_imprint(int fd, const byte *key, const byte *imprint_iv,
     size_t bytes_encrypted1, bytes_encrypted2, bytes_encrypted3;
     int errval = 0;
 
-    chf = chf_alloc(pspec.chf_alg);
-    cipher = cipher_alloc(pspec.cipher_alg);
+    chf = chf_alloc(ps.chf_alg);
+    cipher = cipher_alloc(ps.cipher_alg);
     hash_len = chf_digest_size(chf);
-    compute_imprint_size(&random_len, &total_len, pspec);
+    compute_imprint_size(&random_len, &total_len, ps);
 
     /*
      * The number of random bytes is small enough that we can generate them and
@@ -367,7 +367,7 @@ done:
 }
 
 static int read_imprint(int fd, const byte *key, const byte *imprint_iv,
-                        struct spec pspec)
+                        struct pisces_spec ps)
 {
     struct chf_ctx *chf;
     struct cipher_ctx *cipher;
@@ -378,10 +378,10 @@ static int read_imprint(int fd, const byte *key, const byte *imprint_iv,
     size_t decrypted_len1, decrypted_len2;
     int errval = 0;
 
-    chf = chf_alloc(pspec.chf_alg);
-    cipher = cipher_alloc(pspec.cipher_alg);
+    chf = chf_alloc(ps.chf_alg);
+    cipher = cipher_alloc(ps.cipher_alg);
     hash_len = chf_digest_size(chf);
-    compute_imprint_size(&random_len, &total_len, pspec);
+    compute_imprint_size(&random_len, &total_len, ps);
 
     /* Read the entire imprint */
     if (read_exactly(fd, encrypted_imprint, total_len)) {
@@ -435,7 +435,7 @@ done:
 }
 
 static int encrypt_body(int in, int out, const byte *key, const byte *body_iv,
-                        struct spec pspec)
+                        struct pisces_spec ps)
 {
     struct chf_worker *chfw;
     struct cipher_ctx *cipher;
@@ -446,11 +446,11 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv,
     size_t hash_len, bytes_read, bytes_encrypted;
     int errval = 0;
 
-    chfw = configured_chf_worker_alloc(sizeof(input), pspec);
+    chfw = configured_chf_worker_alloc(sizeof(input), ps);
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
-    cipher = cipher_alloc(pspec.cipher_alg);
+    cipher = cipher_alloc(ps.cipher_alg);
     cipher_set_direction(cipher, CIPHER_DIRECTION_ENCRYPT);
     cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
@@ -521,7 +521,7 @@ done:
 }
 
 static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
-                        struct spec pspec)
+                        struct pisces_spec ps)
 {
     struct chf_worker *chfw;
     struct cipher_ctx *cipher;
@@ -534,11 +534,11 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
     size_t hash_len, bytes_read, bytes_decrypted, bytes_from_hb;
     int errval = 0;
 
-    chfw = configured_chf_worker_alloc(sizeof(data_from_hb), pspec);
+    chfw = configured_chf_worker_alloc(sizeof(data_from_hb), ps);
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
-    cipher = cipher_alloc(pspec.cipher_alg);
+    cipher = cipher_alloc(ps.cipher_alg);
     cipher_set_direction(cipher, CIPHER_DIRECTION_DECRYPT);
     cipher_set_iv(cipher, body_iv);
     cipher_set_key(cipher, key);
@@ -630,12 +630,12 @@ done:
 }
 
 static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
-                              struct cprng *rng, struct spec pspec)
+                              struct cprng *rng, struct pisces_spec ps)
 {
     size_t iv_len, salt_len;
 
-    iv_len = cipher_alg_iv_size(pspec.cipher_alg);
-    salt_len = kdf_alg_salt_size(pspec.kdf_alg);
+    iv_len = cipher_alg_iv_size(ps.cipher_alg);
+    salt_len = kdf_alg_salt_size(ps.kdf_alg);
 
     cprng_bytes(rng, salt, salt_len);
 
@@ -657,14 +657,14 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
 
 static int password_to_key(byte *derived_key, const char *password,
                            size_t password_len, const byte *salt,
-                           struct spec pspec)
+                           struct pisces_spec ps)
 {
     struct kdf *fn;
     size_t key_len;
     int errval = 0;
 
-    fn = kdf_alloc(pspec.kdf_alg);
-    key_len = cipher_alg_key_size(pspec.cipher_alg);
+    fn = kdf_alloc(ps.kdf_alg);
+    key_len = cipher_alg_key_size(ps.cipher_alg);
 
     if (kdf_derive(fn, derived_key, key_len, password, password_len, salt)) {
         ERROR_GOTO(done, errval, "Could not derive key - %s", kdf_error(fn));
@@ -676,14 +676,15 @@ done:
 }
 
 static void compute_imprint_size(size_t *random_data_size,
-                                 size_t *total_imprint_size, struct spec pspec)
+                                 size_t *total_imprint_size,
+                                 struct pisces_spec ps)
 {
     size_t hash_len, block_len, key_len, max, required;
 
     /* Amount of random data is guaranteed to be as large as each of these */
-    hash_len = chf_alg_digest_size(pspec.chf_alg);
-    block_len = cipher_alg_block_size(pspec.cipher_alg);
-    key_len = cipher_alg_key_size(pspec.cipher_alg);
+    hash_len = chf_alg_digest_size(ps.chf_alg);
+    block_len = cipher_alg_block_size(ps.cipher_alg);
+    key_len = cipher_alg_key_size(ps.cipher_alg);
     max = MAX(hash_len, block_len, key_len);
 
     /* The imprint also includes the hash of the random data */
@@ -715,12 +716,12 @@ static size_t ceiling_to_multiple(size_t num_bytes, size_t block_len)
 }
 
 static struct chf_worker *configured_chf_worker_alloc(size_t buf_size,
-                                                      struct spec pspec)
+                                                      struct pisces_spec ps)
 {
 #ifdef PISCES_NO_MULTITHREAD
     UNUSED(buf_size);
-    return chf_worker_alloc(chf_alloc(pspec.chf_alg), 0);
+    return chf_worker_alloc(chf_alloc(ps.chf_alg), 0);
 #else
-    return chf_worker_alloc(chf_alloc(pspec.chf_alg), buf_size);
+    return chf_worker_alloc(chf_alloc(ps.chf_alg), buf_size);
 #endif
 }
