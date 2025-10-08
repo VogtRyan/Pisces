@@ -130,9 +130,6 @@ static void compute_imprint_size(size_t *random_data_size,
                                  struct specification spec);
 static size_t ceiling_to_multiple(size_t num_bytes, size_t block_len);
 
-static struct chf_worker *
-configured_chf_worker_alloc(size_t buf_size, struct specification spec);
-
 int encrypt_file(const char *input_file, const char *output_file,
                  const char *password, size_t password_len)
 {
@@ -446,7 +443,7 @@ static int encrypt_body(int in, int out, const byte *key, const byte *body_iv,
     size_t hash_len, bytes_read, bytes_encrypted;
     int errval = 0;
 
-    chfw = configured_chf_worker_alloc(sizeof(input), spec);
+    chfw = chf_worker_alloc(spec.chf_alg, sizeof(input));
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
@@ -534,7 +531,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
     size_t hash_len, bytes_read, bytes_decrypted, bytes_from_hb;
     int errval = 0;
 
-    chfw = configured_chf_worker_alloc(sizeof(data_from_hb), spec);
+    chfw = chf_worker_alloc(spec.chf_alg, sizeof(data_from_hb));
     hash_len = chf_worker_digest_size(chfw);
     chf_worker_start(chfw);
 
@@ -713,15 +710,4 @@ static size_t ceiling_to_multiple(size_t num_bytes, size_t block_len)
         ASSERT(res >= num_bytes, "Addition overflow computing block ceiling");
         return res;
     }
-}
-
-static struct chf_worker *
-configured_chf_worker_alloc(size_t buf_size, struct specification spec)
-{
-#ifdef PISCES_NO_MULTITHREAD
-    UNUSED(buf_size);
-    return chf_worker_alloc(chf_alloc(spec.chf_alg), 0);
-#else
-    return chf_worker_alloc(chf_alloc(spec.chf_alg), buf_size);
-#endif
 }

@@ -25,19 +25,20 @@
 struct chf_worker;
 
 /*
- * Allocates a new worker that can queue and run commands on a cryptographic
- * hash context. Guaranteed to return non-NULL. The worker takes ownership of
- * the CHF context, and no further calls should be made directly on it.
+ * Allocates a new CHF worker that can queue and run commands on a
+ * cryptographic hash context in a separate thread. Guaranteed to return
+ * non-NULL. The length parameter specifies the maximum input size that
+ * chf_worker_add() will accept.
  *
- * If input_buf_size is greater than 0, the worker will spawn a helper thread
- * to execute queued CHF commands instead of executing them immediately, and
- * the maximum message size chf_worker_add() can accept will be input_buf_size.
  * The worker will operate under a single-producer, single-consumer model with
  * a finite-sized queue that blocks when full, so only one thread can call
- * chf_worker_* functions on a given chf_worker.
+ * chf_worker_* functions on a given CHF worker.
+ *
+ * If PISCES_NO_MULTITHREAD is defined, the CHF worker will still adhere to
+ * the API described below, but will perform all operations in the current
+ * thread instead of spawning a worker thread to perform them.
  */
-struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx,
-                                    size_t input_buf_size);
+struct chf_worker *chf_worker_alloc(chf_algorithm alg, size_t max_add_len);
 
 /*
  * Clears the queue of any commands, clears any errors the worker has
@@ -48,8 +49,8 @@ void chf_worker_start(struct chf_worker *chfw);
 
 /*
  * Enqueues a CHF-add command to append the given bytes to the message being
- * hashed. If the worker was allocated with a non-zero buffer size, msg_len
- * must be less than or equal to that buffer size.
+ * hashed. The number of bytes must be less than or equal to the size provided
+ * to chf_worker_alloc().
  *
  * Returns the result of the most recently completed CHF-add command: 0 on
  * success, <0 on error (CHF_ERROR_MESSAGE_TOO_LONG). Because the newly queued
@@ -82,9 +83,8 @@ size_t chf_worker_digest_size(const struct chf_worker *chfw);
 const char *chf_worker_error(struct chf_worker *chfw);
 
 /*
- * Frees a worker allocated with chf_worker_alloc(), plus the CHF context it
- * took ownership of, and securely scrubs their memory. Calling with NULL is a
- * no-op.
+ * Frees a worker allocated with chf_worker_alloc() and securely scrubs its
+ * memory. Calling with NULL is a no-op.
  */
 void chf_worker_free_scrub(struct chf_worker *chfw);
 

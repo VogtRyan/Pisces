@@ -22,6 +22,7 @@
 #include "crypto/abstract/chf.h"
 
 #include <pthread.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +31,12 @@
 #define COMMAND_CHF_START        (1)
 #define COMMAND_CHF_ADD          (2)
 #define COMMAND_TERMINATE_THREAD (3)
+
+#ifdef PISCES_NO_MULTITHREAD
+#define CHF_WORKER_MULTITHREAD (false)
+#else
+#define CHF_WORKER_MULTITHREAD (true)
+#endif
 
 /*
  * When input_buf_size > 0, the worker can buffer up to one command for a
@@ -42,32 +49,33 @@ struct chf_worker {
     pthread_cond_t command_change;
     pthread_mutex_t mtx;
     size_t input_len;
-    size_t input_buf_size;
-    size_t digest_size;
+    size_t max_add_len;
     int command;
     int errcode;
 };
 
 static void *helper_thread_main(void *chfw_arg);
 
-struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx, size_t input_buf_size)
+struct chf_worker *chf_worker_alloc(chf_algorithm alg, size_t max_add_len)
 {
     struct chf_worker *chfw;
+
+    ASSERT(max_add_len > 0, "CHF worker with add-size bounded at 0");
 
     chfw = (struct chf_worker *)calloc(1, sizeof(struct chf_worker));
     GUARD_ALLOC(chfw);
 
-    chfw->ctx = ctx;
-    chfw->digest_size = chf_digest_size(chfw->ctx);
+    /* chf_alloc() will fail on an invalid alg, so no need to check here */
+    chfw->ctx = chf_alloc(alg);
+    chfw->max_add_len = max_add_len;
 
-    if (input_buf_size == 0) {
+    if (CHF_WORKER_MULTITHREAD == false) {
         chfw->input_buf = NULL;
         return chfw;
     }
 
-    chfw->input_buf = (byte *)calloc(input_buf_size, sizeof(byte));
+    chfw->input_buf = (byte *)calloc(max_add_len, sizeof(byte));
     GUARD_ALLOC(chfw->input_buf);
-    chfw->input_buf_size = input_buf_size;
 
     if (pthread_mutex_init(&(chfw->mtx), NULL)) {
         FATAL_ERROR("Could not initialize chfworker mutex");
@@ -84,7 +92,7 @@ struct chf_worker *chf_worker_alloc(struct chf_ctx *ctx, size_t input_buf_size)
 
 void chf_worker_start(struct chf_worker *chfw)
 {
-    if (chfw->input_buf_size == 0) {
+    if (CHF_WORKER_MULTITHREAD == false) {
         chf_start(chfw->ctx);
         return;
     }
@@ -112,12 +120,13 @@ int chf_worker_add(struct chf_worker *chfw, const byte *msg, size_t msg_len)
 {
     int ret;
 
-    if (chfw->input_buf_size == 0) {
+    ASSERT(msg_len <= chfw->max_add_len,
+           "Message length (%zu) greater than maximum (%zu)", msg_len,
+           chfw->max_add_len);
+
+    if (CHF_WORKER_MULTITHREAD == false) {
         return chf_add(chfw->ctx, msg, msg_len);
     }
-
-    ASSERT(msg_len <= chfw->input_buf_size,
-           "chf_worker_add message length too large: %zu", msg_len);
 
     /* Block on computation until we can enqueue the CHF-add command */
     pthread_mutex_lock(&(chfw->mtx));
@@ -148,7 +157,7 @@ int chf_worker_end(struct chf_worker *chfw, byte *digest)
 {
     int ret;
 
-    if (chfw->input_buf_size == 0) {
+    if (CHF_WORKER_MULTITHREAD == false) {
         return chf_end(chfw->ctx, digest);
     }
 
@@ -168,14 +177,15 @@ int chf_worker_end(struct chf_worker *chfw, byte *digest)
 
 size_t chf_worker_digest_size(const struct chf_worker *chfw)
 {
-    return chfw->digest_size;
+    /* Assumes chf_digest_size() is thread-safe */
+    return chf_digest_size(chfw->ctx);
 }
 
 const char *chf_worker_error(struct chf_worker *chfw)
 {
     const char *errmsg;
 
-    if (chfw->input_buf_size == 0) {
+    if (CHF_WORKER_MULTITHREAD == false) {
         return chf_error(chfw->ctx);
     }
 
@@ -199,7 +209,7 @@ void chf_worker_free_scrub(struct chf_worker *chfw)
         return;
     }
 
-    if (chfw->input_buf_size != 0) {
+    if (CHF_WORKER_MULTITHREAD) {
         pthread_mutex_lock(&(chfw->mtx));
         while (chfw->command != COMMAND_NONE) {
             pthread_cond_wait(&(chfw->command_change), &(chfw->mtx));
@@ -221,7 +231,7 @@ void chf_worker_free_scrub(struct chf_worker *chfw)
 
     chf_free_scrub(chfw->ctx);
     if (chfw->input_buf != NULL) {
-        scrub_memory(chfw->input_buf, chfw->input_buf_size);
+        scrub_memory(chfw->input_buf, chfw->max_add_len);
         free(chfw->input_buf);
     }
     scrub_memory(chfw, sizeof(struct chf_worker));
