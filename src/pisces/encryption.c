@@ -101,7 +101,6 @@
 
 #define MAX(a, b, c)                                                          \
     ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
-#define UNUSED(varname) (void)(varname)
 
 static int write_header(int fd, byte *salt, byte *imprint_iv, byte *body_iv,
                         struct specification spec);
