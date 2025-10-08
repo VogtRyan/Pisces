@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025 Ryan Vogt <rvogt.ca@gmail.com>
+ * Copyright (c) 2025 Ryan Vogt <rvogt.ca@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,35 +14,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "spec.h"
+#ifndef PISCES_PISCES_SPECIFICATION_H_
+#define PISCES_PISCES_SPECIFICATION_H_
 
 #include "crypto/abstract/chf.h"
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-int specification_init(struct specification *spec, unsigned int version)
-{
-    switch (version) {
-    case 3:
-        spec->chf_alg = CHF_ALG_SHA1;
-        spec->cipher_alg = CIPHER_ALG_AES_128_CBC;
-        spec->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128;
-        break;
-    case 4:
-        spec->chf_alg = CHF_ALG_SHA1;
-        spec->cipher_alg = CIPHER_ALG_AES_256_CBC;
-        spec->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256;
-        break;
-    case 5:
-        spec->chf_alg = CHF_ALG_SHA3_512;
-        spec->cipher_alg = CIPHER_ALG_AES_256_CBC;
-        spec->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256;
-        break;
-    default:
-        return -1;
-    }
+struct specification {
+    unsigned int version;
+    chf_algorithm chf_alg;
+    cipher_algorithm cipher_alg;
+    kdf_algorithm kdf_alg;
+};
 
-    spec->version = version;
+#define SPECIFICATION_VERSION_LATEST (5U)
 
-    return 0;
-}
+/*
+ * Sets the algorithms in the Pisces specification to match those used by the
+ * given version of Pisces. Returns 0 on success, or -1 if the Pisces version
+ * is not supported by this implementation.
+ */
+int specification_init(struct specification *spec, unsigned int version);
+
+#endif

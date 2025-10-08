@@ -27,7 +27,7 @@
 #include "pisces/chfworker.h"
 #include "pisces/holdbuf.h"
 #include "pisces/iowrap.h"
-#include "pisces/spec.h"
+#include "pisces/specification.h"
 
 #include <fcntl.h>
 #include <string.h>
