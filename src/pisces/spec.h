@@ -21,20 +21,20 @@
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-struct pisces_spec {
+struct specification {
     unsigned int version;
     chf_algorithm chf_alg;
     cipher_algorithm cipher_alg;
     kdf_algorithm kdf_alg;
 };
 
-#define PISCES_SPEC_VERSION_LATEST (5U)
+#define SPECIFICATION_VERSION_LATEST (5U)
 
 /*
  * Sets the algorithms in the Pisces specification to match those used by the
  * given version of Pisces. Returns 0 on success, or -1 if the Pisces version
  * is not supported by this implementation.
  */
-int pisces_spec_init(struct pisces_spec *ps, unsigned int version);
+int specification_init(struct specification *spec, unsigned int version);
 
 #endif

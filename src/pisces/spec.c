@@ -20,29 +20,29 @@
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/kdf.h"
 
-int pisces_spec_init(struct pisces_spec *ps, unsigned int version)
+int specification_init(struct specification *spec, unsigned int version)
 {
     switch (version) {
     case 3:
-        ps->chf_alg = CHF_ALG_SHA1;
-        ps->cipher_alg = CIPHER_ALG_AES_128_CBC;
-        ps->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128;
+        spec->chf_alg = CHF_ALG_SHA1;
+        spec->cipher_alg = CIPHER_ALG_AES_128_CBC;
+        spec->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128;
         break;
     case 4:
-        ps->chf_alg = CHF_ALG_SHA1;
-        ps->cipher_alg = CIPHER_ALG_AES_256_CBC;
-        ps->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256;
+        spec->chf_alg = CHF_ALG_SHA1;
+        spec->cipher_alg = CIPHER_ALG_AES_256_CBC;
+        spec->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256;
         break;
     case 5:
-        ps->chf_alg = CHF_ALG_SHA3_512;
-        ps->cipher_alg = CIPHER_ALG_AES_256_CBC;
-        ps->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256;
+        spec->chf_alg = CHF_ALG_SHA3_512;
+        spec->cipher_alg = CIPHER_ALG_AES_256_CBC;
+        spec->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256;
         break;
     default:
         return -1;
     }
 
-    ps->version = version;
+    spec->version = version;
 
     return 0;
 }
