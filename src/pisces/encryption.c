@@ -26,7 +26,7 @@
 #include "crypto/abstract/kdf.h"
 #include "pisces/chf_worker.h"
 #include "pisces/holdback_buffer.h"
-#include "pisces/iowrap.h"
+#include "pisces/io_wrappers.h"
 #include "pisces/specification.h"
 
 #include <fcntl.h>
