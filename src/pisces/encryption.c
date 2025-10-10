@@ -25,7 +25,7 @@
 #include "crypto/abstract/cprng.h"
 #include "crypto/abstract/kdf.h"
 #include "pisces/chfworker.h"
-#include "pisces/holdbuf.h"
+#include "pisces/holdback_buffer.h"
 #include "pisces/iowrap.h"
 #include "pisces/specification.h"
 
@@ -521,7 +521,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
 {
     struct chf_worker *chfw;
     struct cipher_ctx *cipher;
-    struct holdbuf *hb;
+    struct holdback_buffer *hb;
     byte computed_hash[CHF_MAX_DIGEST_SIZE];
     byte data_from_hb[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
     byte dec_data[INPUT_BYTES_READ_AT_ONCE + CIPHER_MAX_BLOCK_SIZE];
@@ -541,7 +541,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
     cipher_set_padding(cipher, CIPHER_PADDING_PKCS7);
     cipher_start(cipher);
 
-    hb = holdbuf_alloc(hash_len);
+    hb = holdback_buffer_alloc(hash_len);
 
     /*
      * We decrypt the entire body, but hash and write out only what the
@@ -559,8 +559,8 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
         }
 
         cipher_add(cipher, input, bytes_read, dec_data, &bytes_decrypted);
-        holdbuf_give(hb, dec_data, bytes_decrypted, data_from_hb,
-                     &bytes_from_hb);
+        holdback_buffer_append(hb, dec_data, bytes_decrypted, data_from_hb,
+                               &bytes_from_hb);
 
         if (chf_worker_add(chfw, data_from_hb, bytes_from_hb)) {
             ERROR_GOTO(done, errval,
@@ -582,7 +582,8 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
         ERROR_GOTO(done, errval, "Could not decrypt input contents - %s",
                    cipher_error(cipher));
     }
-    holdbuf_give(hb, dec_data, bytes_decrypted, data_from_hb, &bytes_from_hb);
+    holdback_buffer_append(hb, dec_data, bytes_decrypted, data_from_hb,
+                           &bytes_from_hb);
     if (chf_worker_add(chfw, data_from_hb, bytes_from_hb)) {
         ERROR_GOTO(done, errval,
                    "Could not compute hash for decrypted data - %s",
@@ -596,9 +597,9 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
      * All that is left in the holdback buffer now is the supposed hash of the
      * file contents, as provided by the input file.
      */
-    if (holdbuf_end(hb, stored_hash)) {
+    if (holdback_buffer_finalize(hb, stored_hash)) {
         ERROR_GOTO(done, errval,
-                   "Could not get stored hash value from buffer");
+                   "Holdback buffer containing stored hash value not full");
     }
     if (chf_worker_end(chfw, computed_hash)) {
         ERROR_GOTO(done, errval,
@@ -617,7 +618,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
 done:
     chf_worker_free_scrub(chfw);
     cipher_free_scrub(cipher);
-    holdbuf_free_scrub(hb);
+    holdback_buffer_free_scrub(hb);
     scrub_memory(dec_data, sizeof(dec_data));
     scrub_memory(data_from_hb, sizeof(data_from_hb));
     scrub_memory(stored_hash, sizeof(stored_hash));
