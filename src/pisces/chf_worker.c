@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "chfworker.h"
+#include "chf_worker.h"
 
 #include "common/bytetype.h"
 #include "common/errorflow.h"

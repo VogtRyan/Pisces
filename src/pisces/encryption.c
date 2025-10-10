@@ -24,7 +24,7 @@
 #include "crypto/abstract/cipher.h"
 #include "crypto/abstract/cprng.h"
 #include "crypto/abstract/kdf.h"
-#include "pisces/chfworker.h"
+#include "pisces/chf_worker.h"
 #include "pisces/holdback_buffer.h"
 #include "pisces/iowrap.h"
 #include "pisces/specification.h"

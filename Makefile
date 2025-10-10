@@ -261,7 +261,7 @@ PISCES_OBJS = src/pisces/pisces.o src/crypto/abstract/chf.o \
   src/crypto/algorithms/pkcs7/pkcs7_padding.o \
   src/crypto/primitives/aes/aes_cbc.o src/crypto/primitives/aes/aes_ecb.o \
   src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o \
-  src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pisces/chfworker.o \
+  src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pisces/chf_worker.o \
   src/pisces/encryption.o src/pisces/holdback_buffer.o src/pisces/iowrap.o \
   src/pisces/password.o src/pisces/specification.o
 PISCES_LIBS = -pthread
@@ -415,9 +415,6 @@ src/pisces/specification.o: src/pisces/specification.c \
   src/pisces/specification.h src/crypto/abstract/chf.h \
   src/common/bytetype.h src/crypto/abstract/cipher.h \
   src/crypto/abstract/kdf.h
-src/pisces/chfworker.o: src/pisces/chfworker.c src/pisces/chfworker.h \
-  src/common/bytetype.h src/crypto/abstract/chf.h src/common/errorflow.h \
-  src/common/scrub.h
 src/pisces/password.o: src/pisces/password.c src/pisces/password.h \
   src/common/config.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h
@@ -427,12 +424,15 @@ src/pisces/encryption.o: src/pisces/encryption.c src/pisces/encryption.h \
   src/common/bytetype.h src/common/config.h src/common/errorflow.h \
   src/common/scrub.h src/crypto/abstract/chf.h \
   src/crypto/abstract/cipher.h src/crypto/abstract/cprng.h \
-  src/crypto/abstract/kdf.h src/pisces/chfworker.h \
+  src/crypto/abstract/kdf.h src/pisces/chf_worker.h \
   src/pisces/holdback_buffer.h src/pisces/iowrap.h \
   src/pisces/specification.h
 src/pisces/pisces.o: src/pisces/pisces.c src/pisces/encryption.h \
   src/pisces/password.h src/common/config.h src/common/errorflow.h \
   src/common/scrub.h src/common/bytetype.h
+src/pisces/chf_worker.o: src/pisces/chf_worker.c src/pisces/chf_worker.h \
+  src/common/bytetype.h src/crypto/abstract/chf.h src/common/errorflow.h \
+  src/common/scrub.h
 src/pisces/holdback_buffer.o: src/pisces/holdback_buffer.c \
   src/pisces/holdback_buffer.h src/common/bytetype.h \
   src/common/errorflow.h src/common/scrub.h
