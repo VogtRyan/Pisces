@@ -109,6 +109,7 @@ int password_copy(char *password, size_t *password_len,
                   const char *provided_password)
 {
     size_t len;
+    int errval = 0;
 
     /* Portable replacement for strnlen, for POSIX-1.2001 compatibility */
     len = 0;
@@ -119,12 +120,15 @@ int password_copy(char *password, size_t *password_len,
         len++;
     }
     if (provided_password[len] != '\0') {
-        ERROR_RETURN(MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+        ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
 
     memcpy(password, provided_password, len);
     *password_len = len;
-    return 0;
+
+done:
+    scrub_memory(&len, sizeof(len));
+    return errval;
 }
 
 static FILE *open_terminal(void)
