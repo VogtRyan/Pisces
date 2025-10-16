@@ -27,12 +27,15 @@
 #include <string.h>
 #include <termios.h>
 
-#define MESSAGE_ENCRYPT ("Enter a password to encrypt this file: ")
-#define MESSAGE_CONFIRM ("Reenter the password to encrypt this file: ")
-#define MESSAGE_DECRYPT ("Enter the password to decrypt this file: ")
+#define ERROR_PASSWORD_TOO_LONG (0x01)
+#define ERROR_ILLEGAL_CHAR_NULL (0x02)
 
-#define MESSAGE_TOO_LONG ("Password can be at most %d characters long")
-#define MESSAGE_NO_MATCH ("Passwords do not match")
+#define MESSAGE_ENCRYPT "Enter a password to encrypt this file: "
+#define MESSAGE_CONFIRM "Reenter the password to encrypt this file: "
+#define MESSAGE_DECRYPT "Enter the password to decrypt this file: "
+
+#define MESSAGE_TOO_LONG "Password can be at most %d characters long"
+#define MESSAGE_NO_MATCH "Passwords do not match"
 
 static FILE *open_terminal(void);
 static void close_terminal(FILE *fp_terminal);
@@ -50,22 +53,15 @@ int password_prompt_encryption(char *password, size_t *password_len)
     int errval = 0;
 
     fp_terminal = open_terminal();
+
     if (read_secret_input_line(input1, &len1, MESSAGE_ENCRYPT, fp_terminal)) {
-        ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+        ERROR_GOTO_SILENT(done, errval);
     }
     if (read_secret_input_line(input2, &len2, MESSAGE_CONFIRM, fp_terminal)) {
-        ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+        ERROR_GOTO_SILENT(done, errval);
     }
     if (len1 != len2 || memcmp(input1, input2, len1) != 0) {
         ERROR_GOTO(done, errval, MESSAGE_NO_MATCH);
-    }
-    if (ferror(fp_terminal)) {
-        /*
-         * close_terminal() is responsible for handling the error. But, we
-         * cannot copy into the caller's memory if close_terminal() is going to
-         * see the terminal's error flag.
-         */
-        ERROR_GOTO_SILENT(done, errval);
     }
 
     memcpy(password, input1, len1);
@@ -88,10 +84,8 @@ int password_prompt_decryption(char *password, size_t *password_len)
     int errval = 0;
 
     fp_terminal = open_terminal();
+
     if (read_secret_input_line(input, &len, MESSAGE_DECRYPT, fp_terminal)) {
-        ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
-    }
-    if (ferror(fp_terminal)) {
         ERROR_GOTO_SILENT(done, errval);
     }
 
@@ -111,14 +105,22 @@ int password_copy(char *password, size_t *password_len,
     size_t len;
     int errval = 0;
 
-    /* Portable replacement for strnlen, for POSIX-1.2001 compatibility */
     len = 0;
     while (len < PASSWORD_LENGTH_MAX) {
         if (provided_password[len] == '\0') {
             break;
         }
+        else if (provided_password[len] == '\n') {
+            /*
+             * read_input_line() uses '\n' as its termination character, so
+             * prohibit its use in all passwords.
+             */
+            ERROR_GOTO(done, errval,
+                       "Password contains illegal newline character");
+        }
         len++;
     }
+
     if (provided_password[len] != '\0') {
         ERROR_GOTO(done, errval, MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
     }
@@ -144,20 +146,11 @@ static FILE *open_terminal(void)
 
 static void close_terminal(FILE *fp_terminal)
 {
-    int errflag;
-
-    errflag = ferror(fp_terminal);
-    fclose(fp_terminal);
-    if (errflag) {
-        FATAL_ERROR("Terminal stream error indicator set");
+    if (fp_terminal != NULL) {
+        fclose(fp_terminal);
     }
 }
 
-/*
- * A return of 0 indicates only that the input password was not too long.
- * Caller will still have to check ferror() to determine if EOF was encountered
- * as an error condition instead of an actual EOF.
- */
 static int read_secret_input_line(char *line, size_t *line_len,
                                   const char *prompt, FILE *fp_terminal)
 {
@@ -167,34 +160,42 @@ static int read_secret_input_line(char *line, size_t *line_len,
      * by W. Richard Stevens (ISBN 0201563177).
      */
 
-    struct termios term, termsave;
-    sigset_t sig, sigsave;
+    struct termios no_echo_term, orig_term;
+    sigset_t blocked_sigs, orig_sig_mask;
     int ret;
 
     fprintf(fp_terminal, "%s", prompt);
     setbuf(fp_terminal, NULL);
 
-    sigemptyset(&sig);
-    sigaddset(&sig, SIGINT);
-    sigaddset(&sig, SIGTSTP);
-    sigprocmask(SIG_BLOCK, &sig, &sigsave);
+    sigemptyset(&blocked_sigs);
+    sigaddset(&blocked_sigs, SIGINT);
+    sigaddset(&blocked_sigs, SIGTSTP);
+    sigprocmask(SIG_BLOCK, &blocked_sigs, &orig_sig_mask);
 
-    tcgetattr(fileno(fp_terminal), &termsave);
-    term = termsave;
-    term.c_lflag &= (tcflag_t)(~(ECHO | ECHOE | ECHOK | ECHONL));
-    tcsetattr(fileno(fp_terminal), TCSAFLUSH, &term);
+    if (tcgetattr(fileno(fp_terminal), &orig_term)) {
+        FATAL_ERROR("Could not get original termios attributes");
+    }
+
+    no_echo_term = orig_term;
+    no_echo_term.c_lflag &= (tcflag_t)(~(ECHO | ECHOE | ECHOK | ECHONL));
+    if (tcsetattr(fileno(fp_terminal), TCSAFLUSH, &no_echo_term)) {
+        FATAL_ERROR("Could not set termios attributes to silent");
+    }
 
     ret = read_input_line(line, line_len, fp_terminal);
 
-    tcsetattr(fileno(fp_terminal), TCSAFLUSH, &termsave);
-    sigprocmask(SIG_SETMASK, &sigsave, NULL);
+    if (tcsetattr(fileno(fp_terminal), TCSAFLUSH, &orig_term)) {
+        FATAL_ERROR("Could not restore termios attributes");
+    }
+    sigprocmask(SIG_SETMASK, &orig_sig_mask, NULL);
+
     return ret;
 }
 
 static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal)
 {
     int c;
-    int ret = 0;
+    int errval = 0;
 
     *line_len = 0;
     while (1) {
@@ -202,15 +203,34 @@ static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal)
         if (c == EOF || c == '\n') {
             break;
         }
+        else if (c == '\0') {
+            /*
+             * copy_password() uses NULL as a termination character, so
+             * prohibit its use in all passwords.
+             */
+            errval |= ERROR_ILLEGAL_CHAR_NULL;
+        }
+
         if (*line_len < PASSWORD_LENGTH_MAX) {
-            line[(*line_len)++] = (char)c;
+            line[*line_len] = (char)c;
+            (*line_len)++;
         }
         else {
-            ret = -1;
+            errval |= ERROR_PASSWORD_TOO_LONG;
         }
     }
     putc('\n', fp_terminal);
 
+    /* Let user finish typing the entire line before reporting any errors */
     scrub_memory(&c, sizeof(c));
-    return ret;
+    if (ferror(fp_terminal)) {
+        FATAL_ERROR("Terminal stream error indicator set");
+    }
+    else if (errval & ERROR_ILLEGAL_CHAR_NULL) {
+        ERROR_RETURN("Password contains illegal NULL character");
+    }
+    else if (errval & ERROR_PASSWORD_TOO_LONG) {
+        ERROR_RETURN(MESSAGE_TOO_LONG, PASSWORD_LENGTH_MAX);
+    }
+    return 0;
 }

@@ -32,16 +32,16 @@
 /*
  * Prompts the user for a password on the terminal. For encryption, the user is
  * also asked to confirm their password. Returns 0 on success, <0 if no valid
- * password is provided and prints error messages.
+ * password is provided. Prints error messages.
  */
 int password_prompt_encryption(char *password, size_t *password_len);
 int password_prompt_decryption(char *password, size_t *password_len);
 
 /*
- * Copies a provided password from another source into the password array.
- * Returns 0 on success, <0 if the provided password is longer than
- * PASSWORD_LENGTH_MAX bytes (not including the NULL terminator) and prints
- * error messages.
+ * Copies a provided password into the password array. The provided password
+ * must be NULL-terminated and no longer than PASSWORD_LENGTH_MAX characters
+ * (not including the NULL-terminator). Returns 0 on success, <0 if the
+ * provided password is not valid. Prints error messages.
  */
 int password_copy(char *password, size_t *password_len,
                   const char *provided_password);
