@@ -17,33 +17,37 @@
 #ifndef PISCES_PISCES_PASSWORD_H_
 #define PISCES_PISCES_PASSWORD_H_
 
+#include "common/bytetype.h"
 #include "common/config.h"
 
 #include <stddef.h>
 
 /*
- * These functions fill a password buffer that must be at least
- * PASSWORD_LENGTH_MAX bytes long. Its contents will NOT be NULL-terminated.
- *
- * These functions guarantee that the caller's memory (the buffer and the size
- * variable) will be modified only if the function succeeds.
- */
-
-/*
  * Prompts the user for a password on the terminal. For encryption, the user is
- * also asked to confirm their password. Returns 0 on success, <0 if no valid
- * password is provided. Prints error messages.
+ * also asked to confirm their password.
+ *
+ * The input on the terminal cannot contain any NULL characters ('\0'). It will
+ * be terminated either by a newline ('\n') or EOF on the terminal.
+ *
+ * Returns 0 on success, <0 on error. The contents of the password buffer and
+ * the value of *password_len are modified only if the function succeeds.
+ * Prints error messages.
  */
-int password_prompt_encryption(char *password, size_t *password_len);
-int password_prompt_decryption(char *password, size_t *password_len);
+int password_prompt_encryption(byte *password, size_t *password_len);
+int password_prompt_decryption(byte *password, size_t *password_len);
 
 /*
- * Copies a provided password into the password array. The provided password
- * must be NULL-terminated and no longer than PASSWORD_LENGTH_MAX characters
- * (not including the NULL-terminator). Returns 0 on success, <0 if the
- * provided password is not valid. Prints error messages.
+ * Copies a provided password into the password array.
+ *
+ * The provided password must be NULL-terminated and no longer than
+ * PASSWORD_LENGTH_MAX characters (not including the NULL-terminator). It
+ * cannot contain any newline characters ('\n').
+ *
+ * Returns 0 on success, <0 on error. The contents of the password buffer and
+ * the value of *password_len are modified only if the function succeeds.
+ * Prints error messages.
  */
-int password_copy(char *password, size_t *password_len,
+int password_copy(byte *password, size_t *password_len,
                   const char *provided_password);
 
 #endif

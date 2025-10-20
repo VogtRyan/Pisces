@@ -46,7 +46,7 @@ struct kdf *kdf_alloc(kdf_algorithm alg);
  * KDF_ERROR_DERIVED_KEY_TOO_LONG).
  */
 int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
-               const char *password, size_t password_len, const byte *salt);
+               const byte *password, size_t password_len, const byte *salt);
 
 /*
  * Returns the size, in bytes, of the salt to be passed to kdf_derive().

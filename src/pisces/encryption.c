@@ -120,7 +120,7 @@ static int decrypt_body(int in, int out, const byte *key, const byte *body_iv,
 static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
                               struct cprng *rng, struct specification spec);
 
-static int password_to_key(byte *derived_key, const char *password,
+static int password_to_key(byte *derived_key, const byte *password,
                            size_t password_len, const byte *salt,
                            struct specification spec);
 
@@ -130,7 +130,7 @@ static void compute_imprint_size(size_t *random_data_size,
 static size_t ceiling_to_multiple(size_t num_bytes, size_t block_len);
 
 int encrypt_file(const char *input_file, const char *output_file,
-                 const char *password, size_t password_len)
+                 const byte *password, size_t password_len)
 {
     struct cprng *rng;
     struct specification spec;
@@ -186,7 +186,7 @@ done:
 }
 
 int decrypt_file(const char *input_file, const char *output_file,
-                 const char *password, size_t password_len)
+                 const byte *password, size_t password_len)
 {
     struct specification spec;
     byte body_iv[CIPHER_MAX_IV_SIZE];
@@ -652,7 +652,7 @@ static void generate_salt_ivs(byte *salt, byte *iv1, byte *iv2,
     }
 }
 
-static int password_to_key(byte *derived_key, const char *password,
+static int password_to_key(byte *derived_key, const byte *password,
                            size_t password_len, const byte *salt,
                            struct specification spec)
 {

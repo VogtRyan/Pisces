@@ -30,7 +30,7 @@
 #define MIN(a, b)       ((a) < (b) ? (a) : (b))
 #define UNUSED(varname) (void)(varname)
 
-static int alloc_hmacs(const char *password, size_t password_len,
+static int alloc_hmacs(const byte *password, size_t password_len,
                        const byte *salt, size_t salt_len, chf_algorithm alg,
                        struct hmac_ctx **unstarted,
                        struct hmac_ctx **pwd_preprocessed,
@@ -42,7 +42,7 @@ static bool would_overflow_counter_before_completion(size_t derived_key_len,
                                                      size_t hlen);
 
 int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
-                const char *password, size_t password_len, const byte *salt,
+                const byte *password, size_t password_len, const byte *salt,
                 size_t salt_len, unsigned int iteration_count,
                 chf_algorithm alg)
 {
@@ -136,7 +136,7 @@ done:
     return errval;
 }
 
-static int alloc_hmacs(const char *password, size_t password_len,
+static int alloc_hmacs(const byte *password, size_t password_len,
                        const byte *salt, size_t salt_len, chf_algorithm alg,
                        struct hmac_ctx **unstarted,
                        struct hmac_ctx **pwd_preprocessed,
@@ -148,7 +148,7 @@ static int alloc_hmacs(const char *password, size_t password_len,
     *pwd_preprocessed = hmac_alloc(alg);
     *pwd_salt_preprocessed = hmac_alloc(alg);
 
-    if (hmac_start(*pwd_preprocessed, (const byte *)password, password_len)) {
+    if (hmac_start(*pwd_preprocessed, password, password_len)) {
         ERROR_GOTO_SILENT_VAL(done, errval, PBKDF2_ERROR_PASSWORD_TOO_LONG);
     }
 

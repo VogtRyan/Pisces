@@ -17,6 +17,7 @@
 #include "encryption.h"
 #include "password.h"
 
+#include "common/bytetype.h"
 #include "common/config.h"
 #include "common/errorflow.h"
 #include "common/scrub.h"
@@ -35,17 +36,17 @@ static bool is_stdin_stdout(const char *cmdline_arg);
 
 static int sanity_check_files(char *input_file, char *output_file);
 
-static int fill_password(char *password, size_t *password_len,
+static int fill_password(byte *password, size_t *password_len,
                          const char *cmdline_password, bool encrypt);
 static int run_cipher_op(const char *input_file, const char *output_file,
-                         const char *password, size_t password_len,
+                         const byte *password, size_t password_len,
                          bool encrypt);
 
 static void usage(void);
 
 int main(int argc, char **argv)
 {
-    char password[PASSWORD_LENGTH_MAX];
+    byte password[PASSWORD_LENGTH_MAX];
     char *cmdline_password;
     char *input_file, *output_file;
     size_t password_len;
@@ -160,7 +161,7 @@ static int sanity_check_files(char *input_file, char *output_file)
     return 0;
 }
 
-static int fill_password(char *password, size_t *password_len,
+static int fill_password(byte *password, size_t *password_len,
                          const char *cmdline_password, bool encrypt)
 {
     /*
@@ -180,7 +181,7 @@ static int fill_password(char *password, size_t *password_len,
 }
 
 static int run_cipher_op(const char *input_file, const char *output_file,
-                         const char *password, size_t password_len,
+                         const byte *password, size_t password_len,
                          bool encrypt)
 {
     int ret;

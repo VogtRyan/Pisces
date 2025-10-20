@@ -39,7 +39,7 @@
  * PBKDF2_ERROR_DERIVED_KEY_TOO_LONG).
  */
 int pbkdf2_hmac(byte *derived_key, size_t derived_key_len,
-                const char *password, size_t password_len, const byte *salt,
+                const byte *password, size_t password_len, const byte *salt,
                 size_t salt_len, unsigned int iteration_count,
                 chf_algorithm alg);
 

@@ -416,7 +416,7 @@ src/pisces/specification.o: src/pisces/specification.c \
   src/common/bytetype.h src/crypto/abstract/cipher.h \
   src/crypto/abstract/kdf.h
 src/pisces/password.o: src/pisces/password.c src/pisces/password.h \
-  src/common/config.h src/common/bytetype.h src/common/errorflow.h \
+  src/common/bytetype.h src/common/config.h src/common/errorflow.h \
   src/common/scrub.h
 src/pisces/io_wrappers.o: src/pisces/io_wrappers.c \
   src/pisces/io_wrappers.h src/common/bytetype.h src/common/errorflow.h
@@ -428,8 +428,8 @@ src/pisces/encryption.o: src/pisces/encryption.c src/pisces/encryption.h \
   src/pisces/holdback_buffer.h src/pisces/io_wrappers.h \
   src/pisces/specification.h
 src/pisces/pisces.o: src/pisces/pisces.c src/pisces/encryption.h \
-  src/pisces/password.h src/common/config.h src/common/errorflow.h \
-  src/common/scrub.h src/common/bytetype.h
+  src/common/bytetype.h src/pisces/password.h src/common/config.h \
+  src/common/errorflow.h src/common/scrub.h
 src/pisces/chf_worker.o: src/pisces/chf_worker.c src/pisces/chf_worker.h \
   src/common/bytetype.h src/crypto/abstract/chf.h src/common/errorflow.h \
   src/common/scrub.h

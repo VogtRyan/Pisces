@@ -17,6 +17,8 @@
 #ifndef PISCES_PISCES_ENCRYPTION_H_
 #define PISCES_PISCES_ENCRYPTION_H_
 
+#include "common/bytetype.h"
+
 #include <stddef.h>
 
 /*
@@ -26,9 +28,9 @@
  */
 
 int encrypt_file(const char *input_file, const char *output_file,
-                 const char *password, size_t password_len);
+                 const byte *password, size_t password_len);
 
 int decrypt_file(const char *input_file, const char *output_file,
-                 const char *password, size_t password_len);
+                 const byte *password, size_t password_len);
 
 #endif

@@ -379,9 +379,8 @@ static void run_pbkdf2_test(const struct pbkdf2_test *test)
     actual = calloc(1, derived_key.len);
     GUARD_ALLOC(actual);
 
-    pbkdf2_hmac(actual, derived_key.len, (const char *)password.bytes,
-                password.len, salt.bytes, salt.len, test->iteration_count,
-                test->hashalg);
+    pbkdf2_hmac(actual, derived_key.len, password.bytes, password.len,
+                salt.bytes, salt.len, test->iteration_count, test->hashalg);
 
     TEST_ASSERT(memcmp(actual, derived_key.bytes, derived_key.len) == 0);
     free(actual);

@@ -239,7 +239,7 @@ struct argon2_ctx *argon2_alloc(argon2_variant y_variant,
 }
 
 int argon2_derive(struct argon2_ctx *ctx, byte *derived_key,
-                  size_t derived_key_len, const char *password,
+                  size_t derived_key_len, const byte *password,
                   size_t password_len, const byte *salt, size_t salt_len)
 {
     int ret;
@@ -252,7 +252,7 @@ int argon2_derive(struct argon2_ctx *ctx, byte *derived_key,
 }
 
 int argon2_derive_opt(struct argon2_ctx *ctx, byte *derived_key,
-                      size_t derived_key_len, const char *password,
+                      size_t derived_key_len, const byte *password,
                       size_t password_len, const byte *salt, size_t salt_len,
                       const byte *k_secret, size_t k_secret_len,
                       const byte *x_associated, size_t x_associated_len)
@@ -282,7 +282,7 @@ int argon2_derive_opt(struct argon2_ctx *ctx, byte *derived_key,
     }
 
     in.k_secret = k_secret;
-    in.password = (const byte *)password;
+    in.password = password;
     in.salt = salt;
     in.x_associated = x_associated;
 

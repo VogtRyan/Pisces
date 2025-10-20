@@ -290,10 +290,9 @@ static void run_ar2kat(const struct argon2_kat *test, bool multithread)
 
     ctx = argon2_alloc(test->y_variant, test->m_memsize_kb,
                        test->p_parallelism, test->t_passes, max_threads);
-    argon2_derive_opt(ctx, actual, derived_key.len,
-                      (const char *)password.bytes, password.len, salt.bytes,
-                      salt.len, k_secret.bytes, k_secret.len,
-                      x_associated.bytes, x_associated.len);
+    argon2_derive_opt(ctx, actual, derived_key.len, password.bytes,
+                      password.len, salt.bytes, salt.len, k_secret.bytes,
+                      k_secret.len, x_associated.bytes, x_associated.len);
     TEST_ASSERT(memcmp(actual, derived_key.bytes, derived_key.len) == 0);
 
     argon2_free_scrub(ctx);

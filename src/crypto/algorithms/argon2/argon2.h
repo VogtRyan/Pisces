@@ -64,7 +64,7 @@ struct argon2_ctx *argon2_alloc(argon2_variant y_variant,
  * ARGON2_ERROR_SALT_TOO_LONG, ARGON2_ERROR_DERIVED_KEY_TOO_SHORT/LONG).
  */
 int argon2_derive(struct argon2_ctx *ctx, byte *derived_key,
-                  size_t derived_key_len, const char *password,
+                  size_t derived_key_len, const byte *password,
                   size_t password_len, const byte *salt, size_t salt_len);
 
 /*
@@ -74,7 +74,7 @@ int argon2_derive(struct argon2_ctx *ctx, byte *derived_key,
  * ARGON2_ERROR_SECRET_DATA_TOO_LONG, ARGON2_ERROR_ASSOCIATED_DATA_TOO_LONG).
  */
 int argon2_derive_opt(struct argon2_ctx *ctx, byte *derived_key,
-                      size_t derived_key_len, const char *password,
+                      size_t derived_key_len, const byte *password,
                       size_t password_len, const byte *salt, size_t salt_len,
                       const byte *k_secret, size_t k_secret_len,
                       const byte *x_associated, size_t x_associated_len);

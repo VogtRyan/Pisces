@@ -40,15 +40,15 @@
 static FILE *open_terminal(void);
 static void close_terminal(FILE *fp_terminal);
 
-static int read_secret_input_line(char *line, size_t *line_len,
+static int read_secret_input_line(byte *line, size_t *line_len,
                                   const char *prompt, FILE *fp_terminal);
-static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal);
+static int read_input_line(byte *line, size_t *line_len, FILE *fp_terminal);
 
-int password_prompt_encryption(char *password, size_t *password_len)
+int password_prompt_encryption(byte *password, size_t *password_len)
 {
     FILE *fp_terminal;
-    char input1[PASSWORD_LENGTH_MAX];
-    char input2[PASSWORD_LENGTH_MAX];
+    byte input1[PASSWORD_LENGTH_MAX];
+    byte input2[PASSWORD_LENGTH_MAX];
     size_t len1, len2;
     int errval = 0;
 
@@ -76,10 +76,10 @@ done:
     return errval;
 }
 
-int password_prompt_decryption(char *password, size_t *password_len)
+int password_prompt_decryption(byte *password, size_t *password_len)
 {
     FILE *fp_terminal;
-    char input[PASSWORD_LENGTH_MAX];
+    byte input[PASSWORD_LENGTH_MAX];
     size_t len;
     int errval = 0;
 
@@ -99,7 +99,7 @@ done:
     return errval;
 }
 
-int password_copy(char *password, size_t *password_len,
+int password_copy(byte *password, size_t *password_len,
                   const char *provided_password)
 {
     size_t len;
@@ -151,7 +151,7 @@ static void close_terminal(FILE *fp_terminal)
     }
 }
 
-static int read_secret_input_line(char *line, size_t *line_len,
+static int read_secret_input_line(byte *line, size_t *line_len,
                                   const char *prompt, FILE *fp_terminal)
 {
     /*
@@ -192,7 +192,7 @@ static int read_secret_input_line(char *line, size_t *line_len,
     return ret;
 }
 
-static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal)
+static int read_input_line(byte *line, size_t *line_len, FILE *fp_terminal)
 {
     int c;
     int errval = 0;
@@ -212,7 +212,7 @@ static int read_input_line(char *line, size_t *line_len, FILE *fp_terminal)
         }
 
         if (*line_len < PASSWORD_LENGTH_MAX) {
-            line[*line_len] = (char)c;
+            line[*line_len] = (byte)c;
             (*line_len)++;
         }
         else {
