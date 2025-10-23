@@ -257,13 +257,16 @@ ${BINDIR}/test_pbkdf2: ${TEST_PBKDF2_OBJS}
 PISCES_OBJS = src/pisces/pisces.o src/crypto/abstract/chf.o \
   src/crypto/abstract/cipher.o src/crypto/abstract/cprng.o \
   src/crypto/abstract/kdf.o src/crypto/algorithms/hmac/hmac.o \
+  src/crypto/algorithms/argon2/argon2.o \
+  src/crypto/algorithms/argon2/message_barrier.o \
   src/crypto/algorithms/pbkdf2/pbkdf2.o \
   src/crypto/algorithms/pkcs7/pkcs7_padding.o \
   src/crypto/primitives/aes/aes_cbc.o src/crypto/primitives/aes/aes_ecb.o \
-  src/crypto/primitives/sha1/sha1.o src/crypto/primitives/sha3/sha3.o \
-  src/crypto/random/rarc4.o src/crypto/random/rdev.o src/pisces/chf_worker.o \
-  src/pisces/encryption.o src/pisces/holdback_buffer.o \
-  src/pisces/io_wrappers.o src/pisces/password.o src/pisces/specification.o
+  src/crypto/primitives/blake2b/blake2b.o src/crypto/primitives/sha1/sha1.o \
+  src/crypto/primitives/sha3/sha3.o src/crypto/random/rarc4.o \
+  src/crypto/random/rdev.o src/pisces/chf_worker.o src/pisces/encryption.o \
+  src/pisces/holdback_buffer.o src/pisces/io_wrappers.o src/pisces/password.o \
+  src/pisces/specification.o
 PISCES_LIBS = -pthread
 
 ${BINDIR}/pisces: ${PISCES_OBJS}
@@ -310,6 +313,7 @@ src/crypto/abstract/cprng.o: src/crypto/abstract/cprng.c \
 src/crypto/abstract/kdf.o: src/crypto/abstract/kdf.c \
   src/crypto/abstract/kdf.h src/common/bytetype.h src/common/errorflow.h \
   src/common/scrub.h src/crypto/abstract/chf.h \
+  src/crypto/algorithms/argon2/argon2.h \
   src/crypto/algorithms/pbkdf2/pbkdf2.h
 src/crypto/abstract/chf.o: src/crypto/abstract/chf.c \
   src/crypto/abstract/chf.h src/common/bytetype.h src/common/errorflow.h \

@@ -23,10 +23,12 @@
 
 #define KDF_MAX_SALT_SIZE (32)
 
-#define KDF_ERROR_PASSWORD_TOO_LONG    (-1)
-#define KDF_ERROR_DERIVED_KEY_TOO_LONG (-2)
+#define KDF_ERROR_PASSWORD_TOO_LONG     (-1)
+#define KDF_ERROR_DERIVED_KEY_TOO_SHORT (-2)
+#define KDF_ERROR_DERIVED_KEY_TOO_LONG  (-3)
 
 typedef enum {
+    KDF_ALG_ARGON2_ID_M6291456_P4_T1_S128,
     KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256,
     KDF_ALG_PBKDF2_HMAC_SHA1_C4096_S256,
     KDF_ALG_PBKDF2_HMAC_SHA1_C1024_S128
@@ -43,7 +45,7 @@ struct kdf *kdf_alloc(kdf_algorithm alg);
 /*
  * Computes a derived key. Returns 0 on success, <0 on error (in order of
  * precedence from highest to lowest: KDF_ERROR_PASSWORD_TOO_LONG,
- * KDF_ERROR_DERIVED_KEY_TOO_LONG).
+ * KDF_ERROR_DERIVED_KEY_TOO_LONG/SHORT).
  */
 int kdf_derive(struct kdf *fn, byte *derived_key, size_t derived_key_len,
                const byte *password, size_t password_len, const byte *salt);
