@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd July 21, 2025
+.Dd October 27, 2025
 .Dt PISCES 1
 .Os
 .Sh NAME
@@ -216,7 +216,7 @@ Because the length of
 .Sy C
 is indeterminate, PKCS #7 padding is used this time in
 .Sy E .
-.Sh VERSION 5 SPECIFICATIONS
+.Sh VERSION 6 SPECIFICATIONS
 .Bl -tag -width Ds
 .It Sy E
 256-bit AES in CBC mode
@@ -224,7 +224,7 @@ is indeterminate, PKCS #7 padding is used this time in
 .It Sy H
 SHA3-512
 .It Sy KDF
-PBKDF2, using HMAC-SHA3-512 as the generator, with 16384 iterations
+Argon2id using 6 GiB memory, 4 lanes, 1 pass, and a 128-bit salt
 .El
 .Pp
 As such,
@@ -237,7 +237,30 @@ is 256 bits,
 .Sy R
 is 512 bits, and
 .Sy S
-is 256 bits.
+is 128 bits.
+.Sh VERSION 5 SPECIFICATIONS
+.Bl -tag -width Ds
+.It Sy E
+256-bit AES in CBC mode
+.Tp
+.It Sy H
+SHA3-512
+.It Sy KDF
+PBKDF2, using HMAC-SHA3-512 as the generator, with 16384 iterations and a
+256-bit salt
+.El
+.Pp
+As such,
+.Sy I
+and
+.Sy J
+were 128 bits each,
+.Sy K
+was 256 bits,
+.Sy R
+was 512 bits, and
+.Sy S
+was 256 bits.
 .Sh VERSION 4 SPECIFICATIONS
 .Bl -tag -width Ds
 .It Sy E
@@ -245,7 +268,8 @@ is 256 bits.
 .It Sy H
 SHA1
 .It Sy KDF
-PBKDF2, using HMAC-SHA1 as the generator, with 4096 iterations
+PBKDF2, using HMAC-SHA1 as the generator, with 4096 iterations and a 256-bit
+salt
 .El
 .Pp
 As such,
@@ -266,7 +290,8 @@ was 256 bits.
 .It Sy H
 SHA1
 .It Sy KDF
-PBKDF2, using HMAC-SHA1 as the generator, with 1024 iterations
+PBKDF2, using HMAC-SHA1 as the generator, with 1024 iterations and a 128-bit
+salt
 .El
 .Pp
 As such,
@@ -292,9 +317,9 @@ changed.
 .Pp
 While the current
 .Nm
-utility will only produce version 5 encrypted files, it is still able to
+utility will only produce version 6 encrypted files, it is still able to
 decrypt files produced by every version of
 .Nm
-that has been publicly released, specifically versions 3, 4, and 5.
+that has been publicly released, specifically versions 3, 4, 5, and 6.
 .Sh AUTHOR
 .An Ryan Vogt Aq Mt rvogt.ca@gmail.com

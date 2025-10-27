@@ -182,10 +182,10 @@ In Pisces version 6,
 
 - E is 256-bit AES in CBC mode;
 - H is SHA3-512; and,
-- KDF is [FIXME]
+- KDF is Argon2id using 6 GiB memory, 4 lanes, 1 pass, and a 128-bit salt
 
-Because of these choices, R is 512 bits in length; I and J are 128 bits in
-length; and, S is 128 bits in length.
+As such, I and J are 128 bits each, K is 256 bits, R is 512 bits, and S is
+128 bits.
 
 -------------------------------------------------------------------------------
 
@@ -212,8 +212,8 @@ In Pisces version 5,
 - H was SHA3-512;
 - KDF was PBKDF2, using HMAC-SHA3-512 as the generator, with 16384 iterations
   and a 256-bit salt; and,
-- R was 512 bits in length; I and J were 128 bits in length; and, S was 256
-  bits in length.
+- I and J were 128 bits each, K was 256 bits, R was 512 bits, and, S was
+  256 bits.
 
 In Pisces version 4,
 
@@ -221,8 +221,8 @@ In Pisces version 4,
 - H was SHA1;
 - KDF was PBKDF2, using HMAC-SHA1 as the generator, with 4096 iterations and a
   256-bit salt; and,
-- R was 352 bits in length; I and J were 128 bits in length; and, S was 256
-  bits in length.
+- I and J were 128 bits each, K was 256 bits, R was 352 bits, and S was
+  256 bits.
 
 In Pisces version 3,
 
@@ -230,28 +230,32 @@ In Pisces version 3,
 - H was SHA1;
 - KDF was PBKDF2, using HMAC-SHA1 as the generator, with 1024 iterations and a
   128-bit salt; and,
-- R was 224 bits in length; and, I, J, and S were all 128 bits in length.
+- I and J were 128 bits each, K was 128 bits, R was 224 bits, and S was 128
+  bits.
 
 -------------------------------------------------------------------------------
 
 8. Additional Build Targets
 
-Some of the code in aes_ecb.c and sha3.c has been algorithmically generated. To
-build the code that generates the code in those two files, run:
+Some of the code in aes_ecb.c, argon2.c, blake2b.c, pi.h, and sha3.c has been
+algorithmically generated. To generate the code in those files, first run:
 
     $ make generate
 
-To generate the AES and SHA3 code, run:
+Then run:
 
     $ ./bin/generate_aes
+    $ ./bin/generate_argon2
+    $ ./bin/generate_blake2b
+    $ ./bin/generate_pi
     $ ./bin/generate_sha3
 
-Additionally, there are a series of tests to ensure that Pisces' AES-ECB,
-AES-CBC, SHA1, SHA3, HMAC, and PBKDF2 implementations are running correctly.
+There are a series of tests to ensure that Pisces' AES-ECB, AES-CBC, Argon2,
+BLAKE2b, SHA1, SHA3, HMAC, and PBKDF2 implementations are running correctly.
 They are run automatically by the default make target, but can be run
 explicitly using:
 
-    $ make test
+    $ make clean test
 
 By default, Pisces runs multithreaded. Pisces can instead be built to run
 single-threaded, to improve performance on single-processor machines or to
@@ -264,9 +268,9 @@ warnings as errors, by setting the BUILD variable to strict:
 
     $ make BUILD=strict clean all
 
-Finally, any build target can be built in debug mode, to contain symbols for a
-C debugger and to produce more verbose output, by setting the BUILD variable to
-debug:
+Alternately, any build target can be built in debug mode, to contain symbols
+for a C debugger and to produce more verbose output, by setting the BUILD
+variable to debug:
 
     $ make BUILD=debug clean all
 
