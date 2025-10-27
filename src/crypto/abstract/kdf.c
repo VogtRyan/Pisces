@@ -170,6 +170,9 @@ static int run_argon2(byte *derived_key, size_t derived_key_len,
                            password_len, salt, salt_len);
 
     switch (a2_ret) {
+    case 0:
+        ret = 0;
+        break;
     case ARGON2_ERROR_DERIVED_KEY_TOO_LONG:
         ret = KDF_ERROR_DERIVED_KEY_TOO_LONG;
         break;
