@@ -28,7 +28,7 @@ struct specification {
     kdf_algorithm kdf_alg;
 };
 
-#define SPECIFICATION_VERSION_LATEST (5U)
+#define SPECIFICATION_VERSION_LATEST (6U)
 
 /*
  * Sets the algorithms in the Pisces specification to match those used by the

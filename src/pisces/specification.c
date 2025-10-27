@@ -38,6 +38,11 @@ int specification_init(struct specification *spec, unsigned int version)
         spec->cipher_alg = CIPHER_ALG_AES_256_CBC;
         spec->kdf_alg = KDF_ALG_PBKDF2_HMAC_SHA3_512_C16384_S256;
         break;
+    case 6:
+        spec->chf_alg = CHF_ALG_SHA3_512;
+        spec->cipher_alg = CIPHER_ALG_AES_256_CBC;
+        spec->kdf_alg = KDF_ALG_ARGON2_ID_M6291456_P4_T1_S128;
+        break;
     default:
         return -1;
     }
